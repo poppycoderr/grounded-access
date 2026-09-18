@@ -1,0 +1,10 @@
+tenant: northstar
+documents:
+  - {key: hr-volunteer-policy, title: Volunteer Time Off Policy, file: corpus/northstar/hr-volunteer-policy.md}
+  - {key: hr-travel-policy, title: Business Travel and Expenses, file: corpus/northstar/hr-travel-policy.md}
+  - {key: eng-billing-db-failover, title: "Runbook: Billing Database Failover", file: corpus/northstar/eng-billing-db-failover.md}
+  - {key: eng-incident-2026-03-billing, title: "Postmortem: Duplicate Invoices on 12 March 2026", file: corpus/northstar/eng-incident-2026-03-billing.md}
+  - {key: eng-api-rate-limits, title: Public API Rate Limits, file: corpus/northstar/eng-api-rate-limits.md}
+  - {key: support-login-troubleshooting, title: Troubleshooting Customer Login Problems, file: corpus/northstar/support-login-troubleshooting.md}
+  - {key: sales-product-overview, title: Northstar Cloud Product Overview, file: corpus/northstar/sales-product-overview.md}
+  - {key: security-data-classification, title: Data Classification Standard, file: corpus/northstar/security-data-classification.md}
