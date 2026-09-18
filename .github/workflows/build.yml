@@ -45,11 +45,43 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  model-service:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/model-service
+    env:
+      GA_MODEL_CACHE_DIR: ${{ github.workspace }}/.model-cache
+      GA_RUN_MODEL_TESTS: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Cache model weights
+        uses: actions/cache@v4
+        with:
+          path: .model-cache
+          key: model-weights-${{ hashFiles('apps/model-service/src/model_service/settings.py') }}
+
+      - name: Lint
+        run: uv run ruff check . && uv run ruff format --check .
+
+      - name: Download model
+        run: uv run python -m model_service.download
+
+      - name: Test
+        run: uv run pytest
+
   # Branch protection requires a single check named build; it summarizes every job above
   build:
     runs-on: ubuntu-latest
-    needs: [ control-plane ]
+    needs: [ control-plane, model-service ]
     if: always()
     steps:
       - name: Require every job to pass
-        run: test "${{ needs.control-plane.result }}" = "success"
+        run: |
+          test "${{ needs.control-plane.result }}" = "success"
+          test "${{ needs.model-service.result }}" = "success"
