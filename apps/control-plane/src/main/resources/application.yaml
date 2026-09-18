@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: grounded-access
+  datasource:
+    url: ${GA_DB_URL:jdbc:postgresql://localhost:5432/grounded_access}
+    username: ${GA_DB_USER:grounded_access}
+    password: ${GA_DB_PASSWORD:grounded_access}
+  flyway:
+    locations: classpath:db/migration
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
