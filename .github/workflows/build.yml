@@ -75,13 +75,67 @@ jobs:
       - name: Test
         run: uv run pytest
 
+  evaluation:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/evaluation
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Lint
+        run: uv run ruff check . && uv run ruff format --check .
+
+      - name: Test
+        run: uv run pytest
+
+      - name: Validate dataset
+        run: uv run ga-eval validate
+
+  # Starts the whole stack, loads the demo corpus and runs the retrieval evaluation; any unauthorized result fails the job
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Start stack
+        run: docker compose up -d --build --wait
+
+      - name: Load demo corpus
+        run: ./scripts/load-demo
+
+      - name: Evaluate retrieval and enforce the security gate
+        run: ./scripts/benchmark --out results/ci
+
+      - name: Upload evaluation results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaluation-results
+          path: results/ci
+          if-no-files-found: ignore
+
+      - name: Show service logs
+        if: failure()
+        run: docker compose logs --no-color --tail 200
+
   # Branch protection requires a single check named build; it summarizes every job above
   build:
     runs-on: ubuntu-latest
-    needs: [ control-plane, model-service ]
+    needs: [ control-plane, model-service, evaluation, smoke ]
     if: always()
     steps:
       - name: Require every job to pass
         run: |
           test "${{ needs.control-plane.result }}" = "success"
           test "${{ needs.model-service.result }}" = "success"
+          test "${{ needs.evaluation.result }}" = "success"
+          test "${{ needs.smoke.result }}" = "success"
