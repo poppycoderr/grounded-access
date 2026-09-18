@@ -1,0 +1,38 @@
+[project]
+name = "ga-eval"
+version = "0.1.0"
+description = "Evaluation CLI for Grounded Access: dataset validation, retrieval metrics and security gate"
+license = "Apache-2.0"
+authors = [
+    { name = "Elijah Du", email = "poppycoder@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28.1",
+    "pydantic>=2.13.5",
+    "pyjwt[crypto]>=2.14.0",
+    "pyyaml>=6.0.3",
+]
+
+[project.scripts]
+ga-eval = "ga_eval.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.12.13,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 150
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.16.8",
+]
