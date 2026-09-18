@@ -1,0 +1,17 @@
+# Human-labelled expected visible documents per principal. The security gate compares retrieved candidates against this file,
+# never against the policy compiler. Milestone M0 enforces tenant isolation only; M2 narrows these sets with access labels.
+principals:
+  alice-engineer: &northstar
+    - hr-volunteer-policy
+    - hr-travel-policy
+    - eng-billing-db-failover
+    - eng-incident-2026-03-billing
+    - eng-api-rate-limits
+    - support-login-troubleshooting
+    - sales-product-overview
+    - security-data-classification
+  bob-support: *northstar
+  carol-manager: *northstar
+  mallory-outsider:
+    - volunteer-handbook
+    - it-faq
