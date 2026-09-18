@@ -1,0 +1,37 @@
+# Fictional demo identities. Attributes become JWT claims via scripts/mint-token.py.
+# Walking skeleton: only tenant_id is enforced; the other attributes take effect with the full policy in milestone M2.
+principals:
+  alice-engineer:
+    tenant_id: northstar
+    department: engineering
+    projects: [atlas]
+    clearance: internal
+    region: EU
+    scope: query
+  bob-support:
+    tenant_id: northstar
+    department: support
+    projects: []
+    clearance: internal
+    region: US
+    scope: query
+  carol-manager:
+    tenant_id: northstar
+    department: engineering
+    projects: [atlas, borealis]
+    clearance: confidential
+    region: EU
+    scope: query
+  mallory-outsider:
+    tenant_id: external
+    department: sales
+    projects: []
+    clearance: public
+    region: US
+    scope: query
+  northstar-admin:
+    tenant_id: northstar
+    scope: admin
+  external-admin:
+    tenant_id: external
+    scope: admin

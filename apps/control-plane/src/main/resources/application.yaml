@@ -7,6 +7,23 @@ spring:
     password: ${GA_DB_PASSWORD:grounded_access}
   flyway:
     locations: classpath:db/migration
+  mvc:
+    problemdetails:
+      enabled: true
+
+ga:
+  identity:
+    issuer: ${GA_JWT_ISSUER:grounded-access-demo}
+    audience: ${GA_JWT_AUDIENCE:grounded-access}
+    public-key: ${GA_JWT_PUBLIC_KEY:classpath:demo-keys/jwt-public.pem}
+  model-service:
+    base-url: ${GA_MODEL_SERVICE_URL:http://localhost:8000}
+    embedding-model: ${GA_EMBEDDING_MODEL:BAAI/bge-small-en-v1.5}
+    batch-size: 64
+    connect-timeout: 2s
+    read-timeout: 30s
+  corpus:
+    chunk-max-words: 180
 
 management:
   endpoints:
