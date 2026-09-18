@@ -22,5 +22,20 @@ services:
     ports:
       - "8000:8000"
 
+  control-plane:
+    build:
+      context: .
+      dockerfile: apps/control-plane/Dockerfile
+    environment:
+      GA_DB_URL: jdbc:postgresql://postgres:5432/grounded_access
+      GA_MODEL_SERVICE_URL: http://model-service:8000
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      model-service:
+        condition: service_healthy
+
 volumes:
   postgres-data:
