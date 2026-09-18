@@ -1,0 +1,21 @@
+name: grounded-access
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: grounded_access
+      POSTGRES_USER: grounded_access
+      POSTGRES_PASSWORD: grounded_access
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U grounded_access -d grounded_access"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  postgres-data:
