@@ -1,0 +1,4 @@
+tenant: external
+documents:
+  - {key: volunteer-handbook, title: Community Volunteering Handbook, file: corpus/external/volunteer-handbook.md}
+  - {key: it-faq, title: IT Frequently Asked Questions, file: corpus/external/it-faq.md}
