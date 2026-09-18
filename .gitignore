@@ -1,0 +1,31 @@
+# Java / Maven
+target/
+*.class
+*.log
+hs_err_pid*
+replay_pid*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+
+# Local environment
+.env
+*.local.*
+
+# Evaluation outputs (published reports live under benchmarks/reports)
+results/
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# Agent working docs (reviews, scratch designs, visualizations)
+.agentdocs/
