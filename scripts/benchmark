@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Evaluate every retrieval strategy on data/eval and enforce the security gate. Results go to results/<timestamp>/.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+exec uv run --project packages/evaluation ga-eval run "$@"
