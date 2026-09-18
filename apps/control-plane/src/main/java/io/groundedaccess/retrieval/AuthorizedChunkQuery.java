@@ -26,6 +26,9 @@ public class AuthorizedChunkQuery {
             where (%s)
             """;
 
+    // Ties are broken by stable keys, never by the random chunk id, so repeated evaluation runs rank identically
+    private static final String TIE_BREAK = "d.external_key, v.version_no, c.ordinal";
+
     private final JdbcClient jdbc;
 
     public AuthorizedChunkQuery(JdbcClient jdbc) {
@@ -39,7 +42,7 @@ public class AuthorizedChunkQuery {
     public List<RetrievedChunk> sparse(String query, AuthorizationPredicate predicate, int limit) {
         String tsquery = "cast(replace(plainto_tsquery('english', :query)::text, '&', '|') as tsquery)";
         String sql = SELECT.formatted("ts_rank_cd(c.content_tsv, " + tsquery + ")", predicate.sql())
-                + " and c.content_tsv @@ " + tsquery + " order by score desc, c.id limit :limit";
+                + " and c.content_tsv @@ " + tsquery + " order by score desc, " + TIE_BREAK + " limit :limit";
         return run(sql, predicate, RetrievalChannel.SPARSE, limit, "query", query);
     }
 
@@ -48,7 +51,7 @@ public class AuthorizedChunkQuery {
      */
     public List<RetrievedChunk> dense(float[] queryVector, AuthorizationPredicate predicate, int limit) {
         String distance = "(c.embedding <=> cast(:vector as vector))";
-        String sql = SELECT.formatted("1 - " + distance, predicate.sql()) + " and c.embedding is not null order by " + distance + ", c.id limit :limit";
+        String sql = SELECT.formatted("1 - " + distance, predicate.sql()) + " and c.embedding is not null order by " + distance + ", " + TIE_BREAK + " limit :limit";
         return run(sql, predicate, RetrievalChannel.DENSE, limit, "vector", Vectors.toLiteral(queryVector));
     }
 
