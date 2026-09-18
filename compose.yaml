@@ -17,5 +17,10 @@ services:
       timeout: 3s
       retries: 20
 
+  model-service:
+    build: apps/model-service
+    ports:
+      - "8000:8000"
+
 volumes:
   postgres-data:
