@@ -19,6 +19,8 @@ uv run --directory packages/evaluation pytest       # evaluation CLI
 docker compose up -d                                # PostgreSQL + model service for local runs
 ```
 
+NullAway only runs on classes the compiler actually recompiles, so run `mvn -B -ntp clean verify` before pushing; an incremental build can miss a nullness error that CI and the Docker image build will catch.
+
 Integration tests use Testcontainers and need a running Docker daemon. Do not skip, disable or weaken a failing check just to get a green build.
 
 ## Layout
