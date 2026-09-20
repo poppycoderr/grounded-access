@@ -55,6 +55,7 @@ Rules:
 - `hard_negative_documents` are visible or out-of-scope documents that look relevant but are wrong. These cases feed the quality metrics.
 - `must_abstain: true` cases have empty `evidence`.
 - `visibility.yaml` is labelled by hand, separately from the policy compiler. The security gate compares against it; it never compares the compiler with itself.
+- **Gate granularity.** Today the gate compares returned *documents* against the visible set, which covers cross-tenant and cross-principal leakage. It does not yet catch a result from the wrong document version or from a chunk that is restricted inside a visible document. M2 extends the labels and the gate to version and chunk granularity, and reports authorization failures separately from scope failures (region, validity).
 
 ### Size and composition (v1 target)
 

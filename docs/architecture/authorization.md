@@ -4,13 +4,19 @@ Status: draft for v0.1. The decision behind this design is in [ADR-0003](../adr/
 
 ## 1. Invariants
 
+These are the properties the design commits to. The table after them says which part is verified today, because M0 enforces tenant isolation only.
+
 **Security invariant.** A chunk row that the principal may not access never leaves the SQL boundary. It never reaches application memory, the reranker, the prompt, logs, traces, metrics, caches or API responses.
 
 **Recall invariant.** Adding the authorization predicate must not make ranking quality on the authorized subset worse than an exact search over that subset would give. v0.1 uses exact vector search, so this holds by construction. Any later approximate index has to demonstrate it holds (ADR-0002).
 
 **Existence invariant.** From outside the system, "you may not see this" and "this does not exist" look the same.
 
-The tests and the benchmark check these three properties separately.
+| Invariant | Verified today | Verified by | Gap and milestone |
+|---|---|---|---|
+| Security | Tenant level | `RetrievalIT` cross-tenant cases on both channels; an architecture test that only `AuthorizedChunkQuery` reads chunks; the evaluation security gate against hand-labelled visibility | Label-level decisions and a gate at version and chunk granularity (M2) |
+| Recall | By construction | No ANN index exists, so every authorized row is a candidate | A measured comparison of exact search against a filtered HNSW index, once an index exists (post-v0.1, ADR-0002) |
+| Existence | Partially | Retrieval returns no filtered counts and no metadata for rows the predicate excluded | A document read endpoint returning 404, an answering path with a uniform `no_answer`, and timing side channels (M2–M3, threat model) |
 
 ## 2. Two kinds of filters
 
