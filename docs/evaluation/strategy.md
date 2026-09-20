@@ -31,7 +31,6 @@ data/
   "split": "test",
   "query": "How many paid volunteer days do EU employees receive?",
   "principal": "alice-engineer",
-  "as_of": "2026-06-01",
   "evidence": [
     {
       "document": "hr-volunteer-policy",
@@ -54,6 +53,7 @@ Rules:
 - `unauthorized_documents` lists documents the principal may not see and that the query is designed to tempt. These cases feed the security gate.
 - `hard_negative_documents` are visible or out-of-scope documents that look relevant but are wrong. These cases feed the quality metrics.
 - `must_abstain: true` cases have empty `evidence`.
+- **No time field yet.** A case cannot ask "as of" a date until open question Q11 settles whether that selects a historical version or only filters the current one. The field is added to this schema, the API and the oracle in the same change, never to the dataset alone.
 - `visibility.yaml` is labelled by hand, separately from the policy compiler. The security gate compares against it; it never compares the compiler with itself.
 - **Gate granularity.** Today the gate compares returned *documents* against the visible set, which covers cross-tenant and cross-principal leakage. It does not yet catch a result from the wrong document version or from a chunk that is restricted inside a visible document. M2 extends the labels and the gate to version and chunk granularity, and reports authorization failures separately from scope failures (region, validity).
 

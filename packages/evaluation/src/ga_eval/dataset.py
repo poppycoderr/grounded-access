@@ -24,13 +24,14 @@ class Evidence(BaseModel):
 
 
 class Case(BaseModel):
+    """Time semantics (a historical `as_of`) are deliberately absent until Q11 decides what they mean end to end."""
+
     model_config = ConfigDict(extra="forbid")
 
     id: str
     split: Literal["dev", "test"]
     query: str
     principal: str
-    as_of: str
     evidence: list[Evidence]
     expected_facts: list[str]
     must_abstain: bool
