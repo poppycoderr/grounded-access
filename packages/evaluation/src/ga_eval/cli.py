@@ -23,6 +23,11 @@ def main(argv: list[str] | None = None) -> int:
     run_parser.add_argument("--split", action="append", choices=["dev", "test"], help="repeatable; default: all")
     run_parser.add_argument("--k", type=int, default=10)
     run_parser.add_argument("--out", type=Path, help="output directory (default: results/<timestamp>)")
+    search_parser = commands.add_parser("search", help="search as a demo principal and print the ranked results")
+    search_parser.add_argument("principal")
+    search_parser.add_argument("query")
+    search_parser.add_argument("--strategy", choices=["sparse-only", "dense-only"], default="dense-only")
+    search_parser.add_argument("--k", type=int, default=3)
     mint_parser = commands.add_parser("mint-token", help="print a demo token for a principal")
     mint_parser.add_argument("principal")
     mint_parser.add_argument("--scope")
@@ -38,6 +43,8 @@ def main(argv: list[str] | None = None) -> int:
     client.wait_until_ready()
     if args.command == "load":
         return _load(dataset, client)
+    if args.command == "search":
+        return _search(dataset, client, args.principal, args.query, args.strategy, args.k)
     if _validate(dataset) != 0:
         return 1
     output = runner.run(dataset, client, args.strategy or ["sparse-only", "dense-only"], args.k, set(args.split or ["dev", "test"]))
@@ -67,6 +74,19 @@ def _load(dataset: ds.Dataset, client: ApiClient) -> int:
         documents = [{"key": d.key, "title": d.title, "content": (dataset.root / d.file).read_text(encoding="utf-8")} for d in manifest.documents]
         result = client.ingest(token, documents)
         print(f"{manifest.tenant}: {result}")
+    return 0
+
+
+def _search(dataset: ds.Dataset, client: ApiClient, principal: str, query: str, strategy: str, k: int) -> int:
+    token = tokens.mint(dataset.root, principal, dataset.principals[principal])
+    response = client.search(token, query, strategy, k)
+    tenant = dataset.principals[principal]["tenant_id"]
+    print(f"{principal} (tenant {tenant}) · {strategy} · policy {response['policyVersion']}")
+    for r in response["results"]:
+        print(f"  {r['rank']}. {r['documentKey']} › {r['sectionPath']}")
+        print(f"     {r['text'].splitlines()[0][:110]}")
+    if not response["results"]:
+        print("  (no results)")
     return 0
 
 

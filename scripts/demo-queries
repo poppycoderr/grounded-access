@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Ask the same questions as different demo identities to show tenant isolation and retrieval quality.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+ga() { uv run -q --project packages/evaluation ga-eval "$@"; }
+
+echo "== Same question, two tenants =="
+ga search alice-engineer "How many paid volunteer days do EU employees receive?"
+ga search mallory-outsider "How many paid volunteer days do EU employees receive?"
+
+echo
+echo "== A paraphrase with no shared keywords =="
+ga search alice-engineer "What is the daily food budget for a business trip to Germany?" --strategy sparse-only
+ga search alice-engineer "What is the daily food budget for a business trip to Germany?" --strategy dense-only
