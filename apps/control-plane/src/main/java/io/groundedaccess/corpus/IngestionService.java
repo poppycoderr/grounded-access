@@ -9,7 +9,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -17,7 +16,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Ingests documents into one tenant. A document whose normalized content is unchanged is skipped; otherwise it gets a new version. Embedding
- * happens before the transaction so no database connection is held during model calls.
+ * happens before the transaction so no database connection is held during model calls, and the write decision is repeated under a document lock so
+ * concurrent ingestions of the same key stay consistent.
  */
 @Service
 public class IngestionService {
@@ -47,23 +47,44 @@ public class IngestionService {
         for (SourceDocument source : documents) {
             String normalized = MarkdownChunker.normalize(source.content());
             String sha = sha256(normalized);
-            Optional<CorpusWriter.ActiveVersion> active = writer.findActive(tenantId, source.key());
-            if (active.isPresent() && active.get().contentSha256().equals(sha)) {
+            if (writer.findActive(tenantId, source.key()).filter(active -> active.contentSha256().equals(sha)).isPresent()) {
                 unchanged++;
                 continue;
             }
             List<ChunkDraft> chunks = chunker.chunk(normalized);
             Embeddings vectors = embeddings.embed(chunks.stream().map(ChunkDraft::content).toList(), InputType.PASSAGE);
             var version = new CorpusWriter.NewVersion(tenantId, source, sha, chunks, vectors.vectors(), vectors.modelId());
-            transactions.executeWithoutResult(status -> writer.writeVersion(version, active.orElse(null)));
+            Outcome outcome = transactions.execute(status -> write(version, sha));
+            if (outcome == Outcome.UNCHANGED) {
+                unchanged++;
+                continue;
+            }
             chunkCount += chunks.size();
-            if (active.isPresent()) {
+            if (outcome == Outcome.UPDATED) {
                 updated++;
             } else {
                 created++;
             }
         }
         return new IngestionResult(created, updated, unchanged, chunkCount);
+    }
+
+    /**
+     * Runs inside the write transaction: the pre-check above is only an optimization, so the decision is taken again under the document lock.
+     */
+    private Outcome write(CorpusWriter.NewVersion version, String sha) {
+        CorpusWriter.LockedDocument document = writer.lockDocument(version.tenantId(), version.source().key());
+        if (document.alreadyHas(sha)) {
+            return Outcome.UNCHANGED;
+        }
+        writer.writeVersion(version, document);
+        return document.versionNo() == 0 ? Outcome.CREATED : Outcome.UPDATED;
+    }
+
+    private enum Outcome {
+        CREATED,
+        UPDATED,
+        UNCHANGED
     }
 
     private static String sha256(String text) {
