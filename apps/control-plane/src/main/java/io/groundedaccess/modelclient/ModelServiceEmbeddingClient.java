@@ -33,6 +33,11 @@ public class ModelServiceEmbeddingClient implements EmbeddingClient {
     }
 
     @Override
+    public String modelName() {
+        return properties.embeddingModel();
+    }
+
+    @Override
     public Embeddings embed(List<String> texts, InputType inputType) {
         List<float[]> vectors = new ArrayList<>(texts.size());
         String model = properties.embeddingModel();
