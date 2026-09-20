@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1010 600" width="1010" height="600"
+     role="img" aria-labelledby="ttl dsc" style="max-width:100%;height:auto">
+  <title id="ttl">Authorization is a retrieval concern, not a post-filter</title>
+  <desc id="dsc">Filtering after the index leaks rows into the application and silently costs recall. Grounded Access compiles the predicate into the query.</desc>
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk" d="M0 0 L10 5 L0 10 z"/></marker>
+    <marker id="ar-s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-s" d="M0 0 L10 5 L0 10 z"/></marker>
+  </defs>
+  <style>
+    text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Inter,Roboto,sans-serif}
+    .bg{fill:#FBFCFE}
+    .title{font-size:26px;font-weight:700;fill:#0F172A;letter-spacing:-.2px}
+    .sub{font-size:13.5px;font-weight:400;fill:#64748B}
+    .kicker{font-size:11px;font-weight:700;fill:#94A3B8;letter-spacing:1.4px}
+    .lbl{font-size:15px;font-weight:650;fill:#0F172A}
+    .lbl-sm{font-size:13px;font-weight:650;fill:#0F172A}
+    .txt{font-size:12px;font-weight:400;fill:#64748B}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;font-weight:500;fill:#334155}
+    .edgelbl{font-size:11px;font-weight:500;fill:#94A3B8}
+    .card{fill:#FFFFFF;stroke:#E2E8F0;stroke-width:1.25}
+    .group{fill:#F8FAFC;stroke:#E2E8F0;stroke-width:1.25}
+    .blue{fill:#EFF6FF;stroke:#BFDBFE;stroke-width:1.25}
+    .teal{fill:#F0FDFA;stroke:#99F6E4;stroke-width:1.25}
+    .violet{fill:#F5F3FF;stroke:#DDD6FE;stroke-width:1.25}
+    .amber{fill:#FFFBEB;stroke:#FDE68A;stroke-width:1.25}
+    .rose{fill:#FFF1F2;stroke:#FECDD3;stroke-width:1.25}
+    .planned{fill:#FFFFFF;stroke:#CBD5E1;stroke-width:1.25;stroke-dasharray:5 4}
+    .edge{stroke:#94A3B8;stroke-width:1.5;fill:none}
+    .edge-strong{stroke:#6366F1;stroke-width:2;fill:none}
+    .mk{fill:#94A3B8}
+    .mk-s{fill:#6366F1}
+    .pill{fill:#EEF2FF;stroke:#C7D2FE;stroke-width:1}
+    .pill-ok{fill:#ECFDF5;stroke:#A7F3D0;stroke-width:1}
+    .pill-bad{fill:#FFF1F2;stroke:#FECDD3;stroke-width:1}
+    .pill-txt{font-size:11px;font-weight:650;fill:#4338CA}
+    .pill-txt-ok{font-size:11px;font-weight:650;fill:#047857}
+    .pill-txt-bad{font-size:11px;font-weight:650;fill:#BE123C}
+  </style>
+  <rect class="bg" x="0" y="0" width="1010" height="600" rx="16"/>
+  <text class="kicker" x="40" y="44">GROUNDED ACCESS · v0.1</text>
+  <text class="title" x="40" y="74">Authorization is a retrieval concern, not a post-filter</text>
+  <text class="sub" x="40" y="98">Filtering after the index leaks rows into the application and silently costs recall. Grounded Access compiles the predicate into the query.</text>
+  <rect class="rose" x="40" y="132" width="452" height="392" rx="14"/>
+  <text class="lbl-sm" x="60" y="162">Typical RAG · filter after retrieval</text>
+  <rect class="pill-bad" x="60" y="176" width="116" height="22" rx="11"/>
+  <text class="pill-txt-bad" x="118.0" y="191" text-anchor="middle">leak surface</text>
+  <rect class="card" x="60" y="210" width="412" height="62" rx="11"/>
+  <text class="lbl-sm" x="76" y="235">top-k from the index</text>
+  <text class="txt" x="76" y="256">no principal in the query</text>
+  <path class="edge" d="M266 272 L266 302" marker-end="url(#ar)"/>
+  <rect class="card" x="60" y="288" width="412" height="62" rx="11"/>
+  <text class="lbl-sm" x="76" y="313">rows in application memory</text>
+  <text class="txt" x="76" y="334">reranker · prompt · logs · traces</text>
+  <path class="edge" d="M266 350 L266 380" marker-end="url(#ar)"/>
+  <rect class="card" x="60" y="366" width="412" height="62" rx="11"/>
+  <text class="lbl-sm" x="76" y="391">filter in application code</text>
+  <text class="txt" x="76" y="412">drop what the user may not see</text>
+  <path class="edge" d="M266 428 L266 458" marker-end="url(#ar)"/>
+  <rect class="pill-bad" x="60" y="444" width="412" height="62" rx="11"/>
+  <text class="lbl-sm" x="76" y="469">3 of 10 candidates left</text>
+  <text class="txt" x="76" y="490">recall loss the user never sees</text>
+  <rect class="teal" x="518" y="132" width="452" height="392" rx="14"/>
+  <text class="lbl-sm" x="538" y="162">Grounded Access · predicate in the query</text>
+  <rect class="pill-ok" x="538" y="176" width="130" height="22" rx="11"/>
+  <text class="pill-txt-ok" x="603.0" y="191" text-anchor="middle">no leak surface</text>
+  <rect class="card" x="538" y="210" width="412" height="62" rx="11"/>
+  <text class="lbl-sm" x="554" y="235">principal → compiled predicate</text>
+  <text class="txt" x="554" y="256">from the verified token only</text>
+  <path class="edge-strong" d="M744 272 L744 302" marker-end="url(#ar-s)"/>
+  <rect class="card" x="538" y="288" width="412" height="62" rx="11"/>
+  <text class="lbl-sm" x="554" y="313">FTS and vector both carry it</text>
+  <text class="txt" x="554" y="334">same predicate, one policy version</text>
+  <path class="edge-strong" d="M744 350 L744 380" marker-end="url(#ar-s)"/>
+  <rect class="card" x="538" y="366" width="412" height="62" rx="11"/>
+  <text class="lbl-sm" x="554" y="391">only authorized rows leave SQL</text>
+  <text class="txt" x="554" y="412">nothing to filter afterwards</text>
+  <path class="edge-strong" d="M744 428 L744 458" marker-end="url(#ar-s)"/>
+  <rect class="pill-ok" x="538" y="444" width="412" height="62" rx="11"/>
+  <text class="lbl-sm" x="554" y="469">10 of 10 candidates authorized</text>
+  <text class="txt" x="554" y="490">no leak, no recall loss</text>
+  <text class="txt" x="40" y="552">Enforced by cross-tenant integration tests on both channels and an architecture test: only AuthorizedChunkQuery may read chunks.</text>
+  <text class="txt" x="40" y="570">Every pull request runs the evaluation security gate, which fails the build on a single unauthorized result.</text>
+</svg>

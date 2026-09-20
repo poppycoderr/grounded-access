@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1050 570" width="1050" height="570"
+     role="img" aria-labelledby="ttl dsc" style="max-width:100%;height:auto">
+  <title id="ttl">同一个编译后的谓词约束两条检索通道</title>
+  <desc id="dsc">Java 负责身份、授权与检索；Python 负责模型计算；评测 CLI 走同一套公开 API。</desc>
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk" d="M0 0 L10 5 L0 10 z"/></marker>
+    <marker id="ar-s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-s" d="M0 0 L10 5 L0 10 z"/></marker>
+  </defs>
+  <style>
+    text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Inter,Roboto,sans-serif}
+    .bg{fill:#FBFCFE}
+    .title{font-size:26px;font-weight:700;fill:#0F172A;letter-spacing:-.2px}
+    .sub{font-size:13.5px;font-weight:400;fill:#64748B}
+    .kicker{font-size:11px;font-weight:700;fill:#94A3B8;letter-spacing:1.4px}
+    .lbl{font-size:15px;font-weight:650;fill:#0F172A}
+    .lbl-sm{font-size:13px;font-weight:650;fill:#0F172A}
+    .txt{font-size:12px;font-weight:400;fill:#64748B}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;font-weight:500;fill:#334155}
+    .edgelbl{font-size:11px;font-weight:500;fill:#94A3B8}
+    .card{fill:#FFFFFF;stroke:#E2E8F0;stroke-width:1.25}
+    .group{fill:#F8FAFC;stroke:#E2E8F0;stroke-width:1.25}
+    .blue{fill:#EFF6FF;stroke:#BFDBFE;stroke-width:1.25}
+    .teal{fill:#F0FDFA;stroke:#99F6E4;stroke-width:1.25}
+    .violet{fill:#F5F3FF;stroke:#DDD6FE;stroke-width:1.25}
+    .amber{fill:#FFFBEB;stroke:#FDE68A;stroke-width:1.25}
+    .rose{fill:#FFF1F2;stroke:#FECDD3;stroke-width:1.25}
+    .planned{fill:#FFFFFF;stroke:#CBD5E1;stroke-width:1.25;stroke-dasharray:5 4}
+    .edge{stroke:#94A3B8;stroke-width:1.5;fill:none}
+    .edge-strong{stroke:#6366F1;stroke-width:2;fill:none}
+    .mk{fill:#94A3B8}
+    .mk-s{fill:#6366F1}
+    .pill{fill:#EEF2FF;stroke:#C7D2FE;stroke-width:1}
+    .pill-ok{fill:#ECFDF5;stroke:#A7F3D0;stroke-width:1}
+    .pill-bad{fill:#FFF1F2;stroke:#FECDD3;stroke-width:1}
+    .pill-txt{font-size:11px;font-weight:650;fill:#4338CA}
+    .pill-txt-ok{font-size:11px;font-weight:650;fill:#047857}
+    .pill-txt-bad{font-size:11px;font-weight:650;fill:#BE123C}
+  </style>
+  <rect class="bg" x="0" y="0" width="1050" height="570" rx="16"/>
+  <text class="kicker" x="40" y="44">GROUNDED ACCESS · v0.1</text>
+  <text class="title" x="40" y="74">同一个编译后的谓词约束两条检索通道</text>
+  <text class="sub" x="40" y="98">Java 负责身份、授权与检索；Python 负责模型计算；评测 CLI 走同一套公开 API。</text>
+  <rect class="card" x="40" y="128" width="186" height="74" rx="11"/>
+  <text class="lbl-sm" x="56" y="153">查询用户</text>
+  <text class="txt" x="56" y="174">demo JWT，scope query</text>
+  <rect class="card" x="40" y="228" width="186" height="74" rx="11"/>
+  <text class="lbl-sm" x="56" y="253">语料维护者</text>
+  <text class="txt" x="56" y="274">manifest，scope admin</text>
+  <rect class="card" x="40" y="328" width="186" height="74" rx="11"/>
+  <text class="lbl-sm" x="56" y="353">ga-eval 评测 CLI</text>
+  <text class="txt" x="56" y="374">按身份分别签发 token</text>
+  <rect class="group" x="300" y="112" width="424" height="404" rx="14"/>
+  <text class="lbl-sm" x="316" y="136">控制面 · Java / Spring Boot</text>
+  <rect class="blue" x="316" y="150" width="392" height="70" rx="11"/>
+  <text class="lbl-sm" x="332" y="175">identity 身份</text>
+  <text class="txt" x="332" y="196">验签 JWT · iss / aud</text>
+  <text class="mono" x="332" y="213">必须有 sub 与 tenant_id</text>
+  <rect class="violet" x="316" y="232" width="392" height="70" rx="11"/>
+  <text class="lbl-sm" x="332" y="257">authorization 授权</text>
+  <text class="txt" x="332" y="278">PolicyCompiler → 单一 SQL 谓词</text>
+  <text class="mono" x="332" y="295">每次查询记录 policy 版本</text>
+  <rect class="teal" x="316" y="314" width="392" height="70" rx="11"/>
+  <text class="lbl-sm" x="332" y="339">retrieval 检索</text>
+  <text class="txt" x="332" y="360">PostgreSQL FTS + pgvector</text>
+  <text class="mono" x="332" y="377">RRF 融合 · M1</text>
+  <rect class="amber" x="316" y="396" width="392" height="70" rx="11"/>
+  <text class="lbl-sm" x="332" y="421">corpus 语料</text>
+  <text class="txt" x="332" y="442">规范化 · 按标题切分</text>
+  <text class="mono" x="332" y="459">内容哈希 → 新版本</text>
+  <rect class="planned" x="316" y="478" width="392" height="52" rx="11"/>
+  <text class="lbl-sm" x="332" y="503">answering 回答 · M3</text>
+  <text class="txt" x="332" y="524">引用 · 拒答</text>
+  <rect class="card" x="790" y="150" width="236" height="92" rx="11"/>
+  <text class="lbl-sm" x="806" y="175">PostgreSQL 17 + pgvector</text>
+  <text class="txt" x="806" y="196">授权在检索查询</text>
+  <text class="txt" x="806" y="213">内部执行</text>
+  <rect class="card" x="790" y="274" width="236" height="92" rx="11"/>
+  <text class="lbl-sm" x="806" y="299">model-service · Python</text>
+  <text class="txt" x="806" y="320">只接收已授权文本</text>
+  <text class="txt" x="806" y="337">当前 embed，M3 加 rerank，CPU</text>
+  <rect class="planned" x="790" y="398" width="236" height="70" rx="11"/>
+  <text class="lbl-sm" x="806" y="423">本地生成模型</text>
+  <text class="txt" x="806" y="444">可选，无需 API key</text>
+  <path class="edge-strong" d="M226 165 L296 165" marker-end="url(#ar-s)"/>
+  <text class="edgelbl" x="261" y="156" text-anchor="middle">检索</text>
+  <path class="edge" d="M226 265 L296 265" marker-end="url(#ar)"/>
+  <text class="edgelbl" x="261" y="256" text-anchor="middle">入库</text>
+  <path class="edge" d="M226 365 L296 365" marker-end="url(#ar)"/>
+  <text class="edgelbl" x="261" y="356" text-anchor="middle">评测</text>
+  <path class="edge-strong" d="M512 220 L512 246" marker-end="url(#ar-s)"/>
+  <path class="edge-strong" d="M512 302 L512 328" marker-end="url(#ar-s)"/>
+  <path class="edge-strong" d="M726 196 L786 196" marker-end="url(#ar-s)"/>
+  <path class="edge" d="M726 320 L786 320" marker-end="url(#ar)"/>
+  <path class="edge" d="M726 433 L786 433" marker-end="url(#ar)"/>
+  <text class="txt" x="40" y="548" >未授权行不离开 PostgreSQL  ·  看不到与不存在对外不可区分  ·  每次评测都可复现</text>
+</svg>
