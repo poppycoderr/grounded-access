@@ -8,4 +8,10 @@ import java.util.List;
 public interface EmbeddingClient {
 
     Embeddings embed(List<String> texts, InputType inputType);
+
+    /**
+     * Name of the model this client produces vectors with, without a revision. Vectors from two models are not comparable, so callers use it to
+     * detect a corpus that was embedded with something else.
+     */
+    String modelName();
 }

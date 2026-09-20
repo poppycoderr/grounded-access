@@ -13,6 +13,11 @@ import java.util.Locale;
 public class HashingEmbeddingClient implements EmbeddingClient {
 
     @Override
+    public String modelName() {
+        return "hashing";
+    }
+
+    @Override
     public Embeddings embed(List<String> texts, InputType inputType) {
         return new Embeddings("hashing", "test", texts.stream().map(HashingEmbeddingClient::vector).toList());
     }
