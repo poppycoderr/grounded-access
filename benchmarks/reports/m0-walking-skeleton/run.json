@@ -1,0 +1,35 @@
+{
+  "dataset_version": "v1",
+  "git_sha": "2f61d23",
+  "created_at": "2026-09-20T15:53:55+00:00",
+  "strategies": [
+    "sparse-only",
+    "dense-only"
+  ],
+  "k": 10,
+  "splits": [
+    "dev",
+    "test"
+  ],
+  "case_count": 15,
+  "policy_versions": [
+    "tenant-only/1"
+  ],
+  "platform": "macOS-27.0-arm64-arm-64bit",
+  "summary": {
+    "sparse-only": {
+      "answerable_cases": 13,
+      "recall@5": 0.9230769230769231,
+      "recall@10": 0.9230769230769231,
+      "mrr@10": 0.7051282051282051,
+      "security_violations": 0
+    },
+    "dense-only": {
+      "answerable_cases": 13,
+      "recall@5": 1.0,
+      "recall@10": 1.0,
+      "mrr@10": 0.9102564102564104,
+      "security_violations": 0
+    }
+  }
+}
