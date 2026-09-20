@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" fill="none" role="img" aria-label="Grounded Access">
+  <title>Grounded Access</title>
+  <defs>
+    <linearGradient id="gaShield" x1="48" y1="24" x2="208" y2="216" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0EA5E9"/><stop offset=".55" stop-color="#6366F1"/><stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <linearGradient id="gaEvidence" x1="92" y1="92" x2="168" y2="150" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#38BDF8"/><stop offset="1" stop-color="#A78BFA"/>
+    </linearGradient>
+  </defs>
+  <!-- shield: access control -->
+  <path d="M128 26 206 56v72c0 46-33 78-78 96-45-18-78-50-78-96V56z" stroke="url(#gaShield)" stroke-width="15"
+        stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- evidence lines: the cited chunk is highlighted -->
+  <path d="M94 96h68" stroke="url(#gaEvidence)" stroke-width="13" stroke-linecap="round"/>
+  <path d="M94 128h44" stroke="url(#gaEvidence)" stroke-width="13" stroke-linecap="round" opacity=".55"/>
+  <!-- ground line: answers stay grounded in evidence -->
+  <path d="M86 166h84" stroke="url(#gaShield)" stroke-width="11" stroke-linecap="round" opacity=".9"/>
+</svg>

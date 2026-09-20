@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1010 600" width="1010" height="600"
+     role="img" aria-labelledby="ttl dsc" style="max-width:100%;height:auto">
+  <title id="ttl">授权属于检索环节，不是事后过滤</title>
+  <desc id="dsc">索引之后再过滤，会把数据泄到应用层，并悄悄损失召回。Grounded Access 把谓词编译进查询。</desc>
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk" d="M0 0 L10 5 L0 10 z"/></marker>
+    <marker id="ar-s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-s" d="M0 0 L10 5 L0 10 z"/></marker>
+  </defs>
+  <style>
+    text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Inter,Roboto,sans-serif}
+    .bg{fill:#FBFCFE}
+    .title{font-size:26px;font-weight:700;fill:#0F172A;letter-spacing:-.2px}
+    .sub{font-size:13.5px;font-weight:400;fill:#64748B}
+    .kicker{font-size:11px;font-weight:700;fill:#94A3B8;letter-spacing:1.4px}
+    .lbl{font-size:15px;font-weight:650;fill:#0F172A}
+    .lbl-sm{font-size:13px;font-weight:650;fill:#0F172A}
+    .txt{font-size:12px;font-weight:400;fill:#64748B}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;font-weight:500;fill:#334155}
+    .edgelbl{font-size:11px;font-weight:500;fill:#94A3B8}
+    .card{fill:#FFFFFF;stroke:#E2E8F0;stroke-width:1.25}
+    .group{fill:#F8FAFC;stroke:#E2E8F0;stroke-width:1.25}
+    .blue{fill:#EFF6FF;stroke:#BFDBFE;stroke-width:1.25}
+    .teal{fill:#F0FDFA;stroke:#99F6E4;stroke-width:1.25}
+    .violet{fill:#F5F3FF;stroke:#DDD6FE;stroke-width:1.25}
+    .amber{fill:#FFFBEB;stroke:#FDE68A;stroke-width:1.25}
+    .rose{fill:#FFF1F2;stroke:#FECDD3;stroke-width:1.25}
+    .planned{fill:#FFFFFF;stroke:#CBD5E1;stroke-width:1.25;stroke-dasharray:5 4}
+    .edge{stroke:#94A3B8;stroke-width:1.5;fill:none}
+    .edge-strong{stroke:#6366F1;stroke-width:2;fill:none}
+    .mk{fill:#94A3B8}
+    .mk-s{fill:#6366F1}
+    .pill{fill:#EEF2FF;stroke:#C7D2FE;stroke-width:1}
+    .pill-ok{fill:#ECFDF5;stroke:#A7F3D0;stroke-width:1}
+    .pill-bad{fill:#FFF1F2;stroke:#FECDD3;stroke-width:1}
+    .pill-txt{font-size:11px;font-weight:650;fill:#4338CA}
+    .pill-txt-ok{font-size:11px;font-weight:650;fill:#047857}
+    .pill-txt-bad{font-size:11px;font-weight:650;fill:#BE123C}
+  </style>
+  <rect class="bg" x="0" y="0" width="1010" height="600" rx="16"/>
+  <text class="kicker" x="40" y="44">GROUNDED ACCESS · v0.1</text>
+  <text class="title" x="40" y="74">授权属于检索环节，不是事后过滤</text>
+  <text class="sub" x="40" y="98">索引之后再过滤，会把数据泄到应用层，并悄悄损失召回。Grounded Access 把谓词编译进查询。</text>
+  <rect class="rose" x="40" y="132" width="452" height="392" rx="14"/>
+  <text class="lbl-sm" x="60" y="162">常见 RAG · 检索后过滤</text>
+  <rect class="pill-bad" x="60" y="176" width="116" height="22" rx="11"/>
+  <text class="pill-txt-bad" x="118.0" y="191" text-anchor="middle">泄漏面</text>
+  <rect class="card" x="60" y="210" width="412" height="62" rx="11"/>
+  <text class="lbl-sm" x="76" y="235">从索引取 top-k</text>
+  <text class="txt" x="76" y="256">查询里没有身份信息</text>
+  <path class="edge" d="M266 272 L266 302" marker-end="url(#ar)"/>
+  <rect class="card" x="60" y="288" width="412" height="62" rx="11"/>
+  <text class="lbl-sm" x="76" y="313">数据进入应用内存</text>
+  <text class="txt" x="76" y="334">重排 · prompt · 日志 · trace</text>
+  <path class="edge" d="M266 350 L266 380" marker-end="url(#ar)"/>
+  <rect class="card" x="60" y="366" width="412" height="62" rx="11"/>
+  <text class="lbl-sm" x="76" y="391">在应用代码里过滤</text>
+  <text class="txt" x="76" y="412">丢掉用户不该看到的</text>
+  <path class="edge" d="M266 428 L266 458" marker-end="url(#ar)"/>
+  <rect class="pill-bad" x="60" y="444" width="412" height="62" rx="11"/>
+  <text class="lbl-sm" x="76" y="469">10 条只剩 3 条</text>
+  <text class="txt" x="76" y="490">用户看不到的召回损失</text>
+  <rect class="teal" x="518" y="132" width="452" height="392" rx="14"/>
+  <text class="lbl-sm" x="538" y="162">Grounded Access · 谓词进入查询</text>
+  <rect class="pill-ok" x="538" y="176" width="130" height="22" rx="11"/>
+  <text class="pill-txt-ok" x="603.0" y="191" text-anchor="middle">无泄漏面</text>
+  <rect class="card" x="538" y="210" width="412" height="62" rx="11"/>
+  <text class="lbl-sm" x="554" y="235">身份 → 编译为谓词</text>
+  <text class="txt" x="554" y="256">只来自已验签的 token</text>
+  <path class="edge-strong" d="M744 272 L744 302" marker-end="url(#ar-s)"/>
+  <rect class="card" x="538" y="288" width="412" height="62" rx="11"/>
+  <text class="lbl-sm" x="554" y="313">FTS 与向量都带上它</text>
+  <text class="txt" x="554" y="334">同一谓词，同一 policy 版本</text>
+  <path class="edge-strong" d="M744 350 L744 380" marker-end="url(#ar-s)"/>
+  <rect class="card" x="538" y="366" width="412" height="62" rx="11"/>
+  <text class="lbl-sm" x="554" y="391">只有已授权行离开 SQL</text>
+  <text class="txt" x="554" y="412">事后无需过滤</text>
+  <path class="edge-strong" d="M744 428 L744 458" marker-end="url(#ar-s)"/>
+  <rect class="pill-ok" x="538" y="444" width="412" height="62" rx="11"/>
+  <text class="lbl-sm" x="554" y="469">10 条全部已授权</text>
+  <text class="txt" x="554" y="490">不泄漏，不损失召回</text>
+  <text class="txt" x="40" y="552">由两条通道的跨租户集成测试与架构测试保证：只有 AuthorizedChunkQuery 可以读取 chunk。</text>
+  <text class="txt" x="40" y="570">每个 PR 都运行评测安全门禁，出现一条越权结果就让构建失败。</text>
+</svg>
