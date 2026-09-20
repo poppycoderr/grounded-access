@@ -1,6 +1,6 @@
 # Retrieval evaluation — dataset v1
 
-Demo benchmark on a small fictional corpus; not representative of production quality. Commit `2f61d23`, 15 cases (dev, test), k=10, policy tenant-only/1, generated 2026-09-20T15:53:55+00:00.
+Demo benchmark on a small fictional corpus; not representative of production quality. Commit `b5c19ee`, 15 cases (dev, test), k=10, policy tenant-only/1, generated 2026-09-20T16:05:52+00:00.
 
 | Strategy | Answerable cases | Recall@5 | Recall@10 | MRR@10 | Security violations |
 |---|---|---|---|---|---|
