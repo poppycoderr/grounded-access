@@ -28,6 +28,21 @@ class CorpusWriter {
             String contentSha256) {
     }
 
+    /**
+     * The document row held under a write lock, together with the version that was active when the lock was taken.
+     */
+    record LockedDocument(
+            UUID documentId,
+
+            int versionNo,
+
+            @Nullable String contentSha256) {
+
+        boolean alreadyHas(String sha) {
+            return sha.equals(contentSha256);
+        }
+    }
+
     record NewVersion(
             String tenantId,
 
@@ -59,19 +74,39 @@ class CorpusWriter {
     }
 
     /**
+     * Creates the document if it is missing, locks its row for the rest of the transaction, and only then reads the active version. The two steps
+     * must stay separate: after waiting for a lock, PostgreSQL re-evaluates the locked row but keeps the snapshot of anything joined to it, so a
+     * single locking join would hand the waiting transaction a stale version number and it would try to write a version number that already exists.
+     */
+    LockedDocument lockDocument(String tenantId, String key) {
+        jdbc.sql("insert into document (id, tenant_id, external_key) values (:id, :tenant, :key) on conflict (tenant_id, external_key) do nothing")
+                .param("id", UUID.randomUUID())
+                .param("tenant", tenantId)
+                .param("key", key)
+                .update();
+        UUID documentId = jdbc.sql("select id from document where tenant_id = :tenant and external_key = :key for no key update")
+                .param("tenant", tenantId)
+                .param("key", key)
+                .query(UUID.class)
+                .single();
+        return jdbc.sql("""
+                        select coalesce(max(v.version_no), 0), max(v.content_sha256) filter (where v.id = d.active_version_id)
+                        from document d left join document_version v on v.document_id = d.id
+                        where d.id = :id
+                        group by d.active_version_id
+                        """)
+                .param("id", documentId)
+                .query((rs, i) -> new LockedDocument(documentId, rs.getInt(1), rs.getString(2)))
+                .single();
+    }
+
+    /**
      * Inserts the version and its chunks, then points the document at it. Must run in one transaction: the deferred foreign key on
      * active_version_id lets the pointer flip last, so readers see either the complete old version or the complete new one.
      */
-    void writeVersion(NewVersion version, @Nullable ActiveVersion previous) {
-        UUID documentId = previous != null ? previous.documentId() : UUID.randomUUID();
+    void writeVersion(NewVersion version, LockedDocument document) {
+        UUID documentId = document.documentId();
         UUID versionId = UUID.randomUUID();
-        if (previous == null) {
-            jdbc.sql("insert into document (id, tenant_id, external_key) values (:id, :tenant, :key)")
-                    .param("id", documentId)
-                    .param("tenant", version.tenantId())
-                    .param("key", version.source().key())
-                    .update();
-        }
         jdbc.sql("""
                         insert into document_version (id, document_id, tenant_id, version_no, content_sha256, title, source_uri, chunker_version, embedding_model)
                         values (:id, :document, :tenant, :versionNo, :sha, :title, :sourceUri, :chunker, :model)
@@ -79,7 +114,7 @@ class CorpusWriter {
                 .param("id", versionId)
                 .param("document", documentId)
                 .param("tenant", version.tenantId())
-                .param("versionNo", previous == null ? 1 : previous.versionNo() + 1)
+                .param("versionNo", document.versionNo() + 1)
                 .param("sha", version.contentSha256())
                 .param("title", version.source().title())
                 .param("sourceUri", version.source().sourceUri())
