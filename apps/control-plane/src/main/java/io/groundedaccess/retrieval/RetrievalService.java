@@ -8,6 +8,8 @@ import io.groundedaccess.modelclient.InputType;
 
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.stereotype.Service;
 
 /**
@@ -26,6 +28,14 @@ public class RetrievalService {
         this.policyCompiler = policyCompiler;
         this.chunks = chunks;
         this.embeddings = embeddings;
+    }
+
+    public ChunkPage list(Principal principal, @Nullable ChunkCursor after, int limit) {
+        AuthorizationPredicate predicate = policyCompiler.compile(principal);
+        List<AuthorizedChunk> rows = chunks.list(predicate, after, limit + 1);
+        boolean more = rows.size() > limit;
+        List<AuthorizedChunk> page = more ? rows.subList(0, limit) : rows;
+        return new ChunkPage(predicate.policyVersion(), page, more ? page.getLast().cursor() : null);
     }
 
     public RetrievalResult search(Principal principal, String query, RetrievalStrategy strategy, int limit) {
