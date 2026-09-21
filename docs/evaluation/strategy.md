@@ -116,6 +116,8 @@ Each run writes `results/<run-id>/`:
 - `cases.jsonl` — per-case ranks, metrics and any degraded flags;
 - `report.md` — rendered from the two files above, never edited by hand.
 
+Published runs are produced by the CI runner (Linux x86_64). Keyword and BM25 rankings are bit-identical across machines; dense rankings can swap near-tied candidates across CPU architectures because ONNX Runtime uses different vector kernels, so a local run may differ from a published one by a case. `benchmarks/README.md` records the observed size of that effect.
+
 Rules: no case is removed after a failure, all configurations are published rather than just the best one, and every number in the README links to a committed or released report. Runs on the demo corpus are labelled "demo benchmark" and make no claim about production quality.
 
 ## 7. CI
