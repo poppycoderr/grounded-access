@@ -12,11 +12,11 @@
 <p align="center">
     <a href="https://github.com/poppycoderr/grounded-access/actions/workflows/build.yml"><img src="https://github.com/poppycoderr/grounded-access/actions/workflows/build.yml/badge.svg" alt="Build" /></a>
     <a href="./LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License" /></a>
-    <img src="https://img.shields.io/badge/status-M0%20walking%20skeleton-8B5CF6" alt="Status" />
+    <img src="https://img.shields.io/badge/status-M1a%20evaluation%20baseline-8B5CF6" alt="Status" />
 </p>
 
 <p align="center">
-    <b>English</b> · <a href="./README.zh-CN.md">简体中文</a> · <a href="./docs/architecture/overview.md">Architecture</a> · <a href="./docs/evaluation/strategy.md">Evaluation</a> · <a href="./benchmarks/reports/m0-walking-skeleton/report.md">Benchmark</a> · <a href="./docs/project/milestones.md">Milestones</a>
+    <b>English</b> · <a href="./README.zh-CN.md">简体中文</a> · <a href="./docs/architecture/overview.md">Architecture</a> · <a href="./docs/evaluation/strategy.md">Evaluation</a> · <a href="./benchmarks/reports/m1a-baseline/report.md">Benchmark</a> · <a href="./docs/project/milestones.md">Milestones</a>
 </p>
 
 ---
@@ -46,7 +46,7 @@ The outsider gets no "permission denied", no hit count and no Northstar document
 | Authorization in the retrieval query | Tenant isolation, compiled once per request and carried by both channels | Clearance, department and project labels (M2) |
 | Retrieval | `sparse-only` (PostgreSQL FTS) and `dense-only` (exact pgvector) | RRF hybrid (M1), cross-encoder reranking (M3) |
 | Ingestion | Markdown and text, synchronous, content-hash versioning, heading-aware chunks | Job queue with retries (M1), disable and delete cleanup (M1) |
-| Evaluation | 15 cases, span-based relevance, Recall@k, MRR, security gate in CI | Larger dataset with hard negatives, BM25 reference row, confidence intervals (M1) |
+| Evaluation | 70 cases over 21 documents, hard negatives, a BM25 reference row, bootstrap intervals and paired comparisons, security gate in CI | Hybrid in the same report (M1b), label-level authorization negatives (M2) |
 | Answers | Ranked evidence from `/api/v1/retrieval/search` | `/api/v1/query` with citations and abstention (M3) |
 | Operations | Docker Compose, CI on every PR | OpenTelemetry traces, audit events, dashboards (M2–M4) |
 
@@ -89,16 +89,23 @@ Today the predicate carries the tenant condition; M2 adds clearance, department 
 
 ## Retrieval evaluation
 
-[`benchmarks/reports/m0-walking-skeleton/`](./benchmarks/reports/m0-walking-skeleton/) holds the committed run: `run.json` (dataset version, commit, strategies, policy version, platform), `cases.jsonl` (per-case rankings) and the rendered `report.md`. Regenerate it with `./scripts/benchmark --out benchmarks/reports/<name>`.
+[`benchmarks/reports/m1a-baseline/`](./benchmarks/reports/m1a-baseline/) holds the committed run: `run.json` (dataset version, commit, strategies, policy version, bootstrap seed, platform), `cases.jsonl` (per-case rankings) and the rendered `report.md`. Regenerate it with `./scripts/benchmark --out benchmarks/reports/<name>`.
 
-| Strategy | Answerable cases | Recall@5 | Recall@10 | MRR@10 | Security violations |
-|---|---|---|---|---|---|
-| `sparse-only` (PostgreSQL FTS) | 13 | 0.923 | 0.923 | 0.705 | **0** |
-| `dense-only` (pgvector, exact) | 13 | 1.000 | 1.000 | 0.910 | **0** |
+`test` split, 47 answerable cases, 95% bootstrap intervals:
 
-**Read these numbers carefully.** The dataset is 15 cases over 10 fictional documents, so a single case is worth 7.7 points and the two strategies are not separated by anything like a significant margin. Dense retrieval answering everything means the dataset is currently too easy for it, not that the system is good. M1 grows the dataset with hard negatives and paraphrases, adds a BM25 reference row, and reports paired confidence intervals — only then is a hybrid-versus-baseline claim worth making.
+| Strategy | Recall@10 | MRR@10 | nDCG@10 | Security violations |
+|---|---|---|---|---|
+| `sparse-only` (PostgreSQL FTS) | 0.936 [0.85, 1.00] | 0.616 [0.51, 0.72] | 0.697 [0.61, 0.79] | **0** |
+| `dense-only` (pgvector, exact) | 0.979 [0.94, 1.00] | 0.864 [0.78, 0.94] | 0.894 [0.82, 0.95] | **0** |
+| `bm25-reference` (offline, same authorized chunks) | 0.926 [0.85, 0.99] | 0.716 [0.61, 0.82] | 0.765 [0.67, 0.85] | **0** |
 
-What the run does establish: the method is reproducible. Two fresh databases and a GitHub runner produce identical rankings, and the security gate counts zero unauthorized results at tenant level.
+What the paired comparisons support, and what they do not:
+
+- **Dense ranks the right evidence higher than FTS:** MRR@10 +0.25 [+0.14, +0.36]. Whether the evidence appears in the top 10 at all shows **no detectable difference** (Recall@10 +0.04 [−0.04, +0.13]).
+- **PostgreSQL FTS is measurably weaker than BM25:** MRR@10 +0.10 [+0.02, +0.18] for BM25. This is the gap ADR-0002 predicted from FTS having no corpus statistics, and it is why any future hybrid gain has to be read against the BM25 row, not only against FTS.
+- **Dense also beats BM25** on MRR@10 (+0.15). Hybrid ranking comes next (M1b) and will be judged on the same cases.
+
+The dataset is 21 fictional documents and 70 hand-checked cases, with 30 of the 63 answerable ones deliberately worded so they share almost no words with their evidence. It is a demo benchmark: it shows the method and the direction of the differences, not production quality. See the [dataset card](./data/eval/DATASET_CARD.md) for what it covers and what it does not.
 
 Evidence is labelled as a **document version plus a quote**, not a chunk id, so chunking strategies can be compared on the same labels. Read the method in [docs/evaluation/strategy.md](./docs/evaluation/strategy.md).
 
@@ -159,7 +166,8 @@ Planned with M2: property-based tests over the decision table, a gate that check
 | Milestone | Scope | Status |
 |---|---|---|
 | **M0** Walking skeleton | Demo identities, Markdown ingestion, sparse and dense retrieval, tenant isolation, eval CLI, CI smoke benchmark | ✅ Done |
-| **M1** Retrieval baseline | Harder dataset with hard negatives, BM25 reference, paired confidence intervals, async ingestion jobs, chunker v1, RRF hybrid | ⏳ Next |
+| **M1a** Evaluation baseline | 70-case dataset with hard negatives, BM25 reference, paired confidence intervals, concurrent-ingestion safety | ✅ Done |
+| **M1b** Hybrid retrieval | Async ingestion jobs, delete cleanup, chunker v1, RRF hybrid in the same report | ⏳ Next |
 | **M2** Authorization | Access labels, full decision table, scope filters, audit events, minimal trace metadata, threat model | Planned |
 | **M3** Reranking and answers | Cross-encoder reranking with fallback, context builder, structured citations, abstention | Planned |
 | **M4** Operations and release | Traces and dashboards, failure and load tests, v0.1 benchmark report | Planned |
