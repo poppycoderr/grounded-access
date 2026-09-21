@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import io.groundedaccess.DemoTokens;
 import io.groundedaccess.HashingEmbeddingClient;
 import io.groundedaccess.TestcontainersConfiguration;
+import io.groundedaccess.ingestion.IngestionWorker;
 import io.groundedaccess.modelclient.EmbeddingClient;
 
 import java.util.Map;
@@ -34,7 +35,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.RequestBuilder;
 import org.springframework.test.web.servlet.ResultActions;
 
-@SpringBootTest
+@SpringBootTest(properties = "ga.ingestion.worker.enabled=false")
 @AutoConfigureMockMvc
 @Import({TestcontainersConfiguration.class, RetrievalIT.FakeModels.class})
 class RetrievalIT {
@@ -63,6 +64,9 @@ class RetrievalIT {
     @Autowired
     private JdbcClient jdbc;
 
+    @Autowired
+    private IngestionWorker worker;
+
     @BeforeEach
     void resetCorpus() {
         jdbc.sql("truncate chunk, document_version, document, tenant cascade").update();
@@ -70,8 +74,8 @@ class RetrievalIT {
 
     @Test
     void neverReturnsAnotherTenantsChunksFromEitherChannel() throws Exception {
-        ingest("northstar", "hr-volunteer-policy", VOLUNTEER_POLICY).andExpect(status().isOk());
-        ingest("external", "public-faq", "# FAQ\n\nVolunteer days are described in each company's handbook.\n").andExpect(status().isOk());
+        ingest("northstar", "hr-volunteer-policy", VOLUNTEER_POLICY).andExpect(jsonPath("$.status").value("succeeded"));
+        ingest("external", "public-faq", "# FAQ\n\nVolunteer days are described in each company's handbook.\n").andExpect(jsonPath("$.status").value("succeeded"));
 
         for (String strategy : new String[] {"sparse-only", "dense-only"}) {
             search("mallory", "external", "query", "How many paid volunteer days do EU employees receive?", strategy)
@@ -122,7 +126,7 @@ class RetrievalIT {
         mvc.perform(searchWith(noTenant, body)).andExpect(status().isUnauthorized());
         mvc.perform(searchWith(wrongIssuer, body)).andExpect(status().isUnauthorized());
         mvc.perform(searchWith(DemoTokens.token("admin", "northstar", "admin"), body)).andExpect(status().isForbidden());
-        ingestWith(DemoTokens.token("alice", "northstar", "query"), "doc", "text").andExpect(status().isForbidden());
+        submit(DemoTokens.token("alice", "northstar", "query"), "doc", "text").andExpect(status().isForbidden());
     }
 
     @Test
@@ -153,11 +157,17 @@ class RetrievalIT {
         mvc.perform(get("/api/v1/retrieval/chunks").param("limit", "5000").header("Authorization", "Bearer " + debug)).andExpect(status().isBadRequest());
     }
 
+    /**
+     * Submits a one-document job, runs the worker, and returns the finished job.
+     */
     private ResultActions ingest(String tenant, String key, String content) throws Exception {
-        return ingestWith(DemoTokens.token("admin", tenant, "admin"), key, content);
+        String token = DemoTokens.token("admin", tenant, "admin");
+        String location = submit(token, key, content).andExpect(status().isAccepted()).andReturn().getResponse().getHeader("Location");
+        worker.drain();
+        return mvc.perform(get(String.valueOf(location)).header("Authorization", "Bearer " + token)).andExpect(status().isOk());
     }
 
-    private ResultActions ingestWith(String token, String key, String content) throws Exception {
+    private ResultActions submit(String token, String key, String content) throws Exception {
         String body = """
                 {"documents":[{"key":"%s","title":"%s","content":%s}]}
                 """.formatted(key, key, quote(content));

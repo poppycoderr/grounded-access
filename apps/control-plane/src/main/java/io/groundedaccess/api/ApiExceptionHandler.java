@@ -23,6 +23,13 @@ public class ApiExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(JobNotFoundException.class)
+    ProblemDetail jobNotFound(JobNotFoundException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "No such ingestion job");
+        problem.setProperty("code", "NOT_FOUND");
+        return problem;
+    }
+
     @ExceptionHandler(RestClientException.class)
     ProblemDetail modelServiceUnavailable(RestClientException exception) {
         log.warn("Model service call failed: {}", exception.toString());

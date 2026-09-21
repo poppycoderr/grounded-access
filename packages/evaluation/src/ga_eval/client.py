@@ -4,10 +4,19 @@ import time
 
 import httpx
 
+TERMINAL_JOB_STATUSES = {"succeeded", "failed"}
+
+
+class IngestionFailedError(RuntimeError):
+    def __init__(self, job: dict) -> None:
+        super().__init__(f"ingestion job {job['jobId']} failed after {job['attempts']} attempt(s): {job.get('errorCode')}")
+        self.job = job
+
 
 class ApiClient:
-    def __init__(self, base_url: str, timeout: float = 60.0) -> None:
-        self._http = httpx.Client(base_url=base_url, timeout=timeout)
+    def __init__(self, base_url: str, timeout: float = 60.0, transport: httpx.BaseTransport | None = None, poll_interval: float = 0.5) -> None:
+        self._http = httpx.Client(base_url=base_url, timeout=timeout, transport=transport)
+        self._poll_interval = poll_interval
 
     def wait_until_ready(self, timeout_seconds: float = 120.0) -> None:
         deadline = time.monotonic() + timeout_seconds
@@ -21,10 +30,23 @@ class ApiClient:
                 raise TimeoutError(f"control plane at {self._http.base_url} not ready after {timeout_seconds:.0f}s")
             time.sleep(2)
 
-    def ingest(self, token: str, documents: list[dict]) -> dict:
+    def ingest(self, token: str, documents: list[dict], timeout_seconds: float = 600.0) -> dict:
+        """Submits an ingestion job and waits for it to finish. Returns the succeeded job; raises if it failed or did not finish in time."""
         response = self._http.post("/api/v1/ingestion-jobs", json={"documents": documents}, headers=_auth(token))
         response.raise_for_status()
-        return response.json()
+        location = response.headers["Location"]
+        deadline = time.monotonic() + timeout_seconds
+        job = response.json()
+        while job["status"] not in TERMINAL_JOB_STATUSES:
+            if time.monotonic() > deadline:
+                raise TimeoutError(f"ingestion job {job['jobId']} still {job['status']} after {timeout_seconds:.0f}s")
+            time.sleep(self._poll_interval)
+            polled = self._http.get(location, headers=_auth(token))
+            polled.raise_for_status()
+            job = polled.json()
+        if job["status"] == "failed":
+            raise IngestionFailedError(job)
+        return job
 
     def search(self, token: str, query: str, strategy: str, k: int) -> dict:
         response = self._http.post("/api/v1/retrieval/search", json={"query": query, "strategy": strategy, "k": k}, headers=_auth(token))

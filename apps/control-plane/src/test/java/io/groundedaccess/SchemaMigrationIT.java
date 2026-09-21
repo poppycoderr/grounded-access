@@ -18,7 +18,7 @@ class SchemaMigrationIT {
     @Test
     void migratesCorpusSchemaOnAFreshDatabase() {
         var tables = jdbc.sql("select table_name from information_schema.tables where table_schema = 'public'").query(String.class).set();
-        assertThat(tables).contains("tenant", "document", "document_version", "chunk");
+        assertThat(tables).contains("tenant", "document", "document_version", "chunk", "ingestion_job", "ingestion_job_document");
     }
 
     @Test
