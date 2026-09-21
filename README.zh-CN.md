@@ -91,21 +91,21 @@ curl -s localhost:8080/api/v1/retrieval/search -H "Authorization: Bearer $TOKEN"
 
 [`benchmarks/reports/m1a-baseline/`](./benchmarks/reports/m1a-baseline/) 保存了提交在仓库中的运行结果：`run.json`（数据集版本、commit、策略、policy 版本、bootstrap 种子、运行平台）、`cases.jsonl`（逐用例排名）与渲染出的 `report.md`。用 `./scripts/benchmark --out benchmarks/reports/<名称>` 可重新生成。
 
-`test` 划分，47 条可回答用例，95% bootstrap 区间：
+`test` 划分，47 条可回答用例，95% bootstrap 区间，由 CI runner（Linux x86_64）生成：
 
 | 策略 | Recall@10 | MRR@10 | nDCG@10 | 越权结果 |
 |---|---|---|---|---|
 | `sparse-only`（PostgreSQL FTS） | 0.936 [0.85, 1.00] | 0.616 [0.51, 0.72] | 0.697 [0.61, 0.79] | **0** |
-| `dense-only`（pgvector 精确检索） | 0.979 [0.94, 1.00] | 0.864 [0.78, 0.94] | 0.894 [0.82, 0.95] | **0** |
+| `dense-only`（pgvector 精确检索） | 0.979 [0.94, 1.00] | 0.860 [0.77, 0.94] | 0.891 [0.82, 0.95] | **0** |
 | `bm25-reference`（离线，同一批已授权 chunk） | 0.926 [0.85, 0.99] | 0.716 [0.61, 0.82] | 0.765 [0.67, 0.85] | **0** |
 
 配对比较能支持什么、不能支持什么：
 
-- **dense 把正确证据排得比 FTS 更靠前**：MRR@10 +0.25 [+0.14, +0.36]。但证据是否出现在前 10 条，**看不出可检测的差异**（Recall@10 +0.04 [−0.04, +0.13]）。
+- **dense 把正确证据排得比 FTS 更靠前**：MRR@10 +0.24 [+0.13, +0.35]。但证据是否出现在前 10 条，**看不出可检测的差异**（Recall@10 +0.04 [−0.04, +0.13]）。
 - **PostgreSQL FTS 确实弱于 BM25**：BM25 的 MRR@10 高 +0.10 [+0.02, +0.18]。这正是 ADR-0002 基于「FTS 没有语料统计」所预测的差距，因此将来 hybrid 的提升必须对照 BM25 这一行来看，而不能只和 FTS 比。
-- **dense 也优于 BM25**（MRR@10 +0.15）。下一步（M1b）加入 hybrid，在同一批用例上评判。
+- **dense 也优于 BM25**（MRR@10 +0.14）。下一步（M1b）加入 hybrid，在同一批用例上评判。
 
-数据集是 21 篇虚构文档、70 条人工核对的用例，63 条可回答用例中有 30 条刻意写得与证据几乎没有共同词汇。这是 demo benchmark：它展示的是方法与差异的方向，而不是生产效果。覆盖范围与局限见[数据集说明卡](./data/eval/DATASET_CARD.md)。
+数据集是 21 篇虚构文档、70 条人工核对的用例，63 条可回答用例中有 30 条刻意写得与证据几乎没有共同词汇。这是 demo benchmark：它展示的是方法与差异的方向，而不是生产效果。关键词与 BM25 的排名在任何机器上都完全一致；dense 的排名在不同 CPU 架构之间可能交换得分几乎相同的候选，在 Mac 上会让一条用例的结果不同（见 [benchmarks/README.md](./benchmarks/README.md)）。覆盖范围与局限见[数据集说明卡](./data/eval/DATASET_CARD.md)。
 
 证据以**文档版本 + 原文引用**标注，而不是 chunk id，因此不同切分策略可以在同一份标注上比较。方法见 [docs/evaluation/strategy.md](./docs/evaluation/strategy.md)。
 

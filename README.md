@@ -91,21 +91,21 @@ Today the predicate carries the tenant condition; M2 adds clearance, department 
 
 [`benchmarks/reports/m1a-baseline/`](./benchmarks/reports/m1a-baseline/) holds the committed run: `run.json` (dataset version, commit, strategies, policy version, bootstrap seed, platform), `cases.jsonl` (per-case rankings) and the rendered `report.md`. Regenerate it with `./scripts/benchmark --out benchmarks/reports/<name>`.
 
-`test` split, 47 answerable cases, 95% bootstrap intervals:
+`test` split, 47 answerable cases, 95% bootstrap intervals, produced by the CI runner (Linux x86_64):
 
 | Strategy | Recall@10 | MRR@10 | nDCG@10 | Security violations |
 |---|---|---|---|---|
 | `sparse-only` (PostgreSQL FTS) | 0.936 [0.85, 1.00] | 0.616 [0.51, 0.72] | 0.697 [0.61, 0.79] | **0** |
-| `dense-only` (pgvector, exact) | 0.979 [0.94, 1.00] | 0.864 [0.78, 0.94] | 0.894 [0.82, 0.95] | **0** |
+| `dense-only` (pgvector, exact) | 0.979 [0.94, 1.00] | 0.860 [0.77, 0.94] | 0.891 [0.82, 0.95] | **0** |
 | `bm25-reference` (offline, same authorized chunks) | 0.926 [0.85, 0.99] | 0.716 [0.61, 0.82] | 0.765 [0.67, 0.85] | **0** |
 
 What the paired comparisons support, and what they do not:
 
-- **Dense ranks the right evidence higher than FTS:** MRR@10 +0.25 [+0.14, +0.36]. Whether the evidence appears in the top 10 at all shows **no detectable difference** (Recall@10 +0.04 [−0.04, +0.13]).
+- **Dense ranks the right evidence higher than FTS:** MRR@10 +0.24 [+0.13, +0.35]. Whether the evidence appears in the top 10 at all shows **no detectable difference** (Recall@10 +0.04 [−0.04, +0.13]).
 - **PostgreSQL FTS is measurably weaker than BM25:** MRR@10 +0.10 [+0.02, +0.18] for BM25. This is the gap ADR-0002 predicted from FTS having no corpus statistics, and it is why any future hybrid gain has to be read against the BM25 row, not only against FTS.
-- **Dense also beats BM25** on MRR@10 (+0.15). Hybrid ranking comes next (M1b) and will be judged on the same cases.
+- **Dense also beats BM25** on MRR@10 (+0.14). Hybrid ranking comes next (M1b) and will be judged on the same cases.
 
-The dataset is 21 fictional documents and 70 hand-checked cases, with 30 of the 63 answerable ones deliberately worded so they share almost no words with their evidence. It is a demo benchmark: it shows the method and the direction of the differences, not production quality. See the [dataset card](./data/eval/DATASET_CARD.md) for what it covers and what it does not.
+The dataset is 21 fictional documents and 70 hand-checked cases, with 30 of the 63 answerable ones deliberately worded so they share almost no words with their evidence. It is a demo benchmark: it shows the method and the direction of the differences, not production quality. Keyword and BM25 rankings are identical on every machine; dense rankings can swap near-tied candidates between CPU architectures, which moves one case on a Mac (see [benchmarks/README.md](./benchmarks/README.md)). See the [dataset card](./data/eval/DATASET_CARD.md) for what it covers and what it does not.
 
 Evidence is labelled as a **document version plus a quote**, not a chunk id, so chunking strategies can be compared on the same labels. Read the method in [docs/evaluation/strategy.md](./docs/evaluation/strategy.md).
 
