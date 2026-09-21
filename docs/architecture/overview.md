@@ -202,6 +202,7 @@ GET    /api/v1/ingestion-jobs/{jobId}
 GET    /api/v1/documents/{documentId}         # authorized metadata only; 404 if not visible
 DELETE /api/v1/documents/{documentId}         # admin scope
 POST   /api/v1/retrieval/search               # ranked candidates + debug fields
+GET    /api/v1/retrieval/chunks               # every authorized chunk, keyset-paged; debug scope; feeds offline reference rankers
 POST   /api/v1/query                          # answer / evidence / abstention
 GET    /api/v1/query-executions/{id}          # own executions only
 ```

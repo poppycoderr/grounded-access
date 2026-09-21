@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
 
+import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -53,6 +54,29 @@ public class AuthorizedChunkQuery {
         String distance = "(c.embedding <=> cast(:vector as vector))";
         String sql = SELECT.formatted("1 - " + distance, predicate.sql()) + " and c.embedding is not null order by " + distance + ", " + TIE_BREAK + " limit :limit";
         return run(sql, predicate, RetrievalChannel.DENSE, limit, "vector", Vectors.toLiteral(queryVector));
+    }
+
+    /**
+     * Pages through every chunk the predicate admits, in the stable tie-break order, so an offline reference ranker (the BM25 row of the
+     * evaluation) scores exactly the rows these channels could have returned. Keyset paging: {@code after} is the last row of the previous page.
+     */
+    public List<AuthorizedChunk> list(AuthorizationPredicate predicate, @Nullable ChunkCursor after, int limit) {
+        String keyset = after == null ? "" : " and (d.external_key, v.version_no, c.ordinal) > (:after_key, :after_version, :after_ordinal)";
+        String sql = """
+                select c.id, d.external_key, v.version_no, v.title, c.section_path, c.ordinal, c.char_start, c.char_end, c.content
+                from chunk c
+                join document d on d.active_version_id = c.version_id and d.status = 'active'
+                join document_version v on v.id = c.version_id
+                where (%s)%s
+                order by %s
+                limit :limit
+                """.formatted(predicate.sql(), keyset, TIE_BREAK);
+        var statement = jdbc.sql(sql).params(predicate.parameters()).param("limit", limit);
+        if (after != null) {
+            statement = statement.param("after_key", after.documentKey()).param("after_version", after.versionNo()).param("after_ordinal", after.ordinal());
+        }
+        return statement.query((rs, rowNum) -> new AuthorizedChunk(rs.getObject(1, UUID.class), rs.getString(2), rs.getInt(3), rs.getString(4),
+                rs.getString(5), rs.getInt(6), rs.getInt(7), rs.getInt(8), rs.getString(9))).list();
     }
 
     private List<RetrievedChunk> run(String sql, AuthorizationPredicate predicate, RetrievalChannel channel, int limit, String name, String value) {

@@ -16,6 +16,13 @@ public class ApiExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
+    @ExceptionHandler(InvalidCursorException.class)
+    ProblemDetail invalidCursor(InvalidCursorException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "The cursor is not valid");
+        problem.setProperty("code", "INVALID_CURSOR");
+        return problem;
+    }
+
     @ExceptionHandler(RestClientException.class)
     ProblemDetail modelServiceUnavailable(RestClientException exception) {
         log.warn("Model service call failed: {}", exception.toString());

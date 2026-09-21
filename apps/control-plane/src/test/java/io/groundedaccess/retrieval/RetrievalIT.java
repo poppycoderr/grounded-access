@@ -1,11 +1,13 @@
 package io.groundedaccess.retrieval;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -121,6 +123,34 @@ class RetrievalIT {
         mvc.perform(searchWith(wrongIssuer, body)).andExpect(status().isUnauthorized());
         mvc.perform(searchWith(DemoTokens.token("admin", "northstar", "admin"), body)).andExpect(status().isForbidden());
         ingestWith(DemoTokens.token("alice", "northstar", "query"), "doc", "text").andExpect(status().isForbidden());
+    }
+
+    @Test
+    void listsOnlyTheCallersChunksPageByPageInAStableOrder() throws Exception {
+        ingest("northstar", "hr-volunteer-policy", VOLUNTEER_POLICY);
+        ingest("northstar", "hr-travel-policy", "# Travel\n\n## Meals\n\nThe meal allowance is 60 EUR per day.\n\n## Receipts\n\nSubmit receipts within 30 days.\n");
+        ingest("external", "public-faq", "# FAQ\n\nVolunteer days are described in each company's handbook.\n");
+        String token = DemoTokens.token("eval", "northstar", "query debug");
+
+        mvc.perform(get("/api/v1/retrieval/chunks").param("limit", "2").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.chunks[*].documentKey", contains("hr-travel-policy", "hr-travel-policy")))
+                .andExpect(jsonPath("$.next").value("hr-travel-policy:1:1"));
+        mvc.perform(get("/api/v1/retrieval/chunks").param("limit", "2").param("after", "hr-travel-policy:1:1").header("Authorization", "Bearer " + token))
+                .andExpect(jsonPath("$.chunks[*].documentKey", contains("hr-volunteer-policy")))
+                .andExpect(jsonPath("$.next").doesNotExist());
+    }
+
+    @Test
+    void chunkListingNeedsTheDebugScopeAndAValidCursor() throws Exception {
+        String query = DemoTokens.token("alice", "northstar", "query");
+        String debug = DemoTokens.token("eval", "northstar", "query debug");
+
+        mvc.perform(get("/api/v1/retrieval/chunks").header("Authorization", "Bearer " + query)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/retrieval/chunks").param("after", "../etc").header("Authorization", "Bearer " + debug))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_CURSOR"));
+        mvc.perform(get("/api/v1/retrieval/chunks").param("limit", "5000").header("Authorization", "Bearer " + debug)).andExpect(status().isBadRequest());
     }
 
     private ResultActions ingest(String tenant, String key, String content) throws Exception {
