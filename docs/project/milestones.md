@@ -45,6 +45,8 @@ Split into two publishable batches. **M1a proves the dataset can separate strate
 | 1.9 | Chunker v1: overlap, plain-text rules, chunker version recorded in eval results | M1b | 1 |
 | 1.10 | RRF fusion, overlap dedupe, `RetrievalPlan` serialization and hash, debug fields behind the `debug` scope | M1b | 1.5 |
 
+**M1a delivered** (items 1.1–1.6): see `benchmarks/reports/m1a-baseline/` and `data/eval/DATASET_CARD.md`. The paired comparisons already separate dense from FTS on MRR@10 and show FTS measurably below BM25, so the dataset is ready for the hybrid comparison in M1b.
+
 Already delivered in M0, so not repeated here: the atomic `active_version_id` flip, content-hash idempotency, the OR-lexeme FTS query builder, and deterministic tie-breaking.
 
 Deferred on purpose: the precomputed-embeddings cache. CI currently embeds the demo corpus in well under a minute, so the cache would add a moving part without buying time. Revisit if the corpus grows past a few thousand chunks.

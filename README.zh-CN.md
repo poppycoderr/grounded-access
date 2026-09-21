@@ -6,17 +6,17 @@
 
 <p align="center">
     <b>在检索查询内部执行授权，并用可复现的评测检验每一次检索改动。</b><br/>
-    <b>当前可用：</b>SQL 内的租户隔离、PostgreSQL FTS 与 pgvector 精确检索、端到端 demo 评测。<b>下一步：</b>hybrid 排序与完整的属性决策表。
+    <b>当前可用：</b>SQL 内的租户隔离、PostgreSQL FTS 与 pgvector 精确检索、带置信区间的 70 条用例评测。<b>下一步：</b>hybrid 排序与完整的属性决策表。
 </p>
 
 <p align="center">
     <a href="https://github.com/poppycoderr/grounded-access/actions/workflows/build.yml"><img src="https://github.com/poppycoderr/grounded-access/actions/workflows/build.yml/badge.svg" alt="Build" /></a>
     <a href="./LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License" /></a>
-    <img src="https://img.shields.io/badge/status-M0%20walking%20skeleton-8B5CF6" alt="Status" />
+    <img src="https://img.shields.io/badge/status-M1a%20evaluation%20baseline-8B5CF6" alt="Status" />
 </p>
 
 <p align="center">
-    <a href="./README.md">English</a> · <b>简体中文</b> · <a href="./docs/architecture/overview.md">架构</a> · <a href="./docs/evaluation/strategy.md">评测</a> · <a href="./benchmarks/reports/m0-walking-skeleton/report.md">基准报告</a> · <a href="./docs/project/milestones.md">里程碑</a>
+    <a href="./README.md">English</a> · <b>简体中文</b> · <a href="./docs/architecture/overview.md">架构</a> · <a href="./docs/evaluation/strategy.md">评测</a> · <a href="./benchmarks/reports/m1a-baseline/report.md">基准报告</a> · <a href="./docs/project/milestones.md">里程碑</a>
 </p>
 
 ---
@@ -46,7 +46,7 @@ mallory-outsider (tenant external) · dense-only · policy tenant-only/1
 | 检索查询内的授权 | 租户隔离，每次请求编译一次，两条通道共用 | 密级、部门、项目标签（M2） |
 | 检索 | `sparse-only`（PostgreSQL FTS）与 `dense-only`（pgvector 精确检索） | RRF hybrid（M1）、cross-encoder 重排（M3） |
 | 入库 | Markdown 与纯文本，同步执行，内容哈希版本管理，按标题切分 | 带重试的任务队列（M1）、停用与删除清理（M1） |
-| 评测 | 15 条用例、按字符区间判定相关性、Recall@k、MRR、CI 安全门禁 | 扩充数据集与 hard negatives、BM25 参考行、置信区间（M1） |
+| 评测 | 21 篇文档 70 条用例、hard negatives、BM25 参考行、bootstrap 置信区间与配对比较、CI 安全门禁 | 同一报告中加入 hybrid（M1b）、标签级授权负例（M2） |
 | 回答 | `/api/v1/retrieval/search` 返回排序后的证据 | 带引用与拒答的 `/api/v1/query`（M3） |
 | 运维 | Docker Compose、每个 PR 的 CI | OpenTelemetry trace、审计事件、dashboard（M2–M4） |
 
@@ -89,16 +89,23 @@ curl -s localhost:8080/api/v1/retrieval/search -H "Authorization: Bearer $TOKEN"
 
 ## 检索评测
 
-[`benchmarks/reports/m0-walking-skeleton/`](./benchmarks/reports/m0-walking-skeleton/) 保存了提交在仓库中的完整运行结果：`run.json`（数据集版本、commit、策略、policy 版本、运行平台）、`cases.jsonl`（逐用例排名）与渲染出的 `report.md`。用 `./scripts/benchmark --out benchmarks/reports/<名称>` 可重新生成。
+[`benchmarks/reports/m1a-baseline/`](./benchmarks/reports/m1a-baseline/) 保存了提交在仓库中的运行结果：`run.json`（数据集版本、commit、策略、policy 版本、bootstrap 种子、运行平台）、`cases.jsonl`（逐用例排名）与渲染出的 `report.md`。用 `./scripts/benchmark --out benchmarks/reports/<名称>` 可重新生成。
 
-| 策略 | 可回答用例 | Recall@5 | Recall@10 | MRR@10 | 越权结果 |
-|---|---|---|---|---|---|
-| `sparse-only`（PostgreSQL FTS） | 13 | 0.923 | 0.923 | 0.705 | **0** |
-| `dense-only`（pgvector 精确检索） | 13 | 1.000 | 1.000 | 0.910 | **0** |
+`test` 划分，47 条可回答用例，95% bootstrap 区间：
 
-**这些数字要谨慎解读。** 数据集只有 10 篇虚构文档、15 条用例，单条用例就值 7.7 个百分点，两种策略之间的差距远谈不上显著。dense 全部答对说明数据集目前对它太容易，而不是说明系统好。M1 会加入 hard negatives 与改写提问扩充数据集、增加 BM25 参考行、报告配对置信区间——到那时再谈 hybrid 与单通道的比较才有意义。
+| 策略 | Recall@10 | MRR@10 | nDCG@10 | 越权结果 |
+|---|---|---|---|---|
+| `sparse-only`（PostgreSQL FTS） | 0.936 [0.85, 1.00] | 0.616 [0.51, 0.72] | 0.697 [0.61, 0.79] | **0** |
+| `dense-only`（pgvector 精确检索） | 0.979 [0.94, 1.00] | 0.864 [0.78, 0.94] | 0.894 [0.82, 0.95] | **0** |
+| `bm25-reference`（离线，同一批已授权 chunk） | 0.926 [0.85, 0.99] | 0.716 [0.61, 0.82] | 0.765 [0.67, 0.85] | **0** |
 
-这次运行确实证明的是：方法可复现。两个全新数据库与 GitHub runner 给出逐条一致的排名，安全门禁在租户级别统计到 0 条越权结果。
+配对比较能支持什么、不能支持什么：
+
+- **dense 把正确证据排得比 FTS 更靠前**：MRR@10 +0.25 [+0.14, +0.36]。但证据是否出现在前 10 条，**看不出可检测的差异**（Recall@10 +0.04 [−0.04, +0.13]）。
+- **PostgreSQL FTS 确实弱于 BM25**：BM25 的 MRR@10 高 +0.10 [+0.02, +0.18]。这正是 ADR-0002 基于「FTS 没有语料统计」所预测的差距，因此将来 hybrid 的提升必须对照 BM25 这一行来看，而不能只和 FTS 比。
+- **dense 也优于 BM25**（MRR@10 +0.15）。下一步（M1b）加入 hybrid，在同一批用例上评判。
+
+数据集是 21 篇虚构文档、70 条人工核对的用例，63 条可回答用例中有 30 条刻意写得与证据几乎没有共同词汇。这是 demo benchmark：它展示的是方法与差异的方向，而不是生产效果。覆盖范围与局限见[数据集说明卡](./data/eval/DATASET_CARD.md)。
 
 证据以**文档版本 + 原文引用**标注，而不是 chunk id，因此不同切分策略可以在同一份标注上比较。方法见 [docs/evaluation/strategy.md](./docs/evaluation/strategy.md)。
 
@@ -159,7 +166,8 @@ M2 计划补上：决策表的 property-based 测试、细到版本与 chunk 粒
 | 里程碑 | 范围 | 状态 |
 |---|---|---|
 | **M0** Walking skeleton | demo 身份、Markdown 入库、sparse 与 dense 检索、租户隔离、评测 CLI、CI 冒烟 benchmark | ✅ 已完成 |
-| **M1** 检索 baseline | 更难的数据集与 hard negatives、BM25 参考行、配对置信区间、异步入库任务、chunker v1、RRF hybrid | ⏳ 进行中 |
+| **M1a** 评测基线 | 70 条用例与 hard negatives、BM25 参考行、配对置信区间、并发入库安全 | ✅ 已完成 |
+| **M1b** hybrid 检索 | 异步入库任务、删除清理、chunker v1、同一报告中的 RRF hybrid | ⏳ 进行中 |
 | **M2** 授权 | 访问标签、完整决策表、适用范围过滤、审计事件、最小 trace 元数据、威胁模型 | 计划中 |
 | **M3** 重排与回答 | 带降级的 cross-encoder 重排、上下文构建、结构化引用、拒答 | 计划中 |
 | **M4** 运维与发布 | trace 与 dashboard、故障与压力测试、v0.1 benchmark 报告 | 计划中 |
