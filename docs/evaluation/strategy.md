@@ -77,7 +77,12 @@ LLM-assisted drafting tends to produce queries that repeat document wording. For
 | `hybrid-rrf` | FTS | exact | RRF | – |
 | `hybrid-rrf-rerank` | FTS | exact | RRF | cross-encoder |
 
-Reference row, which is not a system configuration: `bm25-reference`. It is a Python BM25 run over the same chunks and uses the same visibility filter. It shows how far PostgreSQL FTS falls short of textbook BM25, so readers can see where a hybrid gain comes from (ADR-0002).
+Reference row, which is not a system configuration: `bm25-reference`. It shows how far PostgreSQL FTS falls short of a ranker that uses corpus statistics, so readers can see where a hybrid gain comes from (ADR-0002). How it stays comparable:
+
+- The CLI reads the principal's chunks from `GET /api/v1/retrieval/chunks`, which runs through the same compiled predicate as the search channels and needs the `debug` scope. The reference therefore ranks exactly the rows the system could have returned, and the evaluation still never touches the database.
+- Okapi BM25 with `k1 = 1.2`, `b = 0.75`, IDF computed over that principal's authorized chunks, and a floor that keeps IDF positive for very common terms.
+- Tokens are lowercased, English stopwords are removed and words are Snowball-stemmed. This approximates PostgreSQL's `english` configuration; it does not reproduce it exactly.
+- Ties keep corpus order (document key, version, ordinal), the same rule the SQL channels use.
 
 Every configuration is a serialized `RetrievalPlan` and its hash is stored with the results.
 
@@ -87,6 +92,7 @@ Every configuration is a serialized `RetrievalPlan` and its hash is stored with 
 |---|---|---|
 | Security | unauthorized candidates, unauthorized citations, cross-tenant candidates | **yes, must be 0** |
 | Retrieval | Recall@5, Recall@10, MRR@10, nDCG@10 | yes, no regression beyond threshold on the CI subset |
+| Hard negatives | rank of the first tempting wrong document; how often it ranks above the first correct evidence | reported |
 | Rerank | metric delta vs `hybrid-rrf`, p50/p95 latency delta | reported |
 | Context | gold evidence coverage, duplicate ratio, context tokens | reported |
 | Answer (when generation is on) | citation validity, abstention accuracy (precision/recall on `must_abstain`), fact recall by exact or normalized match | reported |
@@ -96,7 +102,9 @@ Answer faithfulness scored by an LLM judge is out of scope for v0.1. If it is ad
 
 ## 5. Statistics
 
-- Metrics are reported with 95% bootstrap confidence intervals (resampling queries, 10,000 samples, fixed seed).
+- Metrics are reported with 95% percentile bootstrap intervals (resampling cases, 10,000 samples, fixed seed recorded in `run.json`).
+- nDCG uses binary gain per evidence span: a result earns gain only for spans no higher-ranked result already covered, so several chunks of one paragraph do not count as several relevant results.
+- Headline tables and comparisons use the `test` split only. The `dev` split is reported under a separate heading marked "not a result".
 - Two configurations are compared with a paired bootstrap on the per-query differences. A gain is only called an "improvement" if the interval excludes zero. Otherwise the report says "no detectable difference".
 - If hybrid does not beat the best single channel, the report says so and includes a failure analysis.
 

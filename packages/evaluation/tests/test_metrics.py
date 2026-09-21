@@ -34,3 +34,21 @@ def test_violations_list_every_document_outside_the_visible_set():
     results = [result(1), result(2, document="secret"), result(3, document="secret")]
 
     assert metrics.violations(results, {"policy"}) == ["secret"]
+
+
+def test_ndcg_rewards_early_evidence_and_ignores_duplicate_coverage():
+    second = Span("policy", 1, 400, 450)
+
+    perfect = metrics.ndcg_at(10, [result(1), result(2, start=400, end=420)], [SPAN, second])
+    duplicated = metrics.ndcg_at(10, [result(1), result(2), result(3, start=400, end=420)], [SPAN, second])
+
+    assert perfect == 1.0
+    assert 0 < duplicated < perfect
+
+
+def test_hard_negative_rank_and_first_relevant_rank():
+    results = [result(1, document="tempting"), result(2)]
+
+    assert metrics.hard_negative_rank(results, {"tempting"}) == 1
+    assert metrics.first_relevant_rank(results, [SPAN]) == 2
+    assert metrics.hard_negative_rank(results, {"absent"}) is None

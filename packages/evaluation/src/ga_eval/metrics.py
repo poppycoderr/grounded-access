@@ -1,5 +1,6 @@
 """Pure metric functions over one case's ranked results. Relevance is decided by span overlap, so labels survive chunking changes."""
 
+import math
 from dataclasses import dataclass
 
 from ga_eval.dataset import Span
@@ -29,6 +30,31 @@ def reciprocal_rank(results: list[Result], spans: list[Span], k: int = 10) -> fl
         if result.rank <= k and any(covers(result, s) for s in spans):
             return 1 / result.rank
     return 0.0
+
+
+def ndcg_at(k: int, results: list[Result], spans: list[Span]) -> float:
+    """Binary-gain nDCG: a result earns gain only for evidence spans no higher-ranked result has covered yet, so three chunks of the same
+    paragraph do not count as three relevant results."""
+    covered: set[int] = set()
+    dcg = 0.0
+    for result in sorted(results, key=lambda r: r.rank):
+        if result.rank > k:
+            break
+        new = {i for i, span in enumerate(spans) if i not in covered and covers(result, span)}
+        if new:
+            covered |= new
+            dcg += 1 / math.log2(result.rank + 1)
+    ideal = sum(1 / math.log2(rank + 1) for rank in range(1, min(k, len(spans)) + 1))
+    return dcg / ideal if ideal else 0.0
+
+
+def hard_negative_rank(results: list[Result], hard_negatives: set[str]) -> int | None:
+    """Rank of the first result from a document that looks relevant but is the wrong answer."""
+    return next((r.rank for r in sorted(results, key=lambda r: r.rank) if r.document in hard_negatives), None)
+
+
+def first_relevant_rank(results: list[Result], spans: list[Span]) -> int | None:
+    return next((r.rank for r in sorted(results, key=lambda r: r.rank) if any(covers(r, s) for s in spans)), None)
 
 
 def violations(results: list[Result], visible: set[str]) -> list[str]:

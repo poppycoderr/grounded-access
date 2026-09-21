@@ -19,7 +19,7 @@ def main(argv: list[str] | None = None) -> int:
     commands.add_parser("validate", help="check cases, quotes and visibility labels against the corpus")
     commands.add_parser("load", help="ingest every manifest into its tenant")
     run_parser = commands.add_parser("run", help="evaluate retrieval strategies and enforce the security gate")
-    run_parser.add_argument("--strategy", action="append", choices=["sparse-only", "dense-only"], help="repeatable; default: all")
+    run_parser.add_argument("--strategy", action="append", choices=[*runner.SYSTEM_STRATEGIES, runner.REFERENCE], help="repeatable; default: all")
     run_parser.add_argument("--split", action="append", choices=["dev", "test"], help="repeatable; default: all")
     run_parser.add_argument("--k", type=int, default=10)
     run_parser.add_argument("--out", type=Path, help="output directory (default: results/<timestamp>)")
@@ -47,11 +47,11 @@ def main(argv: list[str] | None = None) -> int:
         return _search(dataset, client, args.principal, args.query, args.strategy, args.k)
     if _validate(dataset) != 0:
         return 1
-    output = runner.run(dataset, client, args.strategy or ["sparse-only", "dense-only"], args.k, set(args.split or ["dev", "test"]))
+    output = runner.run(dataset, client, args.strategy or [*runner.SYSTEM_STRATEGIES, runner.REFERENCE], args.k, set(args.split or ["dev", "test"]))
     out_dir = args.out or Path("results") / datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     runner.write(output, out_dir)
     print((out_dir / "report.md").read_text())
-    violations = sum(s["security_violations"] for s in output["run"]["summary"].values())
+    violations = output["run"]["security_violations"]
     if violations:
         print(f"SECURITY GATE FAILED: {violations} unauthorized results", file=sys.stderr)
         return 2
