@@ -45,7 +45,7 @@ mallory-outsider (tenant external) · dense-only · policy tenant-only/1
 |---|---|---|
 | 检索查询内的授权 | 租户隔离，每次请求编译一次，两条通道共用 | 密级、部门、项目标签（M2） |
 | 检索 | `sparse-only`（PostgreSQL FTS）与 `dense-only`（pgvector 精确检索） | RRF hybrid（M1）、cross-encoder 重排（M3） |
-| 入库 | Markdown 与纯文本，同步执行，内容哈希版本管理，按标题切分 | 带重试的任务队列（M1）、停用与删除清理（M1） |
+| 入库 | 异步任务（`202` + 轮询），`SKIP LOCKED` worker、有限重试与断点续跑；内容哈希版本管理，按标题切分 | 停用与删除清理、chunker v1（M1b） |
 | 评测 | 21 篇文档 70 条用例、hard negatives、BM25 参考行、bootstrap 置信区间与配对比较、CI 安全门禁 | 同一报告中加入 hybrid（M1b）、标签级授权负例（M2） |
 | 回答 | `/api/v1/retrieval/search` 返回排序后的证据 | 带引用与拒答的 `/api/v1/query`（M3） |
 | 运维 | Docker Compose、每个 PR 的 CI | OpenTelemetry trace、审计事件、dashboard（M2–M4） |
@@ -167,7 +167,7 @@ M2 计划补上：决策表的 property-based 测试、细到版本与 chunk 粒
 |---|---|---|
 | **M0** Walking skeleton | demo 身份、Markdown 入库、sparse 与 dense 检索、租户隔离、评测 CLI、CI 冒烟 benchmark | ✅ 已完成 |
 | **M1a** 评测基线 | 70 条用例与 hard negatives、BM25 参考行、配对置信区间、并发入库安全 | ✅ 已完成 |
-| **M1b** hybrid 检索 | 异步入库任务、删除清理、chunker v1、同一报告中的 RRF hybrid | ⏳ 进行中 |
+| **M1b** hybrid 检索 | 异步入库任务（已完成）、删除清理、chunker v1、同一报告中的 RRF hybrid | ⏳ 进行中 |
 | **M2** 授权 | 访问标签、完整决策表、适用范围过滤、审计事件、最小 trace 元数据、威胁模型 | 计划中 |
 | **M3** 重排与回答 | 带降级的 cross-encoder 重排、上下文构建、结构化引用、拒答 | 计划中 |
 | **M4** 运维与发布 | trace 与 dashboard、故障与压力测试、v0.1 benchmark 报告 | 计划中 |

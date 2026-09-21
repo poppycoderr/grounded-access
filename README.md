@@ -45,7 +45,7 @@ The outsider gets no "permission denied", no hit count and no Northstar document
 |---|---|---|
 | Authorization in the retrieval query | Tenant isolation, compiled once per request and carried by both channels | Clearance, department and project labels (M2) |
 | Retrieval | `sparse-only` (PostgreSQL FTS) and `dense-only` (exact pgvector) | RRF hybrid (M1), cross-encoder reranking (M3) |
-| Ingestion | Markdown and text, synchronous, content-hash versioning, heading-aware chunks | Job queue with retries (M1), disable and delete cleanup (M1) |
+| Ingestion | Asynchronous jobs (`202` + poll) with a `SKIP LOCKED` worker, bounded retry and resume; content-hash versioning, heading-aware chunks | Disable and delete cleanup, chunker v1 (M1b) |
 | Evaluation | 70 cases over 21 documents, hard negatives, a BM25 reference row, bootstrap intervals and paired comparisons, security gate in CI | Hybrid in the same report (M1b), label-level authorization negatives (M2) |
 | Answers | Ranked evidence from `/api/v1/retrieval/search` | `/api/v1/query` with citations and abstention (M3) |
 | Operations | Docker Compose, CI on every PR | OpenTelemetry traces, audit events, dashboards (M2–M4) |
@@ -167,7 +167,7 @@ Planned with M2: property-based tests over the decision table, a gate that check
 |---|---|---|
 | **M0** Walking skeleton | Demo identities, Markdown ingestion, sparse and dense retrieval, tenant isolation, eval CLI, CI smoke benchmark | ✅ Done |
 | **M1a** Evaluation baseline | 70-case dataset with hard negatives, BM25 reference, paired confidence intervals, concurrent-ingestion safety | ✅ Done |
-| **M1b** Hybrid retrieval | Async ingestion jobs, delete cleanup, chunker v1, RRF hybrid in the same report | ⏳ Next |
+| **M1b** Hybrid retrieval | Async ingestion jobs (done), delete cleanup, chunker v1, RRF hybrid in the same report | ⏳ In progress |
 | **M2** Authorization | Access labels, full decision table, scope filters, audit events, minimal trace metadata, threat model | Planned |
 | **M3** Reranking and answers | Cross-encoder reranking with fallback, context builder, structured citations, abstention | Planned |
 | **M4** Operations and release | Traces and dashboards, failure and load tests, v0.1 benchmark report | Planned |
