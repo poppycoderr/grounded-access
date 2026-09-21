@@ -8,3 +8,12 @@ documents:
   - {key: support-login-troubleshooting, title: Troubleshooting Customer Login Problems, file: corpus/northstar/support-login-troubleshooting.md}
   - {key: sales-product-overview, title: Northstar Cloud Product Overview, file: corpus/northstar/sales-product-overview.md}
   - {key: security-data-classification, title: Data Classification Standard, file: corpus/northstar/security-data-classification.md}
+  - {key: hr-remote-work-policy, title: "Remote Work Policy", file: corpus/northstar/hr-remote-work-policy.md}
+  - {key: hr-parental-leave, title: "Parental Leave", file: corpus/northstar/hr-parental-leave.md}
+  - {key: hr-relocation-policy, title: "Relocation Support", file: corpus/northstar/hr-relocation-policy.md}
+  - {key: eng-search-cluster-failover, title: "Runbook: Search Cluster Failover", file: corpus/northstar/eng-search-cluster-failover.md}
+  - {key: eng-oncall-handbook, title: "On-call Handbook", file: corpus/northstar/eng-oncall-handbook.md}
+  - {key: eng-backup-and-restore, title: "Backup and Restore Standard", file: corpus/northstar/eng-backup-and-restore.md}
+  - {key: security-access-review, title: "Access Review and Offboarding", file: corpus/northstar/security-access-review.md}
+  - {key: support-refund-policy, title: "Refunds and Credits", file: corpus/northstar/support-refund-policy.md}
+  - {key: sales-sla-credits, title: "Service Level Agreement Credits", file: corpus/northstar/sales-sla-credits.md}
