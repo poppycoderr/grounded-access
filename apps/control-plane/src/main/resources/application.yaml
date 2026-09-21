@@ -24,6 +24,13 @@ ga:
     read-timeout: 30s
   corpus:
     chunk-max-words: 180
+  ingestion:
+    worker:
+      enabled: ${GA_INGESTION_WORKER_ENABLED:true}
+      poll-interval: 1s
+      lease: 5m
+      max-attempts: 5
+      retry-backoff: 5s
 
 management:
   endpoints:

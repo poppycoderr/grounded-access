@@ -9,7 +9,7 @@ from pathlib import Path
 
 from ga_eval import dataset as ds
 from ga_eval import runner, tokens
-from ga_eval.client import ApiClient
+from ga_eval.client import ApiClient, IngestionFailedError
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -77,8 +77,13 @@ def _load(dataset: ds.Dataset, client: ApiClient) -> int:
         admin = f"{manifest.tenant}-admin"
         token = tokens.mint(dataset.root, admin, dataset.principals[admin])
         documents = [{"key": d.key, "title": d.title, "content": (dataset.root / d.file).read_text(encoding="utf-8")} for d in manifest.documents]
-        result = client.ingest(token, documents)
-        print(f"{manifest.tenant}: {result}")
+        try:
+            job = client.ingest(token, documents)
+        except IngestionFailedError as failure:
+            print(f"{manifest.tenant}: {failure}", file=sys.stderr)
+            return 1
+        counts = ", ".join(f"{job[field]} {field}" for field in ("created", "updated", "unchanged", "chunks"))
+        print(f"{manifest.tenant}: job {job['jobId']} succeeded after {job['attempts']} attempt(s): {counts}")
     return 0
 
 
