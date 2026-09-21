@@ -2,3 +2,5 @@ tenant: external
 documents:
   - {key: volunteer-handbook, title: Community Volunteering Handbook, file: corpus/external/volunteer-handbook.md}
   - {key: it-faq, title: IT Frequently Asked Questions, file: corpus/external/it-faq.md}
+  - {key: remote-work, title: "Working From Home at Orbit Labs", file: corpus/external/remote-work.md}
+  - {key: security-basics, title: "Security Basics at Orbit Labs", file: corpus/external/security-basics.md}
