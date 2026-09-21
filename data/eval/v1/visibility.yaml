@@ -10,8 +10,19 @@ principals:
     - support-login-troubleshooting
     - sales-product-overview
     - security-data-classification
+    - hr-remote-work-policy
+    - hr-parental-leave
+    - hr-relocation-policy
+    - eng-search-cluster-failover
+    - eng-oncall-handbook
+    - eng-backup-and-restore
+    - security-access-review
+    - support-refund-policy
+    - sales-sla-credits
   bob-support: *northstar
   carol-manager: *northstar
   mallory-outsider:
     - volunteer-handbook
     - it-faq
+    - remote-work
+    - security-basics
