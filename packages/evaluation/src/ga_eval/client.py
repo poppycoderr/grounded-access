@@ -31,6 +31,22 @@ class ApiClient:
         response.raise_for_status()
         return response.json()
 
+    def list_chunks(self, token: str, page_size: int = 500) -> tuple[str, list[dict]]:
+        """Every chunk the token's principal may retrieve, and the policy version that admitted them."""
+        chunks: list[dict] = []
+        after: str | None = None
+        policy_version = ""
+        while True:
+            params: dict[str, str | int] = {"limit": page_size} | ({"after": after} if after else {})
+            response = self._http.get("/api/v1/retrieval/chunks", params=params, headers=_auth(token))
+            response.raise_for_status()
+            page = response.json()
+            policy_version = page["policyVersion"]
+            chunks += page["chunks"]
+            after = page.get("next")
+            if not after:
+                return policy_version, chunks
+
 
 def _auth(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
