@@ -7,6 +7,8 @@ from typing import Literal
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
+from ga_eval import text
+
 
 def normalize(text: str) -> str:
     """Must match MarkdownChunker.normalize in the control plane: character offsets returned by the API point into this text."""
@@ -95,6 +97,28 @@ def load(root: Path, version: str = "v1") -> Dataset:
     return Dataset(root, version, manifests, texts, tenant_of, cases, visibility, principals)
 
 
+LOW_OVERLAP_BELOW = 1 / 3
+HIGH_OVERLAP_FROM = 2 / 3
+MIN_LOW_OVERLAP_SHARE = 0.30
+
+
+def lexical_overlap(case: Case) -> float:
+    """Share of the query's content tokens that also appear in its evidence. Low overlap means a paraphrase that keyword search cannot match."""
+    query = set(text.tokens(case.query))
+    evidence = {token for e in case.evidence for token in text.tokens(e.quote)}
+    return len(query & evidence) / len(query) if query else 0.0
+
+
+def overlap_bands(dataset: Dataset) -> dict[str, list[str]]:
+    bands: dict[str, list[str]] = {"low": [], "mid": [], "high": []}
+    for case in dataset.cases:
+        if case.evidence:
+            overlap = lexical_overlap(case)
+            band = "low" if overlap < LOW_OVERLAP_BELOW else "high" if overlap >= HIGH_OVERLAP_FROM else "mid"
+            bands[band].append(case.id)
+    return bands
+
+
 def validate(dataset: Dataset) -> list[str]:
     """Returns every problem found; an empty list means the dataset is consistent with the corpus."""
     problems: list[str] = []
@@ -125,6 +149,12 @@ def validate(dataset: Dataset) -> list[str]:
             elif doc in visible:
                 problems.append(f"{where}: {doc} is listed as unauthorized but is visible to {case.principal}")
         problems += [f"{where}: unknown hard negative {doc}" for doc in case.hard_negative_documents if doc not in dataset.texts]
+    bands = overlap_bands(dataset)
+    answerable = sum(len(ids) for ids in bands.values())
+    if answerable and len(bands["low"]) / answerable < MIN_LOW_OVERLAP_SHARE:
+        problems.append(
+            f"only {len(bands['low'])} of {answerable} answerable cases are low-overlap paraphrases; at least {MIN_LOW_OVERLAP_SHARE:.0%} required"
+        )
     for principal, docs in dataset.visibility.items():
         tenant = dataset.principals.get(principal, {}).get("tenant_id")
         problems += [f"visibility {principal}: {doc} belongs to another tenant" for doc in sorted(docs) if dataset.tenant_of.get(doc) != tenant]
