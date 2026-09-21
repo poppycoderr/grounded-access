@@ -89,8 +89,15 @@ chunk(
   embedding vector(N),
   token_count)
 
-ingestion_job(id, tenant_id, manifest_sha256, status, attempts,
-              locked_by, locked_until, error_code, error_detail, created_at, updated_at)
+ingestion_job(id, tenant_id, submitted_by,
+              status,                      -- queued | running | succeeded | failed
+              document_count, processed,   -- processed = resume point for the next attempt
+              created, updated, unchanged, chunks,
+              attempts, max_attempts, run_after, lease_expires_at,
+              error_code, created_at, started_at, finished_at)
+
+ingestion_job_document(job_id, ordinal, external_key, title, source_uri, content)
+                                           -- deleted when the job finishes
 
 query_execution(id, tenant_id, principal_id, trace_id, pipeline_config jsonb,
                 policy_version, model_config jsonb, status, degraded_reasons text[],
@@ -117,27 +124,32 @@ sequenceDiagram
     participant W as ingestion worker
     participant MS as model service
     participant DB as PostgreSQL
-    C->>API: POST /ingestion-jobs (manifest)
-    API->>Q: insert job (manifest_sha256 unique per tenant → idempotent)
-    API-->>C: 202 {jobId}
-    W->>Q: SELECT … FOR UPDATE SKIP LOCKED
-    loop each document in manifest
-        W->>W: parse + normalize + chunk (structure-aware, token cap)
-        alt content + labels unchanged
+    C->>API: POST /ingestion-jobs {documents}
+    API->>Q: insert job + documents (queued)
+    API-->>C: 202 {jobId}, Location
+    W->>Q: claim: UPDATE … WHERE id = (SELECT … FOR UPDATE SKIP LOCKED), attempts + 1, lease
+    loop each document from the resume point
+        W->>W: normalize + chunk
+        alt content unchanged
             W->>W: skip (no new version)
         else changed
-            W->>MS: embed(chunk texts) unless cached
-            W->>DB: tx: insert version + chunks; update document.active_version_id
+            W->>MS: embed(chunk texts)
+            W->>DB: tx: lock document, insert version + chunks, flip active_version_id
         end
+        W->>Q: processed + 1, counts, renew lease
     end
-    W->>Q: status = succeeded | failed(error_code)
+    W->>Q: succeeded, or queued with backoff, or failed(error_code); drop job documents
+    C->>API: GET /ingestion-jobs/{jobId} until succeeded | failed
 ```
 
 - **Atomic version switch:** each document gets its own transaction that inserts the new version's chunks and flips `active_version_id`. Queries join on `active_version_id`, so readers see either the old version or the new one, never a mix.
 - **Disable/delete** is a status update that takes effect on the next query. Rows of old versions and deleted documents are removed later by a background cleanup job.
-- **Retries:** bounded, with exponential backoff. A job that runs out of attempts is marked `failed` with an `error_code`. That is the dead-letter state; there is no separate queue.
+- **Claiming:** a worker takes the oldest runnable job with `FOR UPDATE SKIP LOCKED`, so several workers can poll without waiting on each other, and holds it under a lease that is renewed after every document. A job whose lease expired is claimed again; if that was its last attempt it is marked `failed` with `WORKER_LOST`. Every worker write checks the attempt number it claimed, so a worker that lost its lease cannot change the job.
+- **Retries:** bounded (5 attempts by default), with exponential backoff. Only failures that can pass on their own are retried: the model service being unreachable or returning 5xx, and transient database errors. A 4xx from the model service or any other error fails the job at once. A job that runs out of attempts is marked `failed` with an `error_code`. That is the dead-letter state; there is no separate queue.
+- **Resume and delivery:** each attempt starts at the first document the previous attempt did not record, so documents already written are not embedded again. Delivery is at least once: a document written just before a worker dies is ingested again and, being unchanged, counted as `unchanged`.
+- **Submission is not deduplicated.** Submitting the same documents twice creates two jobs; the second finds every document unchanged. Each document is idempotent by content hash, so a client retry is harmless.
 - **Chunking:** split on Markdown headings first, then on paragraphs, with a token cap and a small overlap. Plain text splits on paragraphs only. The chunker has a version number, and eval results record it.
-- **Precomputed embeddings:** the demo corpus ships an embeddings file keyed by `(chunk content hash, chunker_version, embedding model@revision)`. On a match the worker skips the model call. This makes CI and the quickstart fast and deterministic.
+- **Precomputed embeddings:** deferred. The demo corpus embeds in seconds, so a cache would add a moving part without saving time (see milestones).
 
 ## 6. Query flow
 
@@ -197,8 +209,8 @@ All outbound calls have explicit timeouts. Retries are only used for idempotent 
 ## 8. API surface (v0.1)
 
 ```text
-POST   /api/v1/ingestion-jobs                 # manifest ingestion, async
-GET    /api/v1/ingestion-jobs/{jobId}
+POST   /api/v1/ingestion-jobs                 # 202 + Location; documents travel inline
+GET    /api/v1/ingestion-jobs/{jobId}         # status, progress, counts, error_code; 404 across tenants
 GET    /api/v1/documents/{documentId}         # authorized metadata only; 404 if not visible
 DELETE /api/v1/documents/{documentId}         # admin scope
 POST   /api/v1/retrieval/search               # ranked candidates + debug fields

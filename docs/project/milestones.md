@@ -47,6 +47,8 @@ Split into two publishable batches. **M1a proves the dataset can separate strate
 
 **M1a delivered** (items 1.1–1.6): see `benchmarks/reports/m1a-baseline/` and `data/eval/DATASET_CARD.md`. The paired comparisons already separate dense from FTS on MRR@10 and show FTS measurably below BM25, so the dataset is ready for the hybrid comparison in M1b.
 
+**M1b progress:** 1.7 delivered. Jobs resume from the last recorded document instead of restarting, so a retry does not re-embed documents that were already written.
+
 Already delivered in M0, so not repeated here: the atomic `active_version_id` flip, content-hash idempotency, the OR-lexeme FTS query builder, and deterministic tie-breaking.
 
 Deferred on purpose: the precomputed-embeddings cache. CI currently embeds the demo corpus in well under a minute, so the cache would add a moving part without buying time. Revisit if the corpus grows past a few thousand chunks.
