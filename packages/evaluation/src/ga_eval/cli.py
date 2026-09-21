@@ -3,6 +3,7 @@
 import argparse
 import os
 import sys
+from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -64,6 +65,10 @@ def _validate(dataset: ds.Dataset) -> int:
         print(f"invalid: {problem}", file=sys.stderr)
     if not problems:
         print(f"dataset {dataset.version}: {len(dataset.cases)} cases, {len(dataset.texts)} documents, valid")
+    bands = ds.overlap_bands(dataset)
+    splits = Counter(c.split for c in dataset.cases)
+    print("lexical overlap of answerable cases: " + ", ".join(f"{band} {len(ids)}" for band, ids in bands.items()))
+    print("splits: " + ", ".join(f"{split} {count}" for split, count in sorted(splits.items())))
     return 1 if problems else 0
 
 
