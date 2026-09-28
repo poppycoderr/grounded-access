@@ -187,7 +187,7 @@ class CorpusWriter {
                         for no key update skip locked
                         """)
                 .param("batch", batchSize)
-                .query(UUID.class)
+                .query((rs, i) -> rs.getObject(1, UUID.class))
                 .list();
         if (documents.isEmpty()) {
             return 0;
