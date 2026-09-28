@@ -93,10 +93,9 @@ class CorpusWriter {
                 .query(UUID.class)
                 .single();
         return jdbc.sql("""
-                        select coalesce(max(v.version_no), 0), max(v.content_sha256) filter (where v.id = d.active_version_id), d.status = 'deleted'
-                        from document d left join document_version v on v.document_id = d.id
+                        select d.last_version_no, v.content_sha256, d.status = 'deleted'
+                        from document d left join document_version v on v.id = d.active_version_id
                         where d.id = :id
-                        group by d.active_version_id, d.status
                         """)
                 .param("id", documentId)
                 .query((rs, i) -> new LockedDocument(documentId, rs.getInt(1), rs.getString(2), rs.getBoolean(3)))
@@ -146,10 +145,12 @@ class CorpusWriter {
         }
         jdbc.sql("""
                         update document
-                        set active_version_id = :version, status = case when status = 'deleted' then 'active' else status end, updated_at = now()
+                        set active_version_id = :version, last_version_no = :versionNo,
+                            status = case when status = 'deleted' then 'active' else status end, updated_at = now()
                         where id = :id
                         """)
                 .param("version", versionId)
+                .param("versionNo", document.versionNo() + 1)
                 .param("id", documentId)
                 .update();
     }
