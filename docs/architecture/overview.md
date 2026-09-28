@@ -66,7 +66,7 @@ tenant(id, name)
 
 document(
   id, tenant_id, external_key,            -- external_key unique per tenant, from manifest
-  status,                                  -- active | disabled | deleted
+  status,                                  -- active | disabled | deleted (tombstone: keeps the key, loses its versions)
   active_version_id,                       -- pointer flipped atomically on new version
   created_at, updated_at)
 
@@ -143,7 +143,9 @@ sequenceDiagram
 ```
 
 - **Atomic version switch:** each document gets its own transaction that inserts the new version's chunks and flips `active_version_id`. Queries join on `active_version_id`, so readers see either the old version or the new one, never a mix.
-- **Disable/delete** is a status update that takes effect on the next query. Rows of old versions and deleted documents are removed later by a background cleanup job.
+- **Disable and delete** are a single status update on the document row, so they take effect on the next query: every retrieval query joins only the active version of an `active` document. The update takes the same row lock as ingestion, so it serialises with an ingestion of the same key; whichever commits last wins.
+- **Status and new content.** A new version never re-enables a `disabled` document: disabling is an administrator's decision, and a routine re-sync must not undo it. Ingesting a `deleted` key brings it back as a new document, even with identical content.
+- **Cleanup** runs every minute and removes versions no query can reach: versions replaced by a newer one, and all versions of deleted documents (chunks follow through the foreign-key cascade). It locks each document with the lock ingestion uses, skips documents an ingestion holds, and keeps the deleted document row as a tombstone. Retrieval correctness never depends on cleanup having run. Because replaced versions are removed, historical retrieval would need a retention period; see open question Q11.
 - **Claiming:** a worker takes the oldest runnable job with `FOR UPDATE SKIP LOCKED`, so several workers can poll without waiting on each other, and holds it under a lease that is renewed after every document. A job whose lease expired is claimed again; if that was its last attempt it is marked `failed` with `WORKER_LOST`. Every worker write checks the attempt number it claimed, so a worker that lost its lease cannot change the job.
 - **Retries:** bounded (5 attempts by default), with exponential backoff. Only failures that can pass on their own are retried: the model service being unreachable or returning 5xx, and transient database errors. A 4xx from the model service or any other error fails the job at once. A job that runs out of attempts is marked `failed` with an `error_code`. That is the dead-letter state; there is no separate queue.
 - **Resume and delivery:** each attempt starts at the first document the previous attempt did not record, so documents already written are not embedded again. Delivery is at least once: a document written just before a worker dies is ingested again and, being unchanged, counted as `unchanged`.
@@ -211,8 +213,9 @@ All outbound calls have explicit timeouts. Retries are only used for idempotent 
 ```text
 POST   /api/v1/ingestion-jobs                 # 202 + Location; documents travel inline
 GET    /api/v1/ingestion-jobs/{jobId}         # status, progress, counts, error_code; 404 across tenants
-GET    /api/v1/documents/{documentId}         # authorized metadata only; 404 if not visible
-DELETE /api/v1/documents/{documentId}         # admin scope
+GET    /api/v1/documents/{key}                # authorized metadata only; 404 if not visible (M2)
+PATCH  /api/v1/documents/{key}                # {"status": "active" | "disabled"}; admin scope
+DELETE /api/v1/documents/{key}                # 204; admin scope; 404 if unknown, deleted or another tenant's
 POST   /api/v1/retrieval/search               # ranked candidates + debug fields
 GET    /api/v1/retrieval/chunks               # every authorized chunk, keyset-paged; debug scope; feeds offline reference rankers
 POST   /api/v1/query                          # answer / evidence / abstention
@@ -221,6 +224,7 @@ GET    /api/v1/query-executions/{id}          # own executions only
 
 - Admin endpoints (ingestion, delete) need an `admin` scope in the token. Query endpoints need `query`.
 - `/retrieval/search` returns per-candidate channel ranks and scores and the serialized `RetrievalPlan`. The debug fields need a `debug` scope. The eval tokens carry it and ordinary demo users do not.
+- Documents are addressed by the key they were ingested under, unique per tenant. Clients know keys from their manifests and from search results; internal ids never appear in the API.
 - A document that is not visible returns 404, never 403.
 - Evaluation runs are **not** an API resource. The Python CLI owns them (see evaluation strategy).
 - OpenAPI lives in `packages/contracts/` and is checked for compatibility in CI.

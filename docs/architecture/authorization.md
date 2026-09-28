@@ -16,7 +16,7 @@ These are the properties the design commits to. The table after them says which 
 |---|---|---|---|
 | Security | Tenant level | `RetrievalIT` cross-tenant cases on both channels; an architecture test that only `AuthorizedChunkQuery` reads chunks; the evaluation security gate against hand-labelled visibility | Label-level decisions and a gate at version and chunk granularity (M2) |
 | Recall | By construction | No ANN index exists, so every authorized row is a candidate | A measured comparison of exact search against a filtered HNSW index, once an index exists (post-v0.1, ADR-0002) |
-| Existence | Partially | Retrieval returns no filtered counts and no metadata for rows the predicate excluded | A document read endpoint returning 404, an answering path with a uniform `no_answer`, and timing side channels (M2–M3, threat model) |
+| Existence | Partially | Retrieval returns no filtered counts and no metadata for rows the predicate excluded; ingestion jobs and document changes answer 404 for another tenant's ids and keys, the same as for unknown ones | A document read endpoint returning 404, an answering path with a uniform `no_answer`, and timing side channels (M2–M3, threat model) |
 
 ## 2. Two kinds of filters
 
