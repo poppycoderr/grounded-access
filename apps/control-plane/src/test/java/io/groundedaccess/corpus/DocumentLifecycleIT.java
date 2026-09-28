@@ -170,6 +170,7 @@ class DocumentLifecycleIT {
 
         ingest("hr-volunteer-policy", VOLUNTEER).andExpect(jsonPath("$.created").value(1));
         assertThat(visibleKeys()).containsExactly("hr-travel-policy", "hr-volunteer-policy");
+        assertThat(versions()).as("a version number is never reused, even after its version was cleaned up").contains("hr-volunteer-policy:2");
     }
 
     @Test
