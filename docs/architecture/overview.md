@@ -68,6 +68,7 @@ document(
   id, tenant_id, external_key,            -- external_key unique per tenant, from manifest
   status,                                  -- active | disabled | deleted (tombstone: keeps the key, loses its versions)
   active_version_id,                       -- pointer flipped atomically on new version
+  last_version_no,                         -- never decreases: a version number is never reused, even after cleanup
   created_at, updated_at)
 
 document_version(
@@ -144,7 +145,7 @@ sequenceDiagram
 
 - **Atomic version switch:** each document gets its own transaction that inserts the new version's chunks and flips `active_version_id`. Queries join on `active_version_id`, so readers see either the old version or the new one, never a mix.
 - **Disable and delete** are a single status update on the document row, so they take effect on the next query: every retrieval query joins only the active version of an `active` document. The update takes the same row lock as ingestion, so it serialises with an ingestion of the same key; whichever commits last wins.
-- **Status and new content.** A new version never re-enables a `disabled` document: disabling is an administrator's decision, and a routine re-sync must not undo it. Ingesting a `deleted` key brings it back as a new document, even with identical content.
+- **Status and new content.** A new version never re-enables a `disabled` document: disabling is an administrator's decision, and a routine re-sync must not undo it. Ingesting a `deleted` key brings it back as a new document, even with identical content. Its version numbers continue from the last one ever written, so `key` + `version` always names the same content, which evaluation labels and citations rely on.
 - **Cleanup** runs every minute and removes versions no query can reach: versions replaced by a newer one, and all versions of deleted documents (chunks follow through the foreign-key cascade). It locks each document with the lock ingestion uses, skips documents an ingestion holds, and keeps the deleted document row as a tombstone. Retrieval correctness never depends on cleanup having run. Because replaced versions are removed, historical retrieval would need a retention period; see open question Q11.
 - **Claiming:** a worker takes the oldest runnable job with `FOR UPDATE SKIP LOCKED`, so several workers can poll without waiting on each other, and holds it under a lease that is renewed after every document. A job whose lease expired is claimed again; if that was its last attempt it is marked `failed` with `WORKER_LOST`. Every worker write checks the attempt number it claimed, so a worker that lost its lease cannot change the job.
 - **Retries:** bounded (5 attempts by default), with exponential backoff. Only failures that can pass on their own are retried: the model service being unreachable or returning 5xx, and transient database errors. A 4xx from the model service or any other error fails the job at once. A job that runs out of attempts is marked `failed` with an `error_code`. That is the dead-letter state; there is no separate queue.
