@@ -47,7 +47,7 @@ Split into two publishable batches. **M1a proves the dataset can separate strate
 
 **M1a delivered** (items 1.1–1.6): see `benchmarks/reports/m1a-baseline/` and `data/eval/DATASET_CARD.md`. The paired comparisons already separate dense from FTS on MRR@10 and show FTS measurably below BM25, so the dataset is ready for the hybrid comparison in M1b.
 
-**M1b progress:** 1.7 delivered. Jobs resume from the last recorded document instead of restarting, so a retry does not re-embed documents that were already written.
+**M1b progress:** 1.7 and 1.8 delivered. Status changes apply to the next query through the existing retrieval join; cleanup only reclaims storage. Jobs resume from the last recorded document instead of restarting, so a retry does not re-embed documents that were already written.
 
 Already delivered in M0, so not repeated here: the atomic `active_version_id` flip, content-hash idempotency, the OR-lexeme FTS query builder, and deterministic tie-breaking.
 
@@ -65,7 +65,7 @@ Deferred on purpose: the precomputed-embeddings cache. CI currently embeds the d
 | 2.4 | jqwik property tests against the in-memory reference evaluator; architecture test that only `AuthorizedChunkQuery` touches `chunk` | 1 |
 | 2.5 | Audit events (schema v1, synchronous, fail closed) and `query_execution` records | 1 |
 | 2.5b | Minimal trace metadata alongside the audit record: trace id, policy version, model revision, degraded reasons, plus a test that no forbidden attribute is emitted | 1 |
-| 2.5c | Failure tests for authorization changes: audit write failure fails the query closed; a label change or delete takes effect on the next query | 0.5 |
+| 2.5c | Failure tests for authorization changes: audit write failure fails the query closed; a label change takes effect on the next query (disable and delete are covered since M1b) | 0.5 |
 | 2.6 | Existence-leakage behaviour: 404 for invisible documents, identical `no_answer`, no filtered counts; tests | 0.5 |
 | 2.7 | Security gate at version and chunk granularity: labels per version, authorization failures reported separately from scope failures, ≥ 25 authorization negatives | 1.5 |
 | 2.8 | Threat model: assets, actors, trust boundaries, abuse cases (including a low-privilege author poisoning documents), residual risks | 1 |
