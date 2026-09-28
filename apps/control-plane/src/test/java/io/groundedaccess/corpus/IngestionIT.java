@@ -25,7 +25,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
-@SpringBootTest
+@SpringBootTest(properties = {"ga.ingestion.worker.enabled=false", "ga.corpus.cleanup.enabled=false"})
 @Import({TestcontainersConfiguration.class, IngestionIT.FakeModels.class})
 class IngestionIT {
 

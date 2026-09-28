@@ -46,7 +46,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.client.ResourceAccessException;
 
-@SpringBootTest(properties = {"ga.ingestion.worker.enabled=false", "ga.ingestion.worker.max-attempts=3", "ga.ingestion.worker.retry-backoff=0s"})
+@SpringBootTest(properties = {"ga.ingestion.worker.enabled=false", "ga.corpus.cleanup.enabled=false", "ga.ingestion.worker.max-attempts=3", "ga.ingestion.worker.retry-backoff=0s"})
 @AutoConfigureMockMvc
 @Import({TestcontainersConfiguration.class, IngestionJobIT.FakeModels.class})
 class IngestionJobIT {

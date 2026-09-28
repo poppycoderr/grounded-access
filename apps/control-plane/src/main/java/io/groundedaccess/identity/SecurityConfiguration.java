@@ -36,6 +36,8 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
                         .requestMatchers("/api/v1/ingestion-jobs/**").hasAuthority("SCOPE_admin")
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/documents/*").hasAuthority("SCOPE_admin")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/documents/*").hasAuthority("SCOPE_admin")
                         .requestMatchers(HttpMethod.GET, "/api/v1/retrieval/chunks").hasAllAuthorities("SCOPE_query", "SCOPE_debug")
                         .requestMatchers("/api/v1/retrieval/**").hasAuthority("SCOPE_query")
                         .anyRequest().denyAll())

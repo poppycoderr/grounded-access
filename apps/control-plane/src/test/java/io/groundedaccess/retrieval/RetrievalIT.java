@@ -35,7 +35,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.RequestBuilder;
 import org.springframework.test.web.servlet.ResultActions;
 
-@SpringBootTest(properties = "ga.ingestion.worker.enabled=false")
+@SpringBootTest(properties = {"ga.ingestion.worker.enabled=false", "ga.corpus.cleanup.enabled=false"})
 @AutoConfigureMockMvc
 @Import({TestcontainersConfiguration.class, RetrievalIT.FakeModels.class})
 class RetrievalIT {
