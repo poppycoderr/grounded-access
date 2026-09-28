@@ -43,6 +43,6 @@ public class IngestionController {
      */
     @GetMapping("/{id}")
     public IngestionJobResponse find(@AuthenticationPrincipal Jwt token, @PathVariable("id") UUID id) {
-        return jobs.find(Principal.from(token), id).map(IngestionJobResponse::from).orElseThrow(JobNotFoundException::new);
+        return jobs.find(Principal.from(token), id).map(IngestionJobResponse::from).orElseThrow(() -> new NotFoundException("No such ingestion job"));
     }
 }

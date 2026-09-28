@@ -23,9 +23,9 @@ public class ApiExceptionHandler {
         return problem;
     }
 
-    @ExceptionHandler(JobNotFoundException.class)
-    ProblemDetail jobNotFound(JobNotFoundException exception) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "No such ingestion job");
+    @ExceptionHandler(NotFoundException.class)
+    ProblemDetail notFound(NotFoundException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
         problem.setProperty("code", "NOT_FOUND");
         return problem;
     }

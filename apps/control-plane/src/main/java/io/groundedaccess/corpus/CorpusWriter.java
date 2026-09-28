@@ -29,17 +29,20 @@ class CorpusWriter {
     }
 
     /**
-     * The document row held under a write lock, together with the version that was active when the lock was taken.
+     * The document row held under a write lock, together with the version that was active when the lock was taken. A deleted document has no
+     * current content, whatever its last version held.
      */
     record LockedDocument(
             UUID documentId,
 
             int versionNo,
 
-            @Nullable String contentSha256) {
+            @Nullable String contentSha256,
+
+            boolean deleted) {
 
         boolean alreadyHas(String sha) {
-            return sha.equals(contentSha256);
+            return !deleted && sha.equals(contentSha256);
         }
     }
 
@@ -65,7 +68,7 @@ class CorpusWriter {
         return jdbc.sql("""
                         select d.id, v.version_no, v.content_sha256
                         from document d join document_version v on v.id = d.active_version_id
-                        where d.tenant_id = :tenant and d.external_key = :key
+                        where d.tenant_id = :tenant and d.external_key = :key and d.status <> 'deleted'
                         """)
                 .param("tenant", tenantId)
                 .param("key", key)
@@ -90,19 +93,20 @@ class CorpusWriter {
                 .query(UUID.class)
                 .single();
         return jdbc.sql("""
-                        select coalesce(max(v.version_no), 0), max(v.content_sha256) filter (where v.id = d.active_version_id)
+                        select coalesce(max(v.version_no), 0), max(v.content_sha256) filter (where v.id = d.active_version_id), d.status = 'deleted'
                         from document d left join document_version v on v.document_id = d.id
                         where d.id = :id
-                        group by d.active_version_id
+                        group by d.active_version_id, d.status
                         """)
                 .param("id", documentId)
-                .query((rs, i) -> new LockedDocument(documentId, rs.getInt(1), rs.getString(2)))
+                .query((rs, i) -> new LockedDocument(documentId, rs.getInt(1), rs.getString(2), rs.getBoolean(3)))
                 .single();
     }
 
     /**
      * Inserts the version and its chunks, then points the document at it. Must run in one transaction: the deferred foreign key on
-     * active_version_id lets the pointer flip last, so readers see either the complete old version or the complete new one.
+     * active_version_id lets the pointer flip last, so readers see either the complete old version or the complete new one. A new version
+     * brings a deleted document back, but never re-enables a disabled one: disabling is an administrator's decision that new content does not undo.
      */
     void writeVersion(NewVersion version, LockedDocument document) {
         UUID documentId = document.documentId();
@@ -140,9 +144,60 @@ class CorpusWriter {
                     .param("tokens", chunk.tokenCount())
                     .update();
         }
-        jdbc.sql("update document set active_version_id = :version, status = 'active', updated_at = now() where id = :id")
+        jdbc.sql("""
+                        update document
+                        set active_version_id = :version, status = case when status = 'deleted' then 'active' else status end, updated_at = now()
+                        where id = :id
+                        """)
                 .param("version", versionId)
                 .param("id", documentId)
+                .update();
+    }
+
+    /**
+     * Changes the status of a document that is not deleted. The update takes the same row lock as ingestion, so it waits for an ingestion of the
+     * same key in flight and then applies on top of it.
+     */
+    Optional<DocumentState> changeStatus(String tenantId, String key, DocumentStatus status) {
+        return jdbc.sql("""
+                        update document d set status = :status, updated_at = now()
+                        where d.tenant_id = :tenant and d.external_key = :key and d.status <> 'deleted'
+                        returning d.external_key, d.status, coalesce((select v.version_no from document_version v where v.id = d.active_version_id), 0)
+                        """)
+                .param("status", status.column())
+                .param("tenant", tenantId)
+                .param("key", key)
+                .query((rs, i) -> new DocumentState(rs.getString(1), DocumentStatus.fromColumn(rs.getString(2)), rs.getInt(3)))
+                .optional();
+    }
+
+    /**
+     * Deletes the versions of up to {@code batchSize} documents that no query can reach and returns how many were deleted; chunks cascade. Each
+     * document is locked first, with the lock ingestion uses, and documents locked by an ingestion are skipped. Locking and deleting are separate
+     * statements for the same reason as in {@link #lockDocument}: the later statements must see the rows as they are after the lock.
+     */
+    int purgeUnreachableVersions(int batchSize) {
+        List<UUID> documents = jdbc.sql("""
+                        select d.id from document d
+                        where exists (
+                            select 1 from document_version v
+                            where v.document_id = d.id and (d.status = 'deleted' or v.id is distinct from d.active_version_id))
+                        order by d.id
+                        limit :batch
+                        for no key update skip locked
+                        """)
+                .param("batch", batchSize)
+                .query(UUID.class)
+                .list();
+        if (documents.isEmpty()) {
+            return 0;
+        }
+        jdbc.sql("update document set active_version_id = null where id in (:ids) and status = 'deleted'").param("ids", documents).update();
+        return jdbc.sql("""
+                        delete from document_version v using document d
+                        where v.document_id = d.id and d.id in (:ids) and v.id is distinct from d.active_version_id
+                        """)
+                .param("ids", documents)
                 .update();
     }
 }

@@ -78,7 +78,7 @@ public class IngestionService {
             return Outcome.UNCHANGED;
         }
         writer.writeVersion(version, document);
-        return document.versionNo() == 0 ? Outcome.CREATED : Outcome.UPDATED;
+        return document.versionNo() == 0 || document.deleted() ? Outcome.CREATED : Outcome.UPDATED;
     }
 
     private enum Outcome {

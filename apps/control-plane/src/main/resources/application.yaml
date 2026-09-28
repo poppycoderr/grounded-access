@@ -10,6 +10,10 @@ spring:
   mvc:
     problemdetails:
       enabled: true
+  task:
+    scheduling:
+      pool:
+        size: 2
 
 ga:
   identity:
@@ -24,6 +28,10 @@ ga:
     read-timeout: 30s
   corpus:
     chunk-max-words: 180
+    cleanup:
+      enabled: ${GA_CORPUS_CLEANUP_ENABLED:true}
+      interval: 1m
+      batch-size: 100
   ingestion:
     worker:
       enabled: ${GA_INGESTION_WORKER_ENABLED:true}
