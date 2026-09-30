@@ -28,6 +28,7 @@ ga:
     read-timeout: 30s
   corpus:
     chunk-max-words: 180
+    chunk-overlap-words: 30
     cleanup:
       enabled: ${GA_CORPUS_CLEANUP_ENABLED:true}
       interval: 1m

@@ -27,6 +27,8 @@ public record SearchResultResponse(
 
         String text,
 
+        String chunkerVersion,
+
         RetrievalChannel channel,
 
         int rank,
@@ -35,6 +37,6 @@ public record SearchResultResponse(
 
     static SearchResultResponse from(RetrievedChunk chunk, boolean debug) {
         return new SearchResultResponse(chunk.chunkId(), chunk.documentKey(), chunk.versionNo(), chunk.title(), chunk.sectionPath(), chunk.charStart(),
-                chunk.charEnd(), chunk.content(), chunk.channel(), chunk.rank(), debug ? chunk.score() : null);
+                chunk.charEnd(), chunk.content(), chunk.chunkerVersion(), chunk.channel(), chunk.rank(), debug ? chunk.score() : null);
     }
 }

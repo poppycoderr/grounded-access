@@ -48,7 +48,13 @@ def main(argv: list[str] | None = None) -> int:
         return _search(dataset, client, args.principal, args.query, args.strategy, args.k)
     if _validate(dataset) != 0:
         return 1
-    output = runner.run(dataset, client, args.strategy or [*runner.SYSTEM_STRATEGIES, runner.REFERENCE], args.k, set(args.split or ["dev", "test"]))
+    try:
+        output = runner.run(
+            dataset, client, args.strategy or [*runner.SYSTEM_STRATEGIES, runner.REFERENCE], args.k, set(args.split or ["dev", "test"])
+        )
+    except runner.MixedChunkerError as mixed:
+        print(f"error: {mixed}", file=sys.stderr)
+        return 1
     out_dir = args.out or Path("results") / datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     runner.write(output, out_dir)
     print((out_dir / "report.md").read_text())
@@ -76,7 +82,10 @@ def _load(dataset: ds.Dataset, client: ApiClient) -> int:
     for manifest in dataset.manifests:
         admin = f"{manifest.tenant}-admin"
         token = tokens.mint(dataset.root, admin, dataset.principals[admin])
-        documents = [{"key": d.key, "title": d.title, "content": (dataset.root / d.file).read_text(encoding="utf-8")} for d in manifest.documents]
+        documents = [
+            {"key": d.key, "title": d.title, "content": (dataset.root / d.file).read_text(encoding="utf-8"), "format": _format(d.file)}
+            for d in manifest.documents
+        ]
         try:
             job = client.ingest(token, documents)
         except IngestionFailedError as failure:
@@ -85,6 +94,11 @@ def _load(dataset: ds.Dataset, client: ApiClient) -> int:
         counts = ", ".join(f"{job[field]} {field}" for field in ("created", "updated", "unchanged", "chunks"))
         print(f"{manifest.tenant}: job {job['jobId']} succeeded after {job['attempts']} attempt(s): {counts}")
     return 0
+
+
+def _format(file: str) -> str:
+    """Markdown for `.md` files, plain text for everything else."""
+    return "markdown" if file.endswith(".md") else "text"
 
 
 def _search(dataset: ds.Dataset, client: ApiClient, principal: str, query: str, strategy: str, k: int) -> int:

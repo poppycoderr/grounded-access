@@ -1,5 +1,6 @@
 package io.groundedaccess.ingestion;
 
+import io.groundedaccess.corpus.DocumentFormat;
 import io.groundedaccess.corpus.IngestionResult;
 import io.groundedaccess.corpus.SourceDocument;
 
@@ -64,8 +65,8 @@ class IngestionJobStore {
         for (int i = 0; i < documents.size(); i++) {
             SourceDocument document = documents.get(i);
             jdbc.sql("""
-                            insert into ingestion_job_document (job_id, ordinal, external_key, title, source_uri, content)
-                            values (:job, :ordinal, :key, :title, :sourceUri, :content)
+                            insert into ingestion_job_document (job_id, ordinal, external_key, title, source_uri, content, format)
+                            values (:job, :ordinal, :key, :title, :sourceUri, :content, :format)
                             """)
                     .param("job", id)
                     .param("ordinal", i)
@@ -73,6 +74,7 @@ class IngestionJobStore {
                     .param("title", document.title())
                     .param("sourceUri", document.sourceUri())
                     .param("content", document.content())
+                    .param("format", document.format().column())
                     .update();
         }
         return id;
@@ -127,10 +129,11 @@ class IngestionJobStore {
     }
 
     Optional<SourceDocument> document(UUID jobId, int ordinal) {
-        return jdbc.sql("select external_key, title, source_uri, content from ingestion_job_document where job_id = :job and ordinal = :ordinal")
+        return jdbc.sql("select external_key, title, source_uri, content, format from ingestion_job_document where job_id = :job and ordinal = :ordinal")
                 .param("job", jobId)
                 .param("ordinal", ordinal)
-                .query((rs, i) -> new SourceDocument(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4)))
+                .query((rs, i) -> new SourceDocument(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4),
+                        DocumentFormat.fromColumn(rs.getString(5))))
                 .optional();
     }
 

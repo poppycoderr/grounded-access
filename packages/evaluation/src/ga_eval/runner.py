@@ -23,18 +23,32 @@ QUALITY_METRICS = ["recall@5", "recall@10", "mrr@10", "ndcg@10"]
 COMPARED_METRICS = ["recall@10", "mrr@10", "ndcg@10"]
 
 
+class MixedChunkerError(RuntimeError):
+    """The corpus was chunked by more than one chunker release, so a run would compare results of different chunkings."""
+
+
+def chunker_release(version: str) -> str:
+    """`markdown/2` and `text/2` are one release applied to two formats; `markdown/1` next to `markdown/2` is a partial re-index."""
+    return version.rsplit("/", 1)[-1]
+
+
 def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, splits: set[str]) -> dict:
     cases = [c for c in dataset.cases if c.split in splits]
     records: list[dict] = []
     policy_versions: set[str] = set()
+    tokens_by_principal = {p: tokens.mint(dataset.root, p, dataset.principals[p], scope="query debug") for p in sorted({c.principal for c in cases})}
+    listings = {p: client.list_chunks(token) for p, token in tokens_by_principal.items()}
+    chunker_versions = sorted({c["chunkerVersion"] for _, chunks in listings.values() for c in chunks})
+    if len({chunker_release(v) for v in chunker_versions}) > 1:
+        raise MixedChunkerError(f"the corpus mixes chunker versions {', '.join(chunker_versions)}; re-index it with a fresh load before evaluating")
     references: dict[str, Bm25Index] = {}
     for case in cases:
-        token = tokens.mint(dataset.root, case.principal, dataset.principals[case.principal], scope="query debug")
+        token = tokens_by_principal[case.principal]
         spans = [dataset.span(e) for e in case.evidence]
         for strategy in strategies:
             if strategy == REFERENCE:
                 if case.principal not in references:
-                    policy_version, chunks = client.list_chunks(token)
+                    policy_version, chunks = listings[case.principal]
                     policy_versions.add(policy_version)
                     references[case.principal] = Bm25Index(
                         [Chunk(c["documentKey"], c["versionNo"], c["charStart"], c["charEnd"], c["text"]) for c in chunks]
@@ -57,6 +71,7 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
             "splits": sorted(splits),
             "case_count": len(cases),
             "policy_versions": sorted(policy_versions),
+            "chunker_versions": chunker_versions,
             "platform": platform.platform(),
             "bootstrap": {"samples": stats.SAMPLES, "seed": stats.SEED, "confidence": 0.95},
             "summary": {split: summarize([r for r in records if r["split"] == split], strategies) for split in sorted(splits)},
@@ -137,7 +152,8 @@ def render(output: dict) -> str:
         "",
         "Demo benchmark on a small fictional corpus; not representative of production quality. "
         f"Commit `{run_info['git_sha']}`, {run_info['case_count']} cases, k={run_info['k']}, "
-        f"policy {', '.join(run_info['policy_versions'])}, generated {run_info['created_at']}. "
+        f"policy {', '.join(run_info['policy_versions'])}, chunker {', '.join(run_info.get('chunker_versions', ['not recorded']))}, "
+        f"generated {run_info['created_at']}. "
         f"Intervals are 95% percentile bootstraps over cases ({run_info['bootstrap']['samples']:,} samples, seed {run_info['bootstrap']['seed']}).",
         "",
     ]

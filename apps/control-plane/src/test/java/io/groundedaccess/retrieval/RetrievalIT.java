@@ -109,6 +109,28 @@ class RetrievalIT {
     }
 
     @Test
+    void plainTextIsChunkedWithoutHeadingsAndResultsNameTheChunkerThatProducedThem() throws Exception {
+        String faq = "# Volunteer FAQ\n\nEU employees receive two paid volunteer days per calendar year.\n";
+        ingest("northstar", "volunteer-faq", faq, "text").andExpect(jsonPath("$.created").value(1));
+
+        search("alice", "northstar", "query", "paid volunteer days", "sparse-only")
+                .andExpect(jsonPath("$.results[0].sectionPath").value(""))
+                .andExpect(jsonPath("$.results[0].chunkerVersion").value("text/2"));
+
+        // The same text in another format is chunked differently, so it is a new version rather than unchanged.
+        ingest("northstar", "volunteer-faq", faq, "markdown").andExpect(jsonPath("$.updated").value(1));
+        ingest("northstar", "volunteer-faq", faq, "markdown").andExpect(jsonPath("$.unchanged").value(1));
+        mvc.perform(get("/api/v1/retrieval/chunks").header("Authorization", "Bearer " + DemoTokens.token("eval", "northstar", "query debug")))
+                .andExpect(jsonPath("$.chunks[0].sectionPath").value("Volunteer FAQ"))
+                .andExpect(jsonPath("$.chunks[0].chunkerVersion").value("markdown/2"));
+    }
+
+    @Test
+    void rejectsAnUnknownDocumentFormat() throws Exception {
+        submit(DemoTokens.token("admin", "northstar", "admin"), "doc", "text", "html").andExpect(status().isBadRequest());
+    }
+
+    @Test
     void returnsRawScoresOnlyToDebugTokens() throws Exception {
         ingest("northstar", "hr-volunteer-policy", VOLUNTEER_POLICY);
 
@@ -161,16 +183,24 @@ class RetrievalIT {
      * Submits a one-document job, runs the worker, and returns the finished job.
      */
     private ResultActions ingest(String tenant, String key, String content) throws Exception {
+        return ingest(tenant, key, content, "markdown");
+    }
+
+    private ResultActions ingest(String tenant, String key, String content, String format) throws Exception {
         String token = DemoTokens.token("admin", tenant, "admin");
-        String location = submit(token, key, content).andExpect(status().isAccepted()).andReturn().getResponse().getHeader("Location");
+        String location = submit(token, key, content, format).andExpect(status().isAccepted()).andReturn().getResponse().getHeader("Location");
         worker.drain();
         return mvc.perform(get(String.valueOf(location)).header("Authorization", "Bearer " + token)).andExpect(status().isOk());
     }
 
     private ResultActions submit(String token, String key, String content) throws Exception {
+        return submit(token, key, content, "markdown");
+    }
+
+    private ResultActions submit(String token, String key, String content, String format) throws Exception {
         String body = """
-                {"documents":[{"key":"%s","title":"%s","content":%s}]}
-                """.formatted(key, key, quote(content));
+                {"documents":[{"key":"%s","title":"%s","content":%s,"format":"%s"}]}
+                """.formatted(key, key, quote(content), format);
         return mvc.perform(post("/api/v1/ingestion-jobs").header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON).content(body));
     }
 

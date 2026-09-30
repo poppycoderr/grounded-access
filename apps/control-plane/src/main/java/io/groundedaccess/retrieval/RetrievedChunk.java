@@ -22,6 +22,8 @@ public record RetrievedChunk(
 
         String content,
 
+        String chunkerVersion,
+
         RetrievalChannel channel,
 
         int rank,
