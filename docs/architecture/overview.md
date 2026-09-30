@@ -151,7 +151,9 @@ sequenceDiagram
 - **Retries:** bounded (5 attempts by default), with exponential backoff. Only failures that can pass on their own are retried: the model service being unreachable or returning 5xx, and transient database errors. A 4xx from the model service or any other error fails the job at once. A job that runs out of attempts is marked `failed` with an `error_code`. That is the dead-letter state; there is no separate queue.
 - **Resume and delivery:** each attempt starts at the first document the previous attempt did not record, so documents already written are not embedded again. Delivery is at least once: a document written just before a worker dies is ingested again and, being unchanged, counted as `unchanged`.
 - **Submission is not deduplicated.** Submitting the same documents twice creates two jobs; the second finds every document unchanged. Each document is idempotent by content hash, so a client retry is harmless.
-- **Chunking:** split on Markdown headings first, then on paragraphs, with a token cap and a small overlap. Plain text splits on paragraphs only. The chunker has a version number, and eval results record it.
+- **Chunking** (`markdown/2`, `text/2`): Markdown is split on headings first, and chunks never cross a heading. Within a section, whole paragraphs are packed up to 180 words. A longer paragraph is packed sentence by sentence (list items count as sentences), and code blocks stay whole. When a section needs several chunks, each later chunk starts with up to 30 words of whole trailing sentences from the previous one, counted inside the 180. Plain text (`"format": "text"` on ingestion) has no headings or fences, only paragraphs. Every chunk is one contiguous span of the normalized text, so evidence spans map to chunks by offset.
+- **Format and idempotency:** a submission is unchanged only when both its content hash and its format match the active version. The same text sent in another format is chunked differently, so it becomes a new version.
+- **Chunker releases re-index explicitly:** a new chunker release does not re-chunk existing documents on the next ingestion, because that would give unchanged content a new version number and break evaluation labels that name `key` + `version`. As with a new embedding model (ADR-0004), the corpus is re-indexed with a fresh load. `document_version.chunker_version` records which chunking produced each version, and the evaluation refuses to run on a corpus that mixes chunker releases.
 - **Precomputed embeddings:** deferred. The demo corpus embeds in seconds, so a cache would add a moving part without saving time (see milestones).
 
 ## 6. Query flow
@@ -212,7 +214,7 @@ All outbound calls have explicit timeouts. Retries are only used for idempotent 
 ## 8. API surface (v0.1)
 
 ```text
-POST   /api/v1/ingestion-jobs                 # 202 + Location; documents travel inline
+POST   /api/v1/ingestion-jobs                 # 202 + Location; documents travel inline, "format": "markdown" (default) or "text"
 GET    /api/v1/ingestion-jobs/{jobId}         # status, progress, counts, error_code; 404 across tenants
 GET    /api/v1/documents/{key}                # authorized metadata only; 404 if not visible (M2)
 PATCH  /api/v1/documents/{key}                # {"status": "active" | "disabled"}; admin scope
