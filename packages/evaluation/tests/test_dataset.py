@@ -8,7 +8,7 @@ DATA = Path(__file__).resolve().parents[3] / "data"
 
 
 def test_normalization_matches_the_control_plane_chunker():
-    # Same inputs and expectations as MarkdownChunkerTest.normalizationIsStableForHashing
+    # Same inputs and expectations as DocumentChunkerTest.normalizationIsStableForHashing
     assert ds.normalize("﻿  text\r\n\r\n") == "text\n"
     assert ds.normalize("a\rb\r\nc") == "a\nb\nc\n"
 

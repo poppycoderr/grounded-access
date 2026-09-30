@@ -1,5 +1,6 @@
 package io.groundedaccess.api;
 
+import io.groundedaccess.corpus.DocumentFormat;
 import io.groundedaccess.corpus.SourceDocument;
 
 import jakarta.validation.constraints.NotBlank;
@@ -27,9 +28,16 @@ public record IngestDocumentRequest(
 
         @NotBlank
         @Size(max = 500_000)
-        String content) {
+        String content,
 
+        @Nullable
+        @Pattern(regexp = "markdown|text")
+        String format) {
+
+    /**
+     * Markdown unless the request says {@code text}.
+     */
     SourceDocument toSource() {
-        return new SourceDocument(key, title, sourceUri, content);
+        return new SourceDocument(key, title, sourceUri, content, format == null ? DocumentFormat.MARKDOWN : DocumentFormat.fromColumn(format));
     }
 }

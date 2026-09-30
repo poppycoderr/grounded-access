@@ -11,7 +11,7 @@ from ga_eval import text
 
 
 def normalize(text: str) -> str:
-    """Must match MarkdownChunker.normalize in the control plane: character offsets returned by the API point into this text."""
+    """Must match DocumentChunker.normalize in the control plane: character offsets returned by the API point into this text."""
     unified = text.replace("\r\n", "\n").replace("\r", "\n")
     return unified.removeprefix("﻿").strip() + "\n"
 

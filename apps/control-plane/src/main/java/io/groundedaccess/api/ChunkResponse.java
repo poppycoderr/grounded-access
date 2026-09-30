@@ -22,10 +22,12 @@ public record ChunkResponse(
 
         int charEnd,
 
-        String text) {
+        String text,
+
+        String chunkerVersion) {
 
     static ChunkResponse from(AuthorizedChunk chunk) {
         return new ChunkResponse(chunk.chunkId(), chunk.documentKey(), chunk.versionNo(), chunk.title(), chunk.sectionPath(), chunk.charStart(),
-                chunk.charEnd(), chunk.content());
+                chunk.charEnd(), chunk.content(), chunk.chunkerVersion());
     }
 }

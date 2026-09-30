@@ -22,7 +22,9 @@ public record AuthorizedChunk(
 
         int charEnd,
 
-        String content) {
+        String content,
+
+        String chunkerVersion) {
 
     public ChunkCursor cursor() {
         return new ChunkCursor(documentKey, versionNo, ordinal);

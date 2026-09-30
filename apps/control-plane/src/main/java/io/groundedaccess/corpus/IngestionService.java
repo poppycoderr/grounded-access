@@ -28,14 +28,14 @@ public class IngestionService {
 
     private final TransactionTemplate transactions;
 
-    private final MarkdownChunker chunker;
+    private final DocumentChunker chunker;
 
     public IngestionService(CorpusWriter writer, EmbeddingClient embeddings, TransactionTemplate transactions,
-            @Value("${ga.corpus.chunk-max-words:180}") int chunkMaxWords) {
+            @Value("${ga.corpus.chunk-max-words:180}") int chunkMaxWords, @Value("${ga.corpus.chunk-overlap-words:30}") int chunkOverlapWords) {
         this.writer = writer;
         this.embeddings = embeddings;
         this.transactions = transactions;
-        this.chunker = new MarkdownChunker(chunkMaxWords);
+        this.chunker = new DocumentChunker(chunkMaxWords, chunkOverlapWords);
     }
 
     public IngestionResult ingest(String tenantId, List<SourceDocument> documents) {
@@ -45,13 +45,13 @@ public class IngestionService {
         int unchanged = 0;
         int chunkCount = 0;
         for (SourceDocument source : documents) {
-            String normalized = MarkdownChunker.normalize(source.content());
+            String normalized = DocumentChunker.normalize(source.content());
             String sha = sha256(normalized);
-            if (writer.findActive(tenantId, source.key()).filter(active -> active.contentSha256().equals(sha)).isPresent()) {
+            if (writer.findActive(tenantId, source.key()).filter(active -> active.alreadyHas(sha, source.format())).isPresent()) {
                 unchanged++;
                 continue;
             }
-            List<ChunkDraft> chunks = chunker.chunk(normalized);
+            List<ChunkDraft> chunks = chunker.chunk(normalized, source.format());
             Embeddings vectors = embeddings.embed(chunks.stream().map(ChunkDraft::content).toList(), InputType.PASSAGE);
             var version = new CorpusWriter.NewVersion(tenantId, source, sha, chunks, vectors.vectors(), vectors.modelId());
             Outcome outcome = transactions.execute(status -> write(version, sha));
@@ -74,7 +74,7 @@ public class IngestionService {
      */
     private Outcome write(CorpusWriter.NewVersion version, String sha) {
         CorpusWriter.LockedDocument document = writer.lockDocument(version.tenantId(), version.source().key());
-        if (document.alreadyHas(sha)) {
+        if (document.alreadyHas(sha, version.source().format())) {
             return Outcome.UNCHANGED;
         }
         writer.writeVersion(version, document);

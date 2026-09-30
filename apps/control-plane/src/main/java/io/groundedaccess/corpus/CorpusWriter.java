@@ -25,7 +25,13 @@ class CorpusWriter {
 
             int versionNo,
 
-            String contentSha256) {
+            String contentSha256,
+
+            DocumentFormat format) {
+
+        boolean alreadyHas(String sha, DocumentFormat submittedFormat) {
+            return sha.equals(contentSha256) && format == submittedFormat;
+        }
     }
 
     /**
@@ -39,10 +45,12 @@ class CorpusWriter {
 
             @Nullable String contentSha256,
 
+            @Nullable DocumentFormat format,
+
             boolean deleted) {
 
-        boolean alreadyHas(String sha) {
-            return !deleted && sha.equals(contentSha256);
+        boolean alreadyHas(String sha, DocumentFormat submittedFormat) {
+            return !deleted && sha.equals(contentSha256) && format == submittedFormat;
         }
     }
 
@@ -66,13 +74,13 @@ class CorpusWriter {
 
     Optional<ActiveVersion> findActive(String tenantId, String key) {
         return jdbc.sql("""
-                        select d.id, v.version_no, v.content_sha256
+                        select d.id, v.version_no, v.content_sha256, v.format
                         from document d join document_version v on v.id = d.active_version_id
                         where d.tenant_id = :tenant and d.external_key = :key and d.status <> 'deleted'
                         """)
                 .param("tenant", tenantId)
                 .param("key", key)
-                .query((rs, i) -> new ActiveVersion(rs.getObject(1, UUID.class), rs.getInt(2), rs.getString(3)))
+                .query((rs, i) -> new ActiveVersion(rs.getObject(1, UUID.class), rs.getInt(2), rs.getString(3), DocumentFormat.fromColumn(rs.getString(4))))
                 .optional();
     }
 
@@ -93,12 +101,12 @@ class CorpusWriter {
                 .query(UUID.class)
                 .single();
         return jdbc.sql("""
-                        select d.last_version_no, v.content_sha256, d.status = 'deleted'
+                        select d.last_version_no, v.content_sha256, v.format, d.status = 'deleted'
                         from document d left join document_version v on v.id = d.active_version_id
                         where d.id = :id
                         """)
                 .param("id", documentId)
-                .query((rs, i) -> new LockedDocument(documentId, rs.getInt(1), rs.getString(2), rs.getBoolean(3)))
+                .query((rs, i) -> new LockedDocument(documentId, rs.getInt(1), rs.getString(2), format(rs.getString(3)), rs.getBoolean(4)))
                 .single();
     }
 
@@ -111,8 +119,8 @@ class CorpusWriter {
         UUID documentId = document.documentId();
         UUID versionId = UUID.randomUUID();
         jdbc.sql("""
-                        insert into document_version (id, document_id, tenant_id, version_no, content_sha256, title, source_uri, chunker_version, embedding_model)
-                        values (:id, :document, :tenant, :versionNo, :sha, :title, :sourceUri, :chunker, :model)
+                        insert into document_version (id, document_id, tenant_id, version_no, content_sha256, title, source_uri, format, chunker_version, embedding_model)
+                        values (:id, :document, :tenant, :versionNo, :sha, :title, :sourceUri, :format, :chunker, :model)
                         """)
                 .param("id", versionId)
                 .param("document", documentId)
@@ -121,7 +129,8 @@ class CorpusWriter {
                 .param("sha", version.contentSha256())
                 .param("title", version.source().title())
                 .param("sourceUri", version.source().sourceUri())
-                .param("chunker", MarkdownChunker.VERSION)
+                .param("format", version.source().format().column())
+                .param("chunker", DocumentChunker.version(version.source().format()))
                 .param("model", version.embeddingModel())
                 .update();
         for (int i = 0; i < version.chunks().size(); i++) {
@@ -200,5 +209,9 @@ class CorpusWriter {
                         """)
                 .param("ids", documents)
                 .update();
+    }
+
+    private static @Nullable DocumentFormat format(@Nullable String column) {
+        return column == null ? null : DocumentFormat.fromColumn(column);
     }
 }
