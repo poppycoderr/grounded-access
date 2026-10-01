@@ -27,7 +27,7 @@ def main(argv: list[str] | None = None) -> int:
     search_parser = commands.add_parser("search", help="search as a demo principal and print the ranked results")
     search_parser.add_argument("principal")
     search_parser.add_argument("query")
-    search_parser.add_argument("--strategy", choices=runner.SYSTEM_STRATEGIES, default="hybrid-rrf")
+    search_parser.add_argument("--strategy", choices=runner.SYSTEM_STRATEGIES, default="dense-only")
     search_parser.add_argument("--k", type=int, default=3)
     mint_parser = commands.add_parser("mint-token", help="print a demo token for a principal")
     mint_parser.add_argument("principal")
