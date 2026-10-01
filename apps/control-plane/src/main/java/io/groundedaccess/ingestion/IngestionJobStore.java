@@ -4,6 +4,7 @@ import io.groundedaccess.authorization.AccessLabels;
 import io.groundedaccess.authorization.Classification;
 import io.groundedaccess.authorization.TextArrays;
 import io.groundedaccess.corpus.DocumentFormat;
+import io.groundedaccess.corpus.DocumentScope;
 import io.groundedaccess.corpus.IngestionResult;
 import io.groundedaccess.corpus.SourceDocument;
 
@@ -13,6 +14,8 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -71,9 +74,9 @@ class IngestionJobStore {
             SourceDocument document = documents.get(i);
             jdbc.sql("""
                             insert into ingestion_job_document (job_id, ordinal, external_key, title, source_uri, content, format, classification,
-                                allowed_departments, required_projects)
+                                allowed_departments, required_projects, applies_to_regions, valid_from, valid_to)
                             values (:job, :ordinal, :key, :title, :sourceUri, :content, :format, :classification, cast(:departments as text[]),
-                                cast(:projects as text[]))
+                                cast(:projects as text[]), cast(:regions as text[]), cast(:validFrom as timestamptz), cast(:validTo as timestamptz))
                             """)
                     .param("job", id)
                     .param("ordinal", i)
@@ -85,6 +88,9 @@ class IngestionJobStore {
                     .param("classification", document.labels().classification().column())
                     .param("departments", TextArrays.literal(document.labels().allowedDepartments()))
                     .param("projects", TextArrays.literal(document.labels().requiredProjects()))
+                    .param("regions", TextArrays.literal(document.scope().appliesToRegions()))
+                    .param("validFrom", offset(document.scope().validFrom()))
+                    .param("validTo", offset(document.scope().validTo()))
                     .update();
         }
         return id;
@@ -140,14 +146,16 @@ class IngestionJobStore {
 
     Optional<SourceDocument> document(UUID jobId, int ordinal) {
         return jdbc.sql("""
-                        select external_key, title, source_uri, content, format, classification, allowed_departments, required_projects
+                        select external_key, title, source_uri, content, format, classification, allowed_departments, required_projects,
+                            applies_to_regions, valid_from, valid_to
                         from ingestion_job_document where job_id = :job and ordinal = :ordinal
                         """)
                 .param("job", jobId)
                 .param("ordinal", ordinal)
                 .query((rs, i) -> new SourceDocument(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4),
                         DocumentFormat.fromColumn(rs.getString(5)),
-                        new AccessLabels(Classification.fromColumn(rs.getString(6)), strings(rs.getArray(7)), strings(rs.getArray(8)))))
+                        new AccessLabels(Classification.fromColumn(rs.getString(6)), strings(rs.getArray(7)), strings(rs.getArray(8))),
+                        new DocumentScope(strings(rs.getArray(9)), nullableInstant(rs.getTimestamp(10)), nullableInstant(rs.getTimestamp(11)))))
                 .optional();
     }
 
@@ -208,6 +216,10 @@ class IngestionJobStore {
 
     private static Set<String> strings(Array array) throws SQLException {
         return Set.of((String[]) array.getArray());
+    }
+
+    private static @Nullable OffsetDateTime offset(@Nullable Instant instant) {
+        return instant == null ? null : instant.atOffset(ZoneOffset.UTC);
     }
 
     private static double seconds(Duration duration) {
