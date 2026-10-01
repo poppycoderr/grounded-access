@@ -4,7 +4,7 @@ Status: draft for v0.1. The decision behind this design is in [ADR-0003](../adr/
 
 ## 1. Invariants
 
-These are the properties the design commits to. The table after them says which part is verified today, because M0 enforces tenant isolation only.
+These are the properties the design commits to. The table after them says which part is verified today.
 
 **Security invariant.** A chunk row that the principal may not access never leaves the SQL boundary. It never reaches application memory, the reranker, the prompt, logs, traces, metrics, caches or API responses.
 
@@ -14,7 +14,7 @@ These are the properties the design commits to. The table after them says which 
 
 | Invariant | Verified today | Verified by | Gap and milestone |
 |---|---|---|---|
-| Security | Tenant level | `RetrievalIT` cross-tenant cases on both channels; an architecture test that only `AuthorizedChunkQuery` reads chunks; the evaluation security gate against hand-labelled visibility | Label-level decisions and a gate at version and chunk granularity (M2) |
+| Security | The full decision table, in the control plane's tests | A property-based test that compares every query path with a separate reference evaluator over random principals and labels; integration tests per rule on all three strategies; an architecture test that only `AuthorizedChunkQuery` reads chunks | The demo corpus carries no labels yet, so the evaluation security gate still exercises tenant isolation only. Labelled data and a gate at version and chunk granularity follow in M2.7 |
 | Recall | By construction | No ANN index exists, so every authorized row is a candidate | A measured comparison of exact search against a filtered HNSW index, once an index exists (post-v0.1, ADR-0002) |
 | Existence | Partially | Retrieval returns no filtered counts and no metadata for rows the predicate excluded; ingestion jobs and document changes answer 404 for another tenant's ids and keys, the same as for unknown ones | A document read endpoint returning 404, an answering path with a uniform `no_answer`, and timing side channels (M2–M3, threat model) |
 
@@ -46,16 +46,26 @@ Deferred to v0.2, each with its own ADR: `groups`, `roles`, explicit deny labels
 
 ### Compiled form
 
-The policy compiler is a pure function `(Principal, PolicyVersion) → SqlPredicate`, and its output is bound parameters only:
+The policy compiler is a pure function `Principal → SqlPredicate`. The predicate text is the same for every principal; only bound parameters vary, so no principal value can change the shape of the query:
 
 ```sql
-c.tenant_id = :tenant
-AND v.classification_rank <= :clearance_rank
-AND (cardinality(v.allowed_departments) = 0 OR :department = ANY(v.allowed_departments))
-AND (cardinality(v.required_projects)  = 0 OR v.required_projects && :projects::text[])
+c.tenant_id = :auth_tenant_id
+AND v.classification_rank <= :auth_clearance_rank
+AND (cardinality(v.allowed_departments) = 0 OR CAST(:auth_department AS text) = ANY(v.allowed_departments))
+AND (cardinality(v.required_projects)  = 0 OR v.required_projects && CAST(:auth_projects AS text[]))
 ```
 
-The sparse and dense queries embed the **same** predicate object. `policy_version` is the compiler version plus the label schema version. It is written to `query_execution` and `audit_event`.
+- A missing department binds `NULL`, and a comparison with `NULL` is never true. Missing projects bind an empty array, and nothing overlaps an empty array. Both therefore leave only documents that do not restrict that attribute.
+- A missing or unknown clearance claim binds the lowest rank. A mistyped claim can never widen access.
+- The project list is bound as one array literal with every element quoted, so commas, braces and quotes inside a value stay data.
+
+Every chunk query (sparse, dense and the chunk listing) embeds the **same** predicate object. `policy_version` is `abac/1` and is returned with every result; it will also be written to `query_execution` and `audit_event` (M2.5).
+
+### Labels and versions
+
+Labels belong to a document version and arrive with ingestion (`classification`, `allowedDepartments`, `requiredProjects`). A document without labels is public and unrestricted inside its tenant. A submission is unchanged only if content, format and labels all match the active version.
+
+A submission that changes only the labels creates a new version that takes over the existing chunks, and the pointer flips in the same transaction. It does not chunk or embed, so revoking access does not depend on the model service, and it applies to the next query.
 
 ## 4. Identity in v0.1
 
@@ -76,8 +86,8 @@ v0.1 caches no retrieval results. If caching is added later, the cache key must 
 
 ## 7. Testing authorization
 
-- **Unit tests:** compiler output for every row of the decision table, including missing values.
-- **Property-based tests (jqwik):** generate random principals and labelled documents, then compare the SQL result against an in-memory reference evaluator. The reference exists only in test code, so the runtime still has a single implementation.
+- **Unit tests:** compiler output for every row of the decision table, including missing and unknown values, and the quoting of array literals.
+- **Property-based tests (jqwik):** generate random principals and labelled documents, including values that would break naive quoting, then compare the result of the listing, the sparse query and the dense query against an in-memory reference evaluator. The reference exists only in test code, so the runtime still has a single implementation. Test rows are written through JDBC arrays, not the production array literal, so a quoting bug cannot cancel itself out.
 - **Integration tests (Testcontainers):** both the sparse and the dense query with the real predicate, cross-tenant queries using identical wording, expired and disabled documents, and a label change that creates a new version.
 - **Evaluation gate:** humans label each principal's expected visible document set in the eval data. The gate fails if any retrieved candidate or citation falls outside that set. The labels are independent of the compiler (see evaluation strategy).
 - **Architecture test:** only `AuthorizedChunkQuery` can query the chunk table.

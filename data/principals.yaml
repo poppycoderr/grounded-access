@@ -1,5 +1,6 @@
 # Fictional demo identities. Attributes become JWT claims via scripts/mint-token.py.
-# Walking skeleton: only tenant_id is enforced; the other attributes take effect with the full policy in milestone M2.
+# tenant_id, clearance, department and projects are enforced. The demo corpus carries no access labels yet, so within a tenant every
+# principal still sees every document; labelled documents arrive with the M2 dataset.
 principals:
   alice-engineer:
     tenant_id: northstar

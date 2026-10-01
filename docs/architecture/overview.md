@@ -111,7 +111,7 @@ audit_event(id, occurred_at, tenant_id, principal_id, action, resource_type,
 Notes:
 
 - `tenant_id` is denormalized onto `chunk` so the tenant condition can run first and can later drive partitioning.
-- Access labels live on `document_version`. Changing labels creates a new version. It reuses chunk text and embeddings when `content_sha256` and `chunker_version` match, so a label change never needs a re-embed.
+- Access labels live on `document_version`. Changing labels creates a new version that takes over the chunks of the version it replaces, so a label change never chunks or embeds again. Region and validity columns are scope, not authorization, and arrive with the scope filters (M2.3).
 - Only one embedding model is active per deployment in v0.1. Switching models means a full re-index (ADR-0004).
 - All timestamps are `timestamptz` and stored in UTC.
 
@@ -214,7 +214,7 @@ All outbound calls have explicit timeouts. Retries are only used for idempotent 
 ## 8. API surface (v0.1)
 
 ```text
-POST   /api/v1/ingestion-jobs                 # 202 + Location; documents travel inline, "format": "markdown" (default) or "text"
+POST   /api/v1/ingestion-jobs                 # 202 + Location; documents travel inline with optional format and access labels
 GET    /api/v1/ingestion-jobs/{jobId}         # status, progress, counts, error_code; 404 across tenants
 GET    /api/v1/documents/{key}                # authorized metadata only; 404 if not visible (M2)
 PATCH  /api/v1/documents/{key}                # {"status": "active" | "disabled"}; admin scope
