@@ -47,7 +47,7 @@ Split into two publishable batches. **M1a proves the dataset can separate strate
 
 **M1a delivered** (items 1.1–1.6): see `benchmarks/reports/m1a-baseline/` and `data/eval/DATASET_CARD.md`. The paired comparisons already separate dense from FTS on MRR@10 and show FTS measurably below BM25, so the dataset is ready for the hybrid comparison in M1b.
 
-**M1b delivered** (items 1.7–1.10): see `benchmarks/reports/m1b-hybrid/` and `docs/evaluation/m1b-hybrid-analysis.md`. The verdict is that `hybrid-rrf` shows no detectable difference from `dense-only`, with the point estimate on MRR@10 in favour of dense. The `v0.1.0-alpha.1` tag is the remaining step.
+**M1b delivered** (items 1.7–1.10): see `benchmarks/reports/m1b-hybrid/` and `docs/evaluation/m1b-hybrid-analysis.md`. The verdict is that `hybrid-rrf` shows no detectable difference from `dense-only`, with the point estimate on MRR@10 in favour of dense. Tagged as `v0.1.0-alpha.1`; see `CHANGELOG.md`.
 
 Notes on M1b: Chunker v1 is recorded as `markdown/2` and `text/2`. It leaves the demo corpus chunked exactly as before, because no section there exceeds 120 words and overlap only applies when a section splits; the evaluation is unchanged. Its effect needs longer documents, which is a dataset question for after M1b. Status changes apply to the next query through the existing retrieval join; cleanup only reclaims storage. Jobs resume from the last recorded document instead of restarting, so a retry does not re-embed documents that were already written.
 
