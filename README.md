@@ -46,7 +46,7 @@ The outsider gets no "permission denied", no hit count and no Northstar document
 | Authorization in the retrieval query | Tenant, clearance, department and project rules compiled once per request into the SQL of every channel; property-tested against a reference evaluator | Scope filters, audit events, labelled evaluation data (M2) |
 | Retrieval | `sparse-only` (PostgreSQL FTS), `dense-only` (exact pgvector) and `hybrid-rrf` (reciprocal rank fusion with overlap deduplication); every response carries a plan hash | Cross-encoder reranking (M3) |
 | Ingestion | Asynchronous jobs (`202` + poll) with a `SKIP LOCKED` worker, bounded retry and resume; content-hash versioning; Markdown and plain-text chunking with sentence-level splitting and overlap; disable and delete apply to the next query, with background cleanup | – |
-| Evaluation | 70 cases over 21 documents, hard negatives, a BM25 reference row, bootstrap intervals and paired comparisons, security gate in CI | Label-level authorization negatives (M2) |
+| Evaluation | 108 cases over 28 labelled documents: paraphrases, hard negatives and 30 authorization negatives; a BM25 reference row, bootstrap intervals and paired comparisons; a security gate in CI that checks every returned chunk and every principal's full listing | Scope and time-dependent cases (M2) |
 | Answers | Ranked evidence from `/api/v1/retrieval/search` | `/api/v1/query` with citations and abstention (M3) |
 | Operations | Docker Compose, CI on every PR | OpenTelemetry traces, audit events, dashboards (M2–M4) |
 
@@ -85,13 +85,13 @@ Most RAG demos retrieve first and filter afterwards. That leaks rows into applic
     <img src="./assets/diagrams/ga-authorization.en.svg" alt="Authorization is a retrieval concern, not a post-filter" />
 </p>
 
-The predicate carries the tenant, clearance, department and project rules. The demo corpus has no access labels yet, so this demo shows the tenant rule. The shape of the solution is the point: whatever the rules are, they belong in the query that selects candidates.
+The predicate carries the tenant, clearance, department and project rules; this demo shows the tenant rule. The shape of the solution is the point: whatever the rules are, they belong in the query that selects candidates.
 
 ## Retrieval evaluation
 
 [`benchmarks/reports/m1b-hybrid/`](./benchmarks/reports/m1b-hybrid/) holds the committed run: `run.json` (dataset version, commit, strategies, policy version, bootstrap seed, platform), `cases.jsonl` (per-case rankings) and the rendered `report.md`. Regenerate it with `./scripts/benchmark --out benchmarks/reports/<name>`.
 
-`test` split, 47 answerable cases, 95% bootstrap intervals, produced by the CI runner (Linux x86_64):
+Dataset v1 (21 unlabelled documents, 70 cases; the labelled dataset v2 is newer than this report), `test` split, 47 answerable cases, 95% bootstrap intervals, produced by the CI runner (Linux x86_64):
 
 | Strategy | Recall@10 | MRR@10 | nDCG@10 | Security violations |
 |---|---|---|---|---|
@@ -157,7 +157,7 @@ Guards in place today:
 - an architecture test — only `AuthorizedChunkQuery` may read the chunk table;
 - a property-based test — random principals and labels, with every query path compared against a separate reference evaluator;
 - integration tests on real pgvector — each rule of the decision table on all three strategies, cross-tenant isolation, hostile claim values, invalid and under-scoped tokens;
-- the evaluation security gate — returned documents are compared against hand-labelled visibility, never against the compiler itself.
+- the evaluation security gate — every returned chunk is checked for document and version against hand-labelled visibility, never against the compiler itself, and each principal's full chunk listing must match its visible set.
 
 Planned with M2: labelled evaluation data, a gate that checks version and chunk granularity, and audit events.
 

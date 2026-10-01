@@ -15,11 +15,11 @@ The evaluation work is part of the product. Every retrieval change has to show i
 ```text
 data/
 ├── corpus/northstar/            # fictional Markdown/TXT documents
-├── manifests/northstar.yaml     # document labels, versions, validity
+├── manifests/northstar.yaml     # document access labels and version history
 ├── principals.yaml              # demo identities and attributes
 └── eval/
-    ├── v1/cases.jsonl
-    ├── v1/visibility.yaml       # human-labelled visible document set per principal
+    ├── v2/cases.jsonl
+    ├── v2/visibility.yaml       # human-labelled visible document set per principal
     └── DATASET_CARD.md
 ```
 
@@ -55,12 +55,14 @@ Rules:
 - `must_abstain: true` cases have empty `evidence`.
 - **No time field yet.** A case cannot ask "as of" a date until open question Q11 settles whether that selects a historical version or only filters the current one. The field is added to this schema, the API and the oracle in the same change, never to the dataset alone.
 - `visibility.yaml` is labelled by hand, separately from the policy compiler. The security gate compares against it; it never compares the compiler with itself.
-- **Gate granularity.** Today the gate compares returned *documents* against the visible set, which covers cross-tenant and cross-principal leakage. It does not yet catch a result from the wrong document version or from a chunk that is restricted inside a visible document. M2 extends the labels and the gate to version and chunk granularity, and reports authorization failures separately from scope failures (region, validity).
+- **Gate granularity.** The gate checks every returned chunk twice: its document must be in the principal's visible set, and it must come from the document's current version. A chunk of a replaced version is a violation even when the document is visible, because labels belong to versions.
+- **Listing check.** Before any query runs, the runner lists every chunk each principal can reach and compares the documents with the visible set. Anything extra is a violation, so the gate also covers documents that no query happens to retrieve. Anything missing means the labels and the system disagree, and the run stops.
+- **Not yet in the gate.** Labels apply to whole document versions, so there is nothing to check inside a version; chunk-level labels are deferred to v0.2. Scope failures (region, validity) will be reported separately from authorization failures when scope filters exist (M2.3).
 
 ### Size and composition (v1 target)
 
 - 50–100 fictional documents, 2 tenants, 4 departments, 2 projects, at least 2 documents that come in several versions.
-- At least 100 cases. At least 25 of them are authorization negatives: cross-tenant cases and same-tenant cases with the wrong department, project or clearance. Scope negatives (region, validity) are counted separately.
+- At least 100 cases. At least 25 of them are authorization negatives: cross-tenant cases and same-tenant cases with the wrong department, project or clearance; the validator enforces the 25. Scope negatives (region, validity) are counted separately.
 - Tags cover single-hop, multi-section, version selection, abbreviations and synonyms, numbers, no-answer, prompt-injection documents.
 - About 30% `dev` and 70% `test`. Tuning (RRF `k`, candidate counts, chunk size) uses `dev` only. Published numbers come from `test` only.
 

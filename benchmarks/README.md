@@ -24,6 +24,8 @@ Keyword (`sparse-only`) and `bm25-reference` rankings are bit-identical on every
 
 `m1b-hybrid` adds the `hybrid-rrf` strategy to the same cases; [docs/evaluation/m1b-hybrid-analysis.md](../docs/evaluation/m1b-hybrid-analysis.md) reads its result. Its single-channel and BM25 rankings are identical to `m1a-baseline`.
 
+`m0-walking-skeleton`, `m1a-baseline` and `m1b-hybrid` use dataset v1. Later reports use dataset v2, which adds labelled documents and authorization cases; numbers across the two versions are not comparable (see the [dataset card](../data/eval/DATASET_CARD.md)).
+
 Runs on the fictional demo corpus are labelled demo benchmarks. They show that the method is reproducible; they say nothing about production retrieval quality.
 
 `results/` at the repository root is the scratch directory for ad-hoc runs and is not tracked.
