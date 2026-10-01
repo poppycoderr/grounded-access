@@ -26,13 +26,13 @@
 除了 token，请求没有任何差别。以下是 `./scripts/demo-queries` 的真实输出：
 
 ```text
-alice-engineer (tenant northstar) · dense-only · policy tenant-only/1
+alice-engineer (tenant northstar) · dense-only · policy abac/1
   1. hr-volunteer-policy › Volunteer Time Off Policy > European Union
      Employees based in the EU receive two paid volunteer days per calendar year.
   2. hr-volunteer-policy › Volunteer Time Off Policy > United States
      Employees based in the US receive one paid volunteer day per calendar year.
 
-mallory-outsider (tenant external) · dense-only · policy tenant-only/1
+mallory-outsider (tenant external) · dense-only · policy abac/1
   1. volunteer-handbook › Community Volunteering Handbook > Volunteer days
      Orbit Labs employees receive three volunteer days per year, which can be taken as half days.
 ```
@@ -43,7 +43,7 @@ mallory-outsider (tenant external) · dense-only · policy tenant-only/1
 
 | 能力 | 当前可用 | 计划中 |
 |---|---|---|
-| 检索查询内的授权 | 租户隔离，每次请求编译一次，两条通道共用 | 密级、部门、项目标签（M2） |
+| 检索查询内的授权 | 租户、密级、部门、项目四条规则，每次请求编译一次，写进每条通道的 SQL；用基于属性的测试对照参考实现验证 | 适用范围过滤、审计事件、带标签的评测数据（M2） |
 | 检索 | `sparse-only`（PostgreSQL FTS）、`dense-only`（pgvector 精确检索）与 `hybrid-rrf`（RRF 融合并去除重叠 chunk）；每个响应带检索配置哈希 | cross-encoder 重排（M3） |
 | 入库 | 异步任务（`202` + 轮询），`SKIP LOCKED` worker、有限重试与断点续跑；内容哈希版本管理；Markdown 与纯文本切分，按句拆分长段落并带重叠；停用与删除对下一次查询生效，后台清理 | – |
 | 评测 | 21 篇文档 70 条用例、hard negatives、BM25 参考行、bootstrap 置信区间与配对比较、CI 安全门禁 | 标签级授权负例（M2） |
@@ -85,7 +85,7 @@ curl -s localhost:8080/api/v1/retrieval/search -H "Authorization: Bearer $TOKEN"
     <img src="./assets/diagrams/ga-authorization.zh-CN.svg" alt="授权属于检索环节，不是事后过滤" />
 </p>
 
-当前谓词里只有租户条件，M2 会把密级、部门、项目加进同一个编译对象。重点是解法的形状：无论规则是什么，它都应该待在筛选候选的那条查询里。
+谓词里已经包含租户、密级、部门和项目四条规则。demo 语料还没有访问标签，所以这个演示展示的是租户规则。重点是解法的形状：无论规则是什么，它都应该待在筛选候选的那条查询里。
 
 ## 检索评测
 
@@ -139,29 +139,27 @@ io.groundedaccess
 
 身份被编译成带绑定参数的谓词（绝不做字符串拼接），两条通道嵌入的是同一个对象。
 
-当前已实现（`policy tenant-only/1`）：
+完整的谓词（`policy abac/1`）。它的文本对所有身份都相同，只有绑定的值不同：
 
 ```sql
 c.tenant_id = :auth_tenant_id
+AND v.classification_rank <= :auth_clearance_rank
+AND (cardinality(v.allowed_departments) = 0 OR CAST(:auth_department AS text) = ANY(v.allowed_departments))
+AND (cardinality(v.required_projects)  = 0 OR v.required_projects && CAST(:auth_projects AS text[]))
 ```
 
-M2 计划加入同一个编译谓词：
-
-```sql
-AND v.classification_rank <= :clearance_rank
-AND (cardinality(v.allowed_departments) = 0 OR :department = ANY(v.allowed_departments))
-AND (cardinality(v.required_projects)  = 0 OR v.required_projects && :projects::text[])
-```
+缺失或无法识别的密级按最低级处理；没有部门或项目的身份，只能看到不限制该属性的文档。标签变更对下一次查询生效，不需要重新计算向量。
 
 租户、密级、部门、项目属于**授权**，计入安全门禁；region、有效期与文档状态属于**适用范围**，它们影响相关性而非访问权。把两者分开，安全指标才只统计真正的越权。完整决策表见 [docs/architecture/authorization.md](./docs/architecture/authorization.md)。
 
 当前已有的防线：
 
 - 架构测试——只有 `AuthorizedChunkQuery` 可以读取 chunk 表；
-- 真实 pgvector 上的集成测试——两条通道的跨租户隔离、无效与权限不足的 token、版本替换；
+- 基于属性的测试——随机生成身份和标签，把每条查询路径的结果与一份独立的参考实现对照；
+- 真实 pgvector 上的集成测试——决策表的每条规则在三种策略上的表现、跨租户隔离、恶意的 claim 值、无效与权限不足的 token；
 - 评测安全门禁——返回的文档与人工标注的可见性比较，而不是与编译器自己比较。
 
-M2 计划补上：决策表的 property-based 测试、细到版本与 chunk 粒度的门禁、撤权一致性测试。
+M2 计划补上：带标签的评测数据、细到版本与 chunk 粒度的门禁、审计事件。
 
 ## 路线图
 

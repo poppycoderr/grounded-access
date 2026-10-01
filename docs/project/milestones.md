@@ -57,6 +57,8 @@ Deferred on purpose: the precomputed-embeddings cache. CI currently embeds the d
 
 ## M2 — Authorization (≈ 10 days, 4–5 weeks)
 
+**M2 progress:** 2.1 (access labels; scope fields move to 2.3), 2.2 and 2.4 delivered together, so labels were never stored without being enforced.
+
 **Exit:** the full decision table is enforced in both channels. The property-based tests and the eval security gate pass with zero unauthorized candidates on ≥ 25 authorization-negative cases. The threat model is published.
 
 | # | Issue | Size |

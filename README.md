@@ -26,13 +26,13 @@
 Nothing about the request changes except the token. This is real output from `./scripts/demo-queries`:
 
 ```text
-alice-engineer (tenant northstar) · dense-only · policy tenant-only/1
+alice-engineer (tenant northstar) · dense-only · policy abac/1
   1. hr-volunteer-policy › Volunteer Time Off Policy > European Union
      Employees based in the EU receive two paid volunteer days per calendar year.
   2. hr-volunteer-policy › Volunteer Time Off Policy > United States
      Employees based in the US receive one paid volunteer day per calendar year.
 
-mallory-outsider (tenant external) · dense-only · policy tenant-only/1
+mallory-outsider (tenant external) · dense-only · policy abac/1
   1. volunteer-handbook › Community Volunteering Handbook > Volunteer days
      Orbit Labs employees receive three volunteer days per year, which can be taken as half days.
 ```
@@ -43,7 +43,7 @@ The outsider gets no "permission denied", no hit count and no Northstar document
 
 | Capability | Today | Planned |
 |---|---|---|
-| Authorization in the retrieval query | Tenant isolation, compiled once per request and carried by both channels | Clearance, department and project labels (M2) |
+| Authorization in the retrieval query | Tenant, clearance, department and project rules compiled once per request into the SQL of every channel; property-tested against a reference evaluator | Scope filters, audit events, labelled evaluation data (M2) |
 | Retrieval | `sparse-only` (PostgreSQL FTS), `dense-only` (exact pgvector) and `hybrid-rrf` (reciprocal rank fusion with overlap deduplication); every response carries a plan hash | Cross-encoder reranking (M3) |
 | Ingestion | Asynchronous jobs (`202` + poll) with a `SKIP LOCKED` worker, bounded retry and resume; content-hash versioning; Markdown and plain-text chunking with sentence-level splitting and overlap; disable and delete apply to the next query, with background cleanup | – |
 | Evaluation | 70 cases over 21 documents, hard negatives, a BM25 reference row, bootstrap intervals and paired comparisons, security gate in CI | Label-level authorization negatives (M2) |
@@ -85,7 +85,7 @@ Most RAG demos retrieve first and filter afterwards. That leaks rows into applic
     <img src="./assets/diagrams/ga-authorization.en.svg" alt="Authorization is a retrieval concern, not a post-filter" />
 </p>
 
-Today the predicate carries the tenant condition; M2 adds clearance, department and project to the same compiled object. The shape of the solution is the point: whatever the rules are, they belong in the query that selects candidates.
+The predicate carries the tenant, clearance, department and project rules. The demo corpus has no access labels yet, so this demo shows the tenant rule. The shape of the solution is the point: whatever the rules are, they belong in the query that selects candidates.
 
 ## Retrieval evaluation
 
@@ -139,29 +139,27 @@ io.groundedaccess
 
 A principal is compiled into a predicate with bound parameters, never string concatenation, and both channels embed the same object.
 
-Implemented today (`policy tenant-only/1`):
+The whole predicate (`policy abac/1`). Its text is the same for every principal; only the bound values differ:
 
 ```sql
 c.tenant_id = :auth_tenant_id
+AND v.classification_rank <= :auth_clearance_rank
+AND (cardinality(v.allowed_departments) = 0 OR CAST(:auth_department AS text) = ANY(v.allowed_departments))
+AND (cardinality(v.required_projects)  = 0 OR v.required_projects && CAST(:auth_projects AS text[]))
 ```
 
-Planned for M2, added to the same compiled predicate:
-
-```sql
-AND v.classification_rank <= :clearance_rank
-AND (cardinality(v.allowed_departments) = 0 OR :department = ANY(v.allowed_departments))
-AND (cardinality(v.required_projects)  = 0 OR v.required_projects && :projects::text[])
-```
+A missing or unknown clearance counts as the lowest level, and a principal without a department or projects sees only documents that do not restrict that attribute. A change of labels applies to the next query and needs no re-embedding.
 
 Tenant, clearance, department and project are **authorization** and count toward the security gate. Region, validity dates and document status are **scope**: they shape relevance rather than access. Keeping them apart means the security metrics only ever count real access violations. The full decision table is in [docs/architecture/authorization.md](./docs/architecture/authorization.md).
 
 Guards in place today:
 
 - an architecture test — only `AuthorizedChunkQuery` may read the chunk table;
-- integration tests on real pgvector — cross-tenant isolation on both channels, invalid and under-scoped tokens, version replacement;
+- a property-based test — random principals and labels, with every query path compared against a separate reference evaluator;
+- integration tests on real pgvector — each rule of the decision table on all three strategies, cross-tenant isolation, hostile claim values, invalid and under-scoped tokens;
 - the evaluation security gate — returned documents are compared against hand-labelled visibility, never against the compiler itself.
 
-Planned with M2: property-based tests over the decision table, a gate that checks version and chunk granularity, and revocation-consistency tests.
+Planned with M2: labelled evaluation data, a gate that checks version and chunk granularity, and audit events.
 
 ## Roadmap
 
