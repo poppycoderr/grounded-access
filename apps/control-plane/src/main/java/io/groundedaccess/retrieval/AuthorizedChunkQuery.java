@@ -14,7 +14,8 @@ import org.springframework.stereotype.Repository;
 
 /**
  * The only reader of the chunk table. Every query embeds the compiled authorization predicate and restricts candidates to the active version of an
- * active document, so unauthorized or stale rows never leave the database.
+ * active document, so unauthorized or stale rows never leave the database. The scope condition is a separate argument and a separate part of the
+ * WHERE clause: it narrows relevance and is never a substitute for the predicate.
  */
 @Repository
 public class AuthorizedChunkQuery {
@@ -24,7 +25,7 @@ public class AuthorizedChunkQuery {
             from chunk c
             join document d on d.active_version_id = c.version_id and d.status = 'active'
             join document_version v on v.id = c.version_id
-            where (%s)
+            where (%s) and (%s)
             """;
 
     // Ties are broken by stable keys, never by the random chunk id, so repeated evaluation runs rank identically
@@ -40,38 +41,39 @@ public class AuthorizedChunkQuery {
      * Full-text search with OR semantics: plainto_tsquery ANDs every lexeme, so a natural-language question would rarely match any chunk; the
      * lexemes are re-joined with '|' and ranked with ts_rank_cd. This is PostgreSQL FTS ranking, not BM25 (ADR-0002).
      */
-    public List<RetrievedChunk> sparse(String query, AuthorizationPredicate predicate, int limit) {
+    public List<RetrievedChunk> sparse(String query, AuthorizationPredicate predicate, Scope scope, int limit) {
         String tsquery = "cast(replace(plainto_tsquery('english', :query)::text, '&', '|') as tsquery)";
-        String sql = SELECT.formatted("ts_rank_cd(c.content_tsv, " + tsquery + ")", predicate.sql())
+        String sql = SELECT.formatted("ts_rank_cd(c.content_tsv, " + tsquery + ")", predicate.sql(), scope.sql())
                 + " and c.content_tsv @@ " + tsquery + " order by score desc, " + TIE_BREAK + " limit :limit";
-        return run(sql, predicate, true, limit, "query", query);
+        return run(sql, predicate, scope, true, limit, "query", query);
     }
 
     /**
      * Exact cosine search over authorized rows; there is deliberately no ANN index in v0.1, so filtering cannot reduce recall (ADR-0002).
      */
-    public List<RetrievedChunk> dense(float[] queryVector, AuthorizationPredicate predicate, int limit) {
+    public List<RetrievedChunk> dense(float[] queryVector, AuthorizationPredicate predicate, Scope scope, int limit) {
         String distance = "(c.embedding <=> cast(:vector as vector))";
-        String sql = SELECT.formatted("1 - " + distance, predicate.sql()) + " and c.embedding is not null order by " + distance + ", " + TIE_BREAK + " limit :limit";
-        return run(sql, predicate, false, limit, "vector", Vectors.toLiteral(queryVector));
+        String sql = SELECT.formatted("1 - " + distance, predicate.sql(), scope.sql()) + " and c.embedding is not null order by " + distance + ", " + TIE_BREAK
+                + " limit :limit";
+        return run(sql, predicate, scope, false, limit, "vector", Vectors.toLiteral(queryVector));
     }
 
     /**
      * Pages through every chunk the predicate admits, in the stable tie-break order, so an offline reference ranker (the BM25 row of the
      * evaluation) scores exactly the rows these channels could have returned. Keyset paging: {@code after} is the last row of the previous page.
      */
-    public List<AuthorizedChunk> list(AuthorizationPredicate predicate, @Nullable ChunkCursor after, int limit) {
+    public List<AuthorizedChunk> list(AuthorizationPredicate predicate, Scope scope, @Nullable ChunkCursor after, int limit) {
         String keyset = after == null ? "" : " and (d.external_key, v.version_no, c.ordinal) > (:after_key, :after_version, :after_ordinal)";
         String sql = """
                 select c.id, d.external_key, v.version_no, v.title, c.section_path, c.ordinal, c.char_start, c.char_end, c.content, v.chunker_version
                 from chunk c
                 join document d on d.active_version_id = c.version_id and d.status = 'active'
                 join document_version v on v.id = c.version_id
-                where (%s)%s
+                where (%s) and (%s)%s
                 order by %s
                 limit :limit
-                """.formatted(predicate.sql(), keyset, TIE_BREAK);
-        var statement = jdbc.sql(sql).params(predicate.parameters()).param("limit", limit);
+                """.formatted(predicate.sql(), scope.sql(), keyset, TIE_BREAK);
+        var statement = jdbc.sql(sql).params(predicate.parameters()).params(scope.parameters()).param("limit", limit);
         if (after != null) {
             statement = statement.param("after_key", after.documentKey()).param("after_version", after.versionNo()).param("after_ordinal", after.ordinal());
         }
@@ -79,9 +81,11 @@ public class AuthorizedChunkQuery {
                 rs.getString(5), rs.getInt(6), rs.getInt(7), rs.getInt(8), rs.getString(9), rs.getString(10))).list();
     }
 
-    private List<RetrievedChunk> run(String sql, AuthorizationPredicate predicate, boolean sparse, int limit, String name, String value) {
+    private List<RetrievedChunk> run(String sql, AuthorizationPredicate predicate, Scope scope, boolean sparse, int limit, String name,
+            String value) {
         return jdbc.sql(sql)
                 .params(predicate.parameters())
+                .params(scope.parameters())
                 .param(name, value)
                 .param("limit", limit)
                 .query((rs, rowNum) -> map(rs, sparse, rowNum + 1))

@@ -50,7 +50,7 @@ public class IngestionService {
             String sha = sha256(normalized);
             Optional<CorpusWriter.ActiveVersion> active = writer.findActive(tenantId, source.key()).filter(a -> a.hasContent(sha, source.format()));
             if (active.isPresent()) {
-                if (active.get().hasLabels(source.labels())) {
+                if (active.get().hasMetadata(source)) {
                     unchanged++;
                     continue;
                 }
@@ -87,7 +87,7 @@ public class IngestionService {
      */
     private Outcome write(CorpusWriter.NewVersion version, String sha) {
         CorpusWriter.LockedDocument document = writer.lockDocument(version.tenantId(), version.source().key());
-        if (document.hasContent(sha, version.source().format()) && document.hasLabels(version.source().labels())) {
+        if (document.hasContent(sha, version.source().format()) && document.hasMetadata(version.source())) {
             return Outcome.UNCHANGED;
         }
         writer.writeVersion(version, document);
@@ -103,7 +103,7 @@ public class IngestionService {
         if (!document.hasContent(sha, source.format())) {
             return Outcome.CONTENT_CHANGED;
         }
-        if (document.hasLabels(source.labels())) {
+        if (document.hasMetadata(source)) {
             return Outcome.UNCHANGED;
         }
         writer.relabel(source, document);

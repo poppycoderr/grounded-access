@@ -146,7 +146,8 @@ class IngestionIT {
     }
 
     private static SourceDocument document(String body) {
-        return new SourceDocument(KEY, "Volunteer Time Off Policy", null, "# Volunteer Time Off Policy\n\n" + body + "\n", DocumentFormat.MARKDOWN, AccessLabels.UNRESTRICTED);
+        return new SourceDocument(KEY, "Volunteer Time Off Policy", null, "# Volunteer Time Off Policy\n\n" + body + "\n", DocumentFormat.MARKDOWN, AccessLabels.UNRESTRICTED,
+                DocumentScope.EVERYWHERE_ALWAYS);
     }
 
     private List<Integer> versionNumbers() {

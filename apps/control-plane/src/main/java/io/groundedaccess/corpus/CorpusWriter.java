@@ -3,6 +3,9 @@ package io.groundedaccess.corpus;
 import io.groundedaccess.authorization.AccessLabels;
 import io.groundedaccess.authorization.TextArrays;
 
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -39,8 +42,8 @@ class CorpusWriter {
             return sha.equals(contentSha256) && format == submittedFormat;
         }
 
-        boolean hasLabels(AccessLabels labels) {
-            return labels.sha256().equals(labelsSha256);
+        boolean hasMetadata(SourceDocument source) {
+            return metadataSha(source).equals(labelsSha256);
         }
     }
 
@@ -67,8 +70,8 @@ class CorpusWriter {
             return !deleted && sha.equals(contentSha256) && format == submittedFormat;
         }
 
-        boolean hasLabels(AccessLabels labels) {
-            return labels.sha256().equals(labelsSha256);
+        boolean hasMetadata(SourceDocument source) {
+            return metadataSha(source).equals(labelsSha256);
         }
     }
 
@@ -92,7 +95,7 @@ class CorpusWriter {
 
     Optional<ActiveVersion> findActive(String tenantId, String key) {
         return jdbc.sql("""
-                        select d.id, v.version_no, v.content_sha256, v.format, v.labels_sha256
+                        select d.id, v.version_no, v.content_sha256, v.format, v.labels_sha256 || ':' || v.scope_sha256
                         from document d join document_version v on v.id = d.active_version_id
                         where d.tenant_id = :tenant and d.external_key = :key and d.status <> 'deleted'
                         """)
@@ -120,7 +123,7 @@ class CorpusWriter {
                 .query(UUID.class)
                 .single();
         return jdbc.sql("""
-                        select d.last_version_no, v.content_sha256, v.format, v.labels_sha256, d.active_version_id, d.status = 'deleted'
+                        select d.last_version_no, v.content_sha256, v.format, v.labels_sha256 || ':' || v.scope_sha256, d.active_version_id, d.status = 'deleted'
                         from document d left join document_version v on v.id = d.active_version_id
                         where d.id = :id
                         """)
@@ -139,11 +142,14 @@ class CorpusWriter {
         UUID documentId = document.documentId();
         UUID versionId = UUID.randomUUID();
         AccessLabels labels = version.source().labels();
+        DocumentScope scope = version.source().scope();
         jdbc.sql("""
                         insert into document_version (id, document_id, tenant_id, version_no, content_sha256, title, source_uri, format, chunker_version,
-                            embedding_model, classification, allowed_departments, required_projects, labels_sha256)
+                            embedding_model, classification, allowed_departments, required_projects, labels_sha256, applies_to_regions, valid_from,
+                            valid_to, scope_sha256)
                         values (:id, :document, :tenant, :versionNo, :sha, :title, :sourceUri, :format, :chunker, :model, :classification,
-                            cast(:departments as text[]), cast(:projects as text[]), :labelsSha)
+                            cast(:departments as text[]), cast(:projects as text[]), :labelsSha, cast(:regions as text[]),
+                            cast(:validFrom as timestamptz), cast(:validTo as timestamptz), :scopeSha)
                         """)
                 .param("id", versionId)
                 .param("document", documentId)
@@ -158,6 +164,10 @@ class CorpusWriter {
                 .param("departments", TextArrays.literal(labels.allowedDepartments()))
                 .param("projects", TextArrays.literal(labels.requiredProjects()))
                 .param("labelsSha", labels.sha256())
+                .param("regions", TextArrays.literal(scope.appliesToRegions()))
+                .param("validFrom", timestamp(scope.validFrom()))
+                .param("validTo", timestamp(scope.validTo()))
+                .param("scopeSha", scope.sha256())
                 .param("model", version.embeddingModel())
                 .update();
         for (int i = 0; i < version.chunks().size(); i++) {
@@ -192,7 +202,7 @@ class CorpusWriter {
     }
 
     /**
-     * Gives the active content new labels without touching the model service: a new version row takes over the chunks of the version it replaces,
+     * Gives the active content new labels or a new scope without touching the model service: a new version row takes over the chunks of the version it replaces,
      * and the pointer flips in the same transaction. Readers therefore see the old labels or the new ones, never chunks without a version. The
      * old version is left without chunks and is removed by cleanup. The caller must hold the document lock and have checked that the content is
      * unchanged.
@@ -201,11 +211,14 @@ class CorpusWriter {
         UUID previous = Objects.requireNonNull(document.activeVersionId(), "a document with unchanged content has an active version");
         UUID versionId = UUID.randomUUID();
         AccessLabels labels = source.labels();
+        DocumentScope scope = source.scope();
         jdbc.sql("""
                         insert into document_version (id, document_id, tenant_id, version_no, content_sha256, title, source_uri, format, chunker_version,
-                            embedding_model, classification, allowed_departments, required_projects, labels_sha256)
+                            embedding_model, classification, allowed_departments, required_projects, labels_sha256, applies_to_regions, valid_from,
+                            valid_to, scope_sha256)
                         select :id, document_id, tenant_id, :versionNo, content_sha256, :title, :sourceUri, format, chunker_version, embedding_model,
-                            :classification, cast(:departments as text[]), cast(:projects as text[]), :labelsSha
+                            :classification, cast(:departments as text[]), cast(:projects as text[]), :labelsSha, cast(:regions as text[]),
+                            cast(:validFrom as timestamptz), cast(:validTo as timestamptz), :scopeSha
                         from document_version where id = :previous
                         """)
                 .param("id", versionId)
@@ -216,6 +229,10 @@ class CorpusWriter {
                 .param("departments", TextArrays.literal(labels.allowedDepartments()))
                 .param("projects", TextArrays.literal(labels.requiredProjects()))
                 .param("labelsSha", labels.sha256())
+                .param("regions", TextArrays.literal(scope.appliesToRegions()))
+                .param("validFrom", timestamp(scope.validFrom()))
+                .param("validTo", timestamp(scope.validTo()))
+                .param("scopeSha", scope.sha256())
                 .param("previous", previous)
                 .update();
         jdbc.sql("update chunk set version_id = :version where version_id = :previous").param("version", versionId).param("previous", previous).update();
@@ -271,6 +288,17 @@ class CorpusWriter {
                         """)
                 .param("ids", documents)
                 .update();
+    }
+
+    /**
+     * Labels and scope are compared together: a change to either is a change of metadata, which creates a version without re-embedding.
+     */
+    private static String metadataSha(SourceDocument source) {
+        return source.labels().sha256() + ":" + source.scope().sha256();
+    }
+
+    private static @Nullable OffsetDateTime timestamp(@Nullable Instant instant) {
+        return instant == null ? null : instant.atOffset(ZoneOffset.UTC);
     }
 
     private static @Nullable DocumentFormat format(@Nullable String column) {

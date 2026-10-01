@@ -3,6 +3,7 @@ package io.groundedaccess.api;
 import io.groundedaccess.retrieval.RetrievalPlan;
 import io.groundedaccess.retrieval.RetrievalResult;
 import io.groundedaccess.retrieval.RetrievalStrategy;
+import io.groundedaccess.retrieval.Scope;
 
 import java.util.List;
 
@@ -23,10 +24,12 @@ public record SearchResponse(
 
         List<String> degraded,
 
+        Scope scope,
+
         List<SearchResultResponse> results) {
 
     static SearchResponse from(RetrievalResult result, boolean debug) {
-        return new SearchResponse(result.plan().strategy(), result.policyVersion(), result.plan().hash(), debug ? result.plan() : null, result.degraded(),
+        return new SearchResponse(result.plan().strategy(), result.policyVersion(), result.plan().hash(), debug ? result.plan() : null, result.degraded(), result.scope(),
                 result.chunks().stream().map(c -> SearchResultResponse.from(c, debug)).toList());
     }
 }
