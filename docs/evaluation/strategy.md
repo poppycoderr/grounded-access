@@ -53,7 +53,7 @@ Rules:
 - `unauthorized_documents` lists documents the principal may not see and that the query is designed to tempt. These cases feed the security gate.
 - `hard_negative_documents` are visible or out-of-scope documents that look relevant but are wrong. These cases feed the quality metrics.
 - `must_abstain: true` cases have empty `evidence`.
-- **No time field yet.** A case cannot ask "as of" a date until open question Q11 settles whether that selects a historical version or only filters the current one. The field is added to this schema, the API and the oracle in the same change, never to the dataset alone.
+- **Time and region.** ADR-0005 decided that `asOf` filters the current version by its validity window and never selects an older version. Cases may therefore carry `as_of` and `region`; they are added to the case schema together with the first documents that have a validity window or a region, so that no field exists without data that exercises it.
 - `visibility.yaml` is labelled by hand, separately from the policy compiler. The security gate compares against it; it never compares the compiler with itself.
 - **Gate granularity.** The gate checks every returned chunk twice: its document must be in the principal's visible set, and it must come from the document's current version. A chunk of a replaced version is a violation even when the document is visible, because labels belong to versions.
 - **Listing check.** Before any query runs, the runner lists every chunk each principal can reach and compares the documents with the visible set. Anything extra is a violation, so the gate also covers documents that no query happens to retrieve. Anything missing means the labels and the system disagree, and the run stops.
