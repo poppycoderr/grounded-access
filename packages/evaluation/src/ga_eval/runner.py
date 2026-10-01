@@ -90,6 +90,7 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
             "plans": plans,
             "visibility_check": visibility_check,
             "platform": platform.platform(),
+            "cpu": cpu_model(),
             "bootstrap": {"samples": stats.SAMPLES, "seed": stats.SEED, "confidence": 0.95},
             "summary": {split: summarize([r for r in records if r["split"] == split], strategies) for split in sorted(splits)},
             "comparisons": compare([r for r in records if r["split"] == "test"], strategies),
@@ -97,6 +98,17 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
         },
         "cases": records,
     }
+
+
+def cpu_model() -> str:
+    """The CPU the stack ran on, as far as the evaluator can tell (it assumes the stack runs on the same machine, which is true for the
+    published CI runs). Dense rankings can swap near-tied candidates between CPUs, so a run records which one produced it."""
+    cpuinfo = Path("/proc/cpuinfo")
+    if cpuinfo.is_file():
+        for line in cpuinfo.read_text().splitlines():
+            if line.startswith("model name"):
+                return line.split(":", 1)[1].strip()
+    return platform.processor() or platform.machine()
 
 
 def check_visibility(dataset: Dataset, listings: dict[str, tuple[str, list[dict]]]) -> dict[str, dict]:
