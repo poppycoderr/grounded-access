@@ -1,19 +1,34 @@
+# Access labels per document. A document without a classification is public; empty or missing allowed_departments and
+# required_projects mean no restriction. `history` lists earlier versions, oldest first; they are ingested before the current file.
 tenant: northstar
 documents:
   - {key: hr-volunteer-policy, title: Volunteer Time Off Policy, file: corpus/northstar/hr-volunteer-policy.md}
-  - {key: hr-travel-policy, title: Business Travel and Expenses, file: corpus/northstar/hr-travel-policy.md}
-  - {key: eng-billing-db-failover, title: "Runbook: Billing Database Failover", file: corpus/northstar/eng-billing-db-failover.md}
-  - {key: eng-incident-2026-03-billing, title: "Postmortem: Duplicate Invoices on 12 March 2026", file: corpus/northstar/eng-incident-2026-03-billing.md}
-  - {key: eng-api-rate-limits, title: Public API Rate Limits, file: corpus/northstar/eng-api-rate-limits.md}
-  - {key: support-login-troubleshooting, title: Troubleshooting Customer Login Problems, file: corpus/northstar/support-login-troubleshooting.md}
+  - {key: hr-travel-policy, title: Business Travel and Expenses, file: corpus/northstar/hr-travel-policy.md, classification: internal}
+  - {key: eng-billing-db-failover, title: "Runbook: Billing Database Failover", file: corpus/northstar/eng-billing-db-failover.md, classification: internal}
+  - {key: eng-incident-2026-03-billing, title: "Postmortem: Duplicate Invoices on 12 March 2026", file: corpus/northstar/eng-incident-2026-03-billing.md, classification: internal}
+  - {key: eng-api-rate-limits, title: Public API Rate Limits, file: corpus/northstar/eng-api-rate-limits.md, classification: internal}
+  - {key: support-login-troubleshooting, title: Troubleshooting Customer Login Problems, file: corpus/northstar/support-login-troubleshooting.md, classification: internal}
   - {key: sales-product-overview, title: Northstar Cloud Product Overview, file: corpus/northstar/sales-product-overview.md}
-  - {key: security-data-classification, title: Data Classification Standard, file: corpus/northstar/security-data-classification.md}
-  - {key: hr-remote-work-policy, title: "Remote Work Policy", file: corpus/northstar/hr-remote-work-policy.md}
-  - {key: hr-parental-leave, title: "Parental Leave", file: corpus/northstar/hr-parental-leave.md}
-  - {key: hr-relocation-policy, title: "Relocation Support", file: corpus/northstar/hr-relocation-policy.md}
-  - {key: eng-search-cluster-failover, title: "Runbook: Search Cluster Failover", file: corpus/northstar/eng-search-cluster-failover.md}
-  - {key: eng-oncall-handbook, title: "On-call Handbook", file: corpus/northstar/eng-oncall-handbook.md}
-  - {key: eng-backup-and-restore, title: "Backup and Restore Standard", file: corpus/northstar/eng-backup-and-restore.md}
-  - {key: security-access-review, title: "Access Review and Offboarding", file: corpus/northstar/security-access-review.md}
-  - {key: support-refund-policy, title: "Refunds and Credits", file: corpus/northstar/support-refund-policy.md}
-  - {key: sales-sla-credits, title: "Service Level Agreement Credits", file: corpus/northstar/sales-sla-credits.md}
+  - {key: security-data-classification, title: Data Classification Standard, file: corpus/northstar/security-data-classification.md, classification: internal}
+  - {key: hr-remote-work-policy, title: "Remote Work Policy", file: corpus/northstar/hr-remote-work-policy.md, classification: internal}
+  - {key: hr-parental-leave, title: "Parental Leave", file: corpus/northstar/hr-parental-leave.md, classification: internal}
+  - {key: hr-relocation-policy, title: "Relocation Support", file: corpus/northstar/hr-relocation-policy.md, classification: internal}
+  - {key: eng-search-cluster-failover, title: "Runbook: Search Cluster Failover", file: corpus/northstar/eng-search-cluster-failover.md, classification: internal}
+  - {key: eng-oncall-handbook, title: "On-call Handbook", file: corpus/northstar/eng-oncall-handbook.md, classification: internal}
+  - {key: eng-backup-and-restore, title: "Backup and Restore Standard", file: corpus/northstar/eng-backup-and-restore.md, classification: internal}
+  - {key: security-access-review, title: "Access Review and Offboarding", file: corpus/northstar/security-access-review.md, classification: internal}
+  - {key: support-refund-policy, title: "Refunds and Credits", file: corpus/northstar/support-refund-policy.md, classification: internal}
+  - {key: sales-sla-credits, title: "Service Level Agreement Credits", file: corpus/northstar/sales-sla-credits.md, classification: internal}
+  - {key: hr-compensation-bands, title: "Compensation Bands", file: corpus/northstar/hr-compensation-bands.md, classification: confidential}
+  - {key: eng-atlas-migration-plan, title: "Project Atlas: Billing Database Migration Plan", file: corpus/northstar/eng-atlas-migration-plan.md, classification: internal, required_projects: [atlas]}
+  - {key: eng-borealis-launch-runbook, title: "Project Borealis: Launch Runbook", file: corpus/northstar/eng-borealis-launch-runbook.md, classification: confidential, required_projects: [borealis]}
+  - {key: support-escalation-contacts, title: "Support Escalation Contacts", file: corpus/northstar/support-escalation-contacts.md, classification: internal, allowed_departments: [support]}
+  - {key: eng-security-hardening, title: "Production Hardening Standard", file: corpus/northstar/eng-security-hardening.md, classification: internal, allowed_departments: [engineering]}
+  - {key: security-key-ceremony, title: "Root Key Ceremony", file: corpus/northstar/security-key-ceremony.md, classification: restricted}
+  - key: sales-pricing-guide
+    title: "Pricing Guide"
+    file: corpus/northstar/sales-pricing-guide.md
+    classification: internal
+    allowed_departments: [sales, support]
+    history:
+      - {file: corpus/northstar/sales-pricing-guide.v1.md, classification: internal}
