@@ -1,6 +1,10 @@
 package io.groundedaccess.corpus;
 
+import io.groundedaccess.authorization.AccessLabels;
+import io.groundedaccess.authorization.TextArrays;
+
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,10 +31,16 @@ class CorpusWriter {
 
             String contentSha256,
 
-            DocumentFormat format) {
+            DocumentFormat format,
 
-        boolean alreadyHas(String sha, DocumentFormat submittedFormat) {
+            String labelsSha256) {
+
+        boolean hasContent(String sha, DocumentFormat submittedFormat) {
             return sha.equals(contentSha256) && format == submittedFormat;
+        }
+
+        boolean hasLabels(AccessLabels labels) {
+            return labels.sha256().equals(labelsSha256);
         }
     }
 
@@ -47,10 +57,18 @@ class CorpusWriter {
 
             @Nullable DocumentFormat format,
 
+            @Nullable String labelsSha256,
+
+            @Nullable UUID activeVersionId,
+
             boolean deleted) {
 
-        boolean alreadyHas(String sha, DocumentFormat submittedFormat) {
+        boolean hasContent(String sha, DocumentFormat submittedFormat) {
             return !deleted && sha.equals(contentSha256) && format == submittedFormat;
+        }
+
+        boolean hasLabels(AccessLabels labels) {
+            return labels.sha256().equals(labelsSha256);
         }
     }
 
@@ -74,13 +92,14 @@ class CorpusWriter {
 
     Optional<ActiveVersion> findActive(String tenantId, String key) {
         return jdbc.sql("""
-                        select d.id, v.version_no, v.content_sha256, v.format
+                        select d.id, v.version_no, v.content_sha256, v.format, v.labels_sha256
                         from document d join document_version v on v.id = d.active_version_id
                         where d.tenant_id = :tenant and d.external_key = :key and d.status <> 'deleted'
                         """)
                 .param("tenant", tenantId)
                 .param("key", key)
-                .query((rs, i) -> new ActiveVersion(rs.getObject(1, UUID.class), rs.getInt(2), rs.getString(3), DocumentFormat.fromColumn(rs.getString(4))))
+                .query((rs, i) -> new ActiveVersion(rs.getObject(1, UUID.class), rs.getInt(2), rs.getString(3), DocumentFormat.fromColumn(rs.getString(4)),
+                        rs.getString(5)))
                 .optional();
     }
 
@@ -101,12 +120,13 @@ class CorpusWriter {
                 .query(UUID.class)
                 .single();
         return jdbc.sql("""
-                        select d.last_version_no, v.content_sha256, v.format, d.status = 'deleted'
+                        select d.last_version_no, v.content_sha256, v.format, v.labels_sha256, d.active_version_id, d.status = 'deleted'
                         from document d left join document_version v on v.id = d.active_version_id
                         where d.id = :id
                         """)
                 .param("id", documentId)
-                .query((rs, i) -> new LockedDocument(documentId, rs.getInt(1), rs.getString(2), format(rs.getString(3)), rs.getBoolean(4)))
+                .query((rs, i) -> new LockedDocument(documentId, rs.getInt(1), rs.getString(2), format(rs.getString(3)), rs.getString(4),
+                        rs.getObject(5, UUID.class), rs.getBoolean(6)))
                 .single();
     }
 
@@ -118,9 +138,12 @@ class CorpusWriter {
     void writeVersion(NewVersion version, LockedDocument document) {
         UUID documentId = document.documentId();
         UUID versionId = UUID.randomUUID();
+        AccessLabels labels = version.source().labels();
         jdbc.sql("""
-                        insert into document_version (id, document_id, tenant_id, version_no, content_sha256, title, source_uri, format, chunker_version, embedding_model)
-                        values (:id, :document, :tenant, :versionNo, :sha, :title, :sourceUri, :format, :chunker, :model)
+                        insert into document_version (id, document_id, tenant_id, version_no, content_sha256, title, source_uri, format, chunker_version,
+                            embedding_model, classification, allowed_departments, required_projects, labels_sha256)
+                        values (:id, :document, :tenant, :versionNo, :sha, :title, :sourceUri, :format, :chunker, :model, :classification,
+                            cast(:departments as text[]), cast(:projects as text[]), :labelsSha)
                         """)
                 .param("id", versionId)
                 .param("document", documentId)
@@ -131,6 +154,10 @@ class CorpusWriter {
                 .param("sourceUri", version.source().sourceUri())
                 .param("format", version.source().format().column())
                 .param("chunker", DocumentChunker.version(version.source().format()))
+                .param("classification", labels.classification().column())
+                .param("departments", TextArrays.literal(labels.allowedDepartments()))
+                .param("projects", TextArrays.literal(labels.requiredProjects()))
+                .param("labelsSha", labels.sha256())
                 .param("model", version.embeddingModel())
                 .update();
         for (int i = 0; i < version.chunks().size(); i++) {
@@ -161,6 +188,41 @@ class CorpusWriter {
                 .param("version", versionId)
                 .param("versionNo", document.versionNo() + 1)
                 .param("id", documentId)
+                .update();
+    }
+
+    /**
+     * Gives the active content new labels without touching the model service: a new version row takes over the chunks of the version it replaces,
+     * and the pointer flips in the same transaction. Readers therefore see the old labels or the new ones, never chunks without a version. The
+     * old version is left without chunks and is removed by cleanup. The caller must hold the document lock and have checked that the content is
+     * unchanged.
+     */
+    void relabel(SourceDocument source, LockedDocument document) {
+        UUID previous = Objects.requireNonNull(document.activeVersionId(), "a document with unchanged content has an active version");
+        UUID versionId = UUID.randomUUID();
+        AccessLabels labels = source.labels();
+        jdbc.sql("""
+                        insert into document_version (id, document_id, tenant_id, version_no, content_sha256, title, source_uri, format, chunker_version,
+                            embedding_model, classification, allowed_departments, required_projects, labels_sha256)
+                        select :id, document_id, tenant_id, :versionNo, content_sha256, :title, :sourceUri, format, chunker_version, embedding_model,
+                            :classification, cast(:departments as text[]), cast(:projects as text[]), :labelsSha
+                        from document_version where id = :previous
+                        """)
+                .param("id", versionId)
+                .param("versionNo", document.versionNo() + 1)
+                .param("title", source.title())
+                .param("sourceUri", source.sourceUri())
+                .param("classification", labels.classification().column())
+                .param("departments", TextArrays.literal(labels.allowedDepartments()))
+                .param("projects", TextArrays.literal(labels.requiredProjects()))
+                .param("labelsSha", labels.sha256())
+                .param("previous", previous)
+                .update();
+        jdbc.sql("update chunk set version_id = :version where version_id = :previous").param("version", versionId).param("previous", previous).update();
+        jdbc.sql("update document set active_version_id = :version, last_version_no = :versionNo, updated_at = now() where id = :id")
+                .param("version", versionId)
+                .param("versionNo", document.versionNo() + 1)
+                .param("id", document.documentId())
                 .update();
     }
 

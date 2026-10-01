@@ -113,7 +113,7 @@ class RetrievalIT {
                 .andExpect(jsonPath("$.results", hasSize(1)))
                 .andExpect(jsonPath("$.results[0].sectionPath").value("Volunteer Policy > European Union"))
                 .andExpect(jsonPath("$.strategy").value("sparse-only"))
-                .andExpect(jsonPath("$.policyVersion").value("tenant-only/1"));
+                .andExpect(jsonPath("$.policyVersion").value("abac/1"));
     }
 
     @Test
