@@ -2,6 +2,7 @@
 
 The numbers in the results chart are copied from the committed report named in its footer; update RESULTS when a new report is published.
 `ga-authorization.*.svg` is maintained by hand and is not generated here."""
+
 import html
 import sys
 from pathlib import Path
@@ -117,7 +118,7 @@ def overview(lang, s):
 
 def decision(lang, s):
     d = Svg(1120, 640, "GROUNDED ACCESS · AUTHORIZATION", s["title"], s["sub"])
-    for x, w, head in ((40, 290, s["h1"]), (360, 400, s["h2"]), (790, 290, s["h3"])):
+    for x, head in ((40, s["h1"]), (360, s["h2"]), (790, s["h3"])):
         d.t(x, 142, head, "kicker")
     for i, (claim, claim_note, rule, rule_note, label, label_note) in enumerate(s["rows"]):
         y = 156 + i * 80
@@ -134,8 +135,12 @@ def decision(lang, s):
     d.save(f"ga-decision-table.{lang}.svg")
 
 
-RESULTS = [("sparse-only", 0.640, 0.54, 0.74, 0.930, "bar-s"), ("dense-only", 0.856, 0.78, 0.93, 0.965, "bar-d"),
-           ("hybrid-rrf", 0.797, 0.71, 0.88, 0.965, "bar-h"), ("bm25-reference", 0.689, 0.59, 0.78, 0.921, "bar-r")]
+RESULTS = [
+    ("sparse-only", 0.640, 0.54, 0.74, 0.930, "bar-s"),
+    ("dense-only", 0.856, 0.78, 0.93, 0.965, "bar-d"),
+    ("hybrid-rrf", 0.797, 0.71, 0.88, 0.965, "bar-h"),
+    ("bm25-reference", 0.689, 0.59, 0.78, 0.921, "bar-r"),
+]
 
 
 def results(lang, s):
@@ -153,7 +158,9 @@ def results(lang, s):
         d.t(40, y + 35, s["notes"][i], "txt")
         d.rect(x0, y, round(mean * scale), 30, cls, 6)
         yl = y + 15
-        d.parts.append(f'<path class="whisk" d="M{x0 + low * scale} {yl} L{x0 + high * scale} {yl} M{x0 + low * scale} {yl - 6} v12 M{x0 + high * scale} {yl - 6} v12"/>')
+        d.parts.append(
+            f'<path class="whisk" d="M{x0 + low * scale} {yl} L{x0 + high * scale} {yl} M{x0 + low * scale} {yl - 6} v12 M{x0 + high * scale} {yl - 6} v12"/>'
+        )
         d.t(x0 + high * scale + 12, y + 20, f"{mean:.3f}  [{low:.2f}, {high:.2f}]", "num")
         d.t(980, y + 20, f"{recall:.3f}", "num")
     for i, (big, label, ok) in enumerate(s["tiles"]):
@@ -206,31 +213,72 @@ EN = {
     "overview": {
         "title": "One compiled predicate governs every retrieval path",
         "sub": "Java owns identity, authorization and retrieval; Python owns model work; the evaluation CLI drives the same public API.",
-        "actors": [("Query user", "demo JWT, scope query", "search"), ("Corpus maintainer", "documents + labels, scope admin", "ingest"),
-                   ("ga-eval CLI", "one token per principal", "evaluate")],
+        "actors": [
+            ("Query user", "demo JWT, scope query", "search"),
+            ("Corpus maintainer", "documents + labels, scope admin", "ingest"),
+            ("ga-eval CLI", "one token per principal", "evaluate"),
+        ],
         "plane": "Control plane · Java / Spring Boot",
-        "modules": [("identity", "verify JWT · requires sub + tenant_id", "blue"),
-                    ("authorization", "PolicyCompiler → one SQL predicate · policy abac/1", "violet"),
-                    ("retrieval", "PostgreSQL FTS · pgvector · RRF fusion · plan hash", "teal"),
-                    ("corpus + ingestion", "job queue · chunking · versions · access labels", "amber"),
-                    ("answering · M3", "citations · abstention", "dash")],
-        "deps": [("PostgreSQL 17 + pgvector", ["authorization runs inside", "the retrieval query"], "card"),
-                 ("model-service · Python", ["receives authorized text only", "embeddings on CPU · rerank in M3"], "card"),
-                 ("local chat model · M3", ["optional, no API key needed"], "dash")],
+        "modules": [
+            ("identity", "verify JWT · requires sub + tenant_id", "blue"),
+            ("authorization", "PolicyCompiler → one SQL predicate · policy abac/1", "violet"),
+            ("retrieval", "PostgreSQL FTS · pgvector · RRF fusion · plan hash", "teal"),
+            ("corpus + ingestion", "job queue · chunking · versions · access labels", "amber"),
+            ("answering · M3", "citations · abstention", "dash"),
+        ],
+        "deps": [
+            ("PostgreSQL 17 + pgvector", ["authorization runs inside", "the retrieval query"], "card"),
+            ("model-service · Python", ["receives authorized text only", "embeddings on CPU · rerank in M3"], "card"),
+            ("local chat model · M3", ["optional, no API key needed"], "dash"),
+        ],
         "foot": "Unauthorized rows never leave PostgreSQL  ·  label changes apply to the next query  ·  every evaluation run is reproducible",
     },
     "decision": {
         "title": "Four rules, one predicate, default deny",
         "sub": "A chunk is returned only if every rule holds. The rules are compiled into the SQL that selects candidates.",
-        "h1": "VERIFIED TOKEN", "h2": "RULE", "h3": "DOCUMENT VERSION LABELS",
-        "rows": [("tenant_id", "required claim; token rejected without it", "Tenant must be equal", "nothing crosses a tenant boundary", "tenant_id", "set from the ingesting admin's token"),
-                 ("clearance", "missing or unknown → public", "Classification ≤ clearance", "public < internal < confidential < restricted", "classification", "default public"),
-                 ("department", "missing → unrestricted documents only", "No restriction, or department listed", "one department per principal", "allowed_departments", "empty = no restriction"),
-                 ("projects[ ]", "empty → unrestricted documents only", "No restriction, or a project in common", "any one project is enough", "required_projects", "empty = no restriction")],
+        "h1": "VERIFIED TOKEN",
+        "h2": "RULE",
+        "h3": "DOCUMENT VERSION LABELS",
+        "rows": [
+            (
+                "tenant_id",
+                "required claim; token rejected without it",
+                "Tenant must be equal",
+                "nothing crosses a tenant boundary",
+                "tenant_id",
+                "set from the ingesting admin's token",
+            ),
+            (
+                "clearance",
+                "missing or unknown → public",
+                "Classification ≤ clearance",
+                "public < internal < confidential < restricted",
+                "classification",
+                "default public",
+            ),
+            (
+                "department",
+                "missing → unrestricted documents only",
+                "No restriction, or department listed",
+                "one department per principal",
+                "allowed_departments",
+                "empty = no restriction",
+            ),
+            (
+                "projects[ ]",
+                "empty → unrestricted documents only",
+                "No restriction, or a project in common",
+                "any one project is enough",
+                "required_projects",
+                "empty = no restriction",
+            ),
+        ],
         "sqlhead": "-- the same text for every principal; only the bound values differ",
-        "sql": ["c.tenant_id = :auth_tenant_id AND v.classification_rank <= :auth_clearance_rank",
-                "AND (cardinality(v.allowed_departments) = 0 OR CAST(:auth_department AS text) = ANY(v.allowed_departments))",
-                "AND (cardinality(v.required_projects)  = 0 OR v.required_projects && CAST(:auth_projects AS text[]))"],
+        "sql": [
+            "c.tenant_id = :auth_tenant_id AND v.classification_rank <= :auth_clearance_rank",
+            "AND (cardinality(v.allowed_departments) = 0 OR CAST(:auth_department AS text) = ANY(v.allowed_departments))",
+            "AND (cardinality(v.required_projects)  = 0 OR v.required_projects && CAST(:auth_projects AS text[]))",
+        ],
         "foot": "Region, validity dates and document status are scope, not authorization, and are counted separately.",
     },
     "results": {
@@ -238,9 +286,11 @@ EN = {
         "sub": "Dataset v2, test split, 57 answerable cases. Bars are MRR@10 with 95% bootstrap intervals, from the committed CI run.",
         "axis": "MRR@10",
         "notes": ["PostgreSQL full-text search", "exact pgvector search", "reciprocal rank fusion of the two", "offline reference row"],
-        "tiles": [("0", ("unauthorized results", "across 108 cases and every strategy"), True),
-                  ("30", ("authorization negatives", "tenant, clearance, project, department"), False),
-                  ("−0.06", ("hybrid vs dense, MRR@10", "no detectable difference"), False)],
+        "tiles": [
+            ("0", ("unauthorized results", "across 108 cases and every strategy"), True),
+            ("30", ("authorization negatives", "tenant, clearance, project, department"), False),
+            ("−0.06", ("hybrid vs dense, MRR@10", "no detectable difference"), False),
+        ],
         "foot": "Source: benchmarks/reports/m2-labelled-dataset. A demo benchmark on a small fictional corpus, not a claim about production quality.",
     },
     "gate": {
@@ -249,22 +299,39 @@ EN = {
         "labels": ["visibility.yaml", "hand-labelled visible documents", "per principal, current version only", "`data/eval/v2`"],
         "system": ["System under test", "public API with demo tokens", "one token per principal", "`/retrieval/chunks · /retrieval/search`"],
         "checks": "ga-eval run",
-        "steps": [("1 · Listing check", ["every chunk each principal can list", "must match its visible set exactly", "covers documents no query retrieves"]),
-                  ("2 · Per-result check", ["108 cases × every strategy", "each chunk: visible document", "and current version"])],
-        "outcomes": [("Extra document or old version", ["a violation: exit code 2", "the CI job fails"], "rose"),
-                     ("Visible document missing", ["labels and system disagree", "the run aborts"], "amber"),
-                     ("0 violations", ["the report is written", "and can be published"], "green")],
-        "foot": ["30 cases try to reach a document the principal may not see: another tenant, a higher classification, another project or department.",
-                 "Relabelling a restricted document as public on a running stack makes the gate fail, which is how the gate itself was checked."],
+        "steps": [
+            (
+                "1 · Listing check",
+                ["every chunk each principal can list", "must match its visible set exactly", "covers documents no query retrieves"],
+            ),
+            ("2 · Per-result check", ["108 cases × every strategy", "each chunk: visible document", "and current version"]),
+        ],
+        "outcomes": [
+            ("Extra document or old version", ["a violation: exit code 2", "the CI job fails"], "rose"),
+            ("Visible document missing", ["labels and system disagree", "the run aborts"], "amber"),
+            ("0 violations", ["the report is written", "and can be published"], "green"),
+        ],
+        "foot": [
+            "30 cases try to reach a document the principal may not see: another tenant, a higher classification, another project or department.",
+            "Relabelling a restricted document as public on a running stack makes the gate fail, which is how the gate itself was checked.",
+        ],
     },
     "roadmap": {
         "title": "Each milestone ends with something that can be checked",
         "sub": "A tagged pre-release, a changelog entry and, where there are numbers, a committed report.",
-        "stones": [("M0", "Walking skeleton", ["tenant isolation in SQL", "sparse + dense retrieval", "eval CLI, CI security gate"], "ok", "Done"),
-                   ("M1", "Retrieval baseline", ["dataset, BM25 reference, CIs", "async ingestion, chunker", "RRF hybrid + verdict"], "ok", "Done · v0.1.0-alpha.1"),
-                   ("M2", "Authorization", ["full decision table ✓", "labelled dataset + gate ✓", "scope, audit, threat model"], "now", "In progress"),
-                   ("M3", "Reranking + answers", ["cross-encoder reranker", "cited answers", "abstention"], "next", "Planned"),
-                   ("M4", "Operations + v0.1", ["OpenTelemetry traces", "failure and load tests", "full benchmark, release"], "next", "Planned")],
+        "stones": [
+            ("M0", "Walking skeleton", ["tenant isolation in SQL", "sparse + dense retrieval", "eval CLI, CI security gate"], "ok", "Done"),
+            (
+                "M1",
+                "Retrieval baseline",
+                ["dataset, BM25 reference, CIs", "async ingestion, chunker", "RRF hybrid + verdict"],
+                "ok",
+                "Done · v0.1.0-alpha.1",
+            ),
+            ("M2", "Authorization", ["full decision table ✓", "labelled dataset + gate ✓", "scope, audit, threat model"], "now", "In progress"),
+            ("M3", "Reranking + answers", ["cross-encoder reranker", "cited answers", "abstention"], "next", "Planned"),
+            ("M4", "Operations + v0.1", ["OpenTelemetry traces", "failure and load tests", "full benchmark, release"], "next", "Planned"),
+        ],
     },
 }
 
@@ -272,26 +339,45 @@ ZH = {
     "overview": {
         "title": "一个编译好的谓词管住所有检索路径",
         "sub": "Java 负责身份、授权与检索；Python 负责模型计算；评测 CLI 走的是同一套公开 API。",
-        "actors": [("查询用户", "demo JWT，scope query", "检索"), ("语料维护者", "文档 + 标签，scope admin", "入库"), ("ga-eval CLI", "每个身份一个 token", "评测")],
+        "actors": [
+            ("查询用户", "demo JWT，scope query", "检索"),
+            ("语料维护者", "文档 + 标签，scope admin", "入库"),
+            ("ga-eval CLI", "每个身份一个 token", "评测"),
+        ],
         "plane": "控制面 · Java / Spring Boot",
-        "modules": [("identity", "验签 JWT · 必须带 sub 与 tenant_id", "blue"),
-                    ("authorization", "PolicyCompiler → 一个 SQL 谓词 · policy abac/1", "violet"),
-                    ("retrieval", "PostgreSQL FTS · pgvector · RRF 融合 · 配置哈希", "teal"),
-                    ("corpus + ingestion", "任务队列 · 切分 · 版本 · 访问标签", "amber"),
-                    ("answering · M3", "引用 · 拒答", "dash")],
-        "deps": [("PostgreSQL 17 + pgvector", ["授权在检索查询内部执行"], "card"),
-                 ("model-service · Python", ["只接收已授权的文本", "CPU 上计算向量 · M3 加入重排"], "card"),
-                 ("本地对话模型 · M3", ["可选，不需要 API key"], "dash")],
+        "modules": [
+            ("identity", "验签 JWT · 必须带 sub 与 tenant_id", "blue"),
+            ("authorization", "PolicyCompiler → 一个 SQL 谓词 · policy abac/1", "violet"),
+            ("retrieval", "PostgreSQL FTS · pgvector · RRF 融合 · 配置哈希", "teal"),
+            ("corpus + ingestion", "任务队列 · 切分 · 版本 · 访问标签", "amber"),
+            ("answering · M3", "引用 · 拒答", "dash"),
+        ],
+        "deps": [
+            ("PostgreSQL 17 + pgvector", ["授权在检索查询内部执行"], "card"),
+            ("model-service · Python", ["只接收已授权的文本", "CPU 上计算向量 · M3 加入重排"], "card"),
+            ("本地对话模型 · M3", ["可选，不需要 API key"], "dash"),
+        ],
         "foot": "未授权的行不会离开 PostgreSQL  ·  标签变更对下一次查询生效  ·  每次评测都可复现",
     },
     "decision": {
         "title": "四条规则，一个谓词，默认拒绝",
         "sub": "只有四条规则同时成立，chunk 才会被返回。规则被编译进筛选候选的那条 SQL。",
-        "h1": "已验证的 TOKEN", "h2": "规则", "h3": "文档版本上的标签",
-        "rows": [("tenant_id", "必填 claim；缺失则拒绝 token", "租户必须相同", "任何内容都不跨租户", "tenant_id", "取自入库管理员的 token"),
-                 ("clearance", "缺失或无法识别 → public", "文档密级 ≤ 身份密级", "public < internal < confidential < restricted", "classification", "默认 public"),
-                 ("department", "缺失 → 只能看不限部门的文档", "不限部门，或部门在列表中", "每个身份一个部门", "allowed_departments", "为空 = 不限制"),
-                 ("projects[ ]", "为空 → 只能看不限项目的文档", "不限项目，或有共同项目", "有一个共同项目即可", "required_projects", "为空 = 不限制")],
+        "h1": "已验证的 TOKEN",
+        "h2": "规则",
+        "h3": "文档版本上的标签",
+        "rows": [
+            ("tenant_id", "必填 claim；缺失则拒绝 token", "租户必须相同", "任何内容都不跨租户", "tenant_id", "取自入库管理员的 token"),
+            (
+                "clearance",
+                "缺失或无法识别 → public",
+                "文档密级 ≤ 身份密级",
+                "public < internal < confidential < restricted",
+                "classification",
+                "默认 public",
+            ),
+            ("department", "缺失 → 只能看不限部门的文档", "不限部门，或部门在列表中", "每个身份一个部门", "allowed_departments", "为空 = 不限制"),
+            ("projects[ ]", "为空 → 只能看不限项目的文档", "不限项目，或有共同项目", "有一个共同项目即可", "required_projects", "为空 = 不限制"),
+        ],
         "sqlhead": "-- 谓词文本对所有身份都相同，只有绑定的值不同",
         "sql": EN["decision"]["sql"],
         "foot": "region、有效期和文档状态属于适用范围，不属于授权，单独统计。",
@@ -301,9 +387,11 @@ ZH = {
         "sub": "数据集 v2，test 划分，57 条可回答用例。柱子是 MRR@10 及 95% bootstrap 区间，来自已提交的 CI 运行。",
         "axis": "MRR@10",
         "notes": ["PostgreSQL 全文检索", "pgvector 精确检索", "两者的 RRF 融合", "离线参考行"],
-        "tiles": [("0", ("越权结果", "108 条用例、所有策略"), True),
-                  ("30", ("授权负例", "租户、密级、项目、部门"), False),
-                  ("−0.06", ("hybrid 对 dense，MRR@10", "没有可检测的差异"), False)],
+        "tiles": [
+            ("0", ("越权结果", "108 条用例、所有策略"), True),
+            ("30", ("授权负例", "租户、密级、项目、部门"), False),
+            ("−0.06", ("hybrid 对 dense，MRR@10", "没有可检测的差异"), False),
+        ],
         "foot": "数据来源：benchmarks/reports/m2-labelled-dataset。这是小型虚构语料上的 demo benchmark，不代表生产效果。",
     },
     "gate": {
@@ -312,22 +400,30 @@ ZH = {
         "labels": ["visibility.yaml", "人工标注的可见文档", "按身份列出，只认当前版本", "`data/eval/v2`"],
         "system": ["被测系统", "公开 API + demo token", "每个身份一个 token", "`/retrieval/chunks · /retrieval/search`"],
         "checks": "ga-eval run",
-        "steps": [("1 · 列表检查", ["每个身份能列出的全部 chunk", "必须与它的可见集合完全一致", "覆盖没有被任何查询检索到的文档"]),
-                  ("2 · 逐条结果检查", ["108 条用例 × 每种策略", "每个 chunk：文档可见", "且来自当前版本"])],
-        "outcomes": [("多出文档或返回旧版本", ["记为越权：退出码 2", "CI 任务失败"], "rose"),
-                     ("可见文档列不出来", ["标注与系统不一致", "评测中止"], "amber"),
-                     ("0 条越权", ["生成报告", "可以发布"], "green")],
-        "foot": ["30 条用例专门去够身份无权查看的文档：别的租户、更高的密级、别的项目或部门。",
-                 "在运行中的环境里把一篇 restricted 文档改标成 public，门禁就会失败——门禁本身就是这样验证的。"],
+        "steps": [
+            ("1 · 列表检查", ["每个身份能列出的全部 chunk", "必须与它的可见集合完全一致", "覆盖没有被任何查询检索到的文档"]),
+            ("2 · 逐条结果检查", ["108 条用例 × 每种策略", "每个 chunk：文档可见", "且来自当前版本"]),
+        ],
+        "outcomes": [
+            ("多出文档或返回旧版本", ["记为越权：退出码 2", "CI 任务失败"], "rose"),
+            ("可见文档列不出来", ["标注与系统不一致", "评测中止"], "amber"),
+            ("0 条越权", ["生成报告", "可以发布"], "green"),
+        ],
+        "foot": [
+            "30 条用例专门去够身份无权查看的文档：别的租户、更高的密级、别的项目或部门。",
+            "在运行中的环境里把一篇 restricted 文档改标成 public，门禁就会失败——门禁本身就是这样验证的。",
+        ],
     },
     "roadmap": {
         "title": "每个里程碑都以可以检验的东西收尾",
         "sub": "一个带标签的预发布、一条 changelog，有数字的地方再加一份提交在仓库里的报告。",
-        "stones": [("M0", "Walking skeleton", ["SQL 内的租户隔离", "sparse + dense 检索", "评测 CLI、CI 安全门禁"], "ok", "已完成"),
-                   ("M1", "检索基线", ["数据集、BM25 参考行、置信区间", "异步入库、chunker", "RRF hybrid 与结论"], "ok", "已完成 · v0.1.0-alpha.1"),
-                   ("M2", "授权", ["完整决策表 ✓", "带标签的数据集与门禁 ✓", "范围过滤、审计、威胁模型"], "now", "进行中"),
-                   ("M3", "重排与回答", ["cross-encoder 重排", "带引用的回答", "拒答"], "next", "计划中"),
-                   ("M4", "运维与 v0.1", ["OpenTelemetry trace", "故障与压力测试", "完整 benchmark、发布"], "next", "计划中")],
+        "stones": [
+            ("M0", "Walking skeleton", ["SQL 内的租户隔离", "sparse + dense 检索", "评测 CLI、CI 安全门禁"], "ok", "已完成"),
+            ("M1", "检索基线", ["数据集、BM25 参考行、置信区间", "异步入库、chunker", "RRF hybrid 与结论"], "ok", "已完成 · v0.1.0-alpha.1"),
+            ("M2", "授权", ["完整决策表 ✓", "带标签的数据集与门禁 ✓", "范围过滤、审计、威胁模型"], "now", "进行中"),
+            ("M3", "重排与回答", ["cross-encoder 重排", "带引用的回答", "拒答"], "next", "计划中"),
+            ("M4", "运维与 v0.1", ["OpenTelemetry trace", "故障与压力测试", "完整 benchmark、发布"], "next", "计划中"),
+        ],
     },
 }
 
