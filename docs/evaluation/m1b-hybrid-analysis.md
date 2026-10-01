@@ -35,6 +35,10 @@ Equal-weight rank fusion gives the weaker channel the same vote as the stronger 
 
 This is a statement about this configuration on this dataset, not about hybrid retrieval in general. The dataset is small and fictional, and the plan uses the common defaults (50 candidates per channel, RRF constant 60) without tuning.
 
+## Update: dataset v2
+
+The run [`m2-labelled-dataset`](../../benchmarks/reports/m2-labelled-dataset/) repeats the comparison on dataset v2 (57 answerable `test` cases). The verdict is the same: hybrid against dense is −0.059 [−0.13, +0.01] on MRR@10, no detectable difference. One premise of the reading above is weaker there: BM25 no longer shows a detectable lead over PostgreSQL FTS (+0.049 [−0.02, +0.12]). Dense remains clearly ahead of both.
+
 ## What was not done, and what comes next
 
 - Nothing was tuned on the `test` split, and the configuration was fixed before the run.

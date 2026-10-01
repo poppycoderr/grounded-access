@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-    <b>English</b> · <a href="./README.zh-CN.md">简体中文</a> · <a href="./docs/architecture/overview.md">Architecture</a> · <a href="./docs/evaluation/strategy.md">Evaluation</a> · <a href="./benchmarks/reports/m1b-hybrid/report.md">Benchmark</a> · <a href="./docs/project/milestones.md">Milestones</a>
+    <b>English</b> · <a href="./README.zh-CN.md">简体中文</a> · <a href="./docs/architecture/overview.md">Architecture</a> · <a href="./docs/evaluation/strategy.md">Evaluation</a> · <a href="./benchmarks/reports/m2-labelled-dataset/report.md">Benchmark</a> · <a href="./docs/project/milestones.md">Milestones</a>
 </p>
 
 ---
@@ -89,25 +89,27 @@ The predicate carries the tenant, clearance, department and project rules; this 
 
 ## Retrieval evaluation
 
-[`benchmarks/reports/m1b-hybrid/`](./benchmarks/reports/m1b-hybrid/) holds the committed run: `run.json` (dataset version, commit, strategies, policy version, bootstrap seed, platform), `cases.jsonl` (per-case rankings) and the rendered `report.md`. Regenerate it with `./scripts/benchmark --out benchmarks/reports/<name>`.
+[`benchmarks/reports/m2-labelled-dataset/`](./benchmarks/reports/m2-labelled-dataset/) holds the committed run: `run.json` (dataset version, commit, retrieval plans, policy and chunker versions, bootstrap seed, platform), `cases.jsonl` (per-case rankings) and the rendered `report.md`. Regenerate it with `./scripts/benchmark --out benchmarks/reports/<name>`.
 
-Dataset v1 (21 unlabelled documents, 70 cases; the labelled dataset v2 is newer than this report), `test` split, 47 answerable cases, 95% bootstrap intervals, produced by the CI runner (Linux x86_64):
+Dataset v2, `test` split, 57 answerable cases, 95% bootstrap intervals, produced by the CI runner (Linux x86_64):
 
 | Strategy | Recall@10 | MRR@10 | nDCG@10 | Security violations |
 |---|---|---|---|---|
-| `sparse-only` (PostgreSQL FTS) | 0.936 [0.85, 1.00] | 0.616 [0.51, 0.72] | 0.697 [0.61, 0.79] | **0** |
-| `dense-only` (pgvector, exact) | 0.979 [0.94, 1.00] | 0.860 [0.77, 0.94] | 0.891 [0.82, 0.95] | **0** |
-| `hybrid-rrf` (reciprocal rank fusion of the two) | 0.979 [0.94, 1.00] | 0.810 [0.72, 0.89] | 0.850 [0.78, 0.91] | **0** |
-| `bm25-reference` (offline, same authorized chunks) | 0.926 [0.85, 0.99] | 0.716 [0.61, 0.82] | 0.765 [0.67, 0.85] | **0** |
+| `sparse-only` (PostgreSQL FTS) | 0.930 [0.86, 0.98] | 0.640 [0.54, 0.74] | 0.711 [0.63, 0.79] | **0** |
+| `dense-only` (pgvector, exact) | 0.965 [0.91, 1.00] | 0.856 [0.78, 0.93] | 0.884 [0.81, 0.94] | **0** |
+| `hybrid-rrf` (reciprocal rank fusion of the two) | 0.965 [0.91, 1.00] | 0.797 [0.71, 0.88] | 0.837 [0.77, 0.90] | **0** |
+| `bm25-reference` (offline, same authorized chunks) | 0.921 [0.84, 0.98] | 0.689 [0.59, 0.78] | 0.744 [0.66, 0.82] | **0** |
+
+**Security.** Zero violations across 108 cases, 30 of which try to reach a document the principal may not see: in another tenant, above its clearance, in a project it is not on, or in another department. Every returned chunk is checked for document and version, and before any query runs each principal's full chunk listing is compared with its hand-labelled visible set.
 
 What the paired comparisons support, and what they do not:
 
-- **Dense ranks the right evidence higher than FTS:** MRR@10 +0.24 [+0.13, +0.35]. Whether the evidence appears in the top 10 at all shows **no detectable difference** (Recall@10 +0.04 [−0.04, +0.13]).
-- **PostgreSQL FTS is measurably weaker than BM25:** MRR@10 +0.10 [+0.02, +0.18] for BM25. This is the gap ADR-0002 predicted from FTS having no corpus statistics, and it is why any future hybrid gain has to be read against the BM25 row, not only against FTS.
-- **Dense also beats BM25** on MRR@10 (+0.14).
-- **Hybrid does not beat dense.** MRR@10 −0.05 [−0.12, +0.03] against dense: no detectable difference, with the point estimate in favour of dense. Hybrid rescues cases dense gets badly wrong (Recall@5 0.957 against 0.926) but more often moves a correct first result down a place, because equal-weight fusion gives the weaker FTS channel the same vote. The [analysis](./docs/evaluation/m1b-hybrid-analysis.md) has the per-case breakdown. Nothing was tuned on the test split.
+- **Dense ranks the right evidence higher than FTS:** MRR@10 +0.22 [+0.12, +0.31]. Whether the evidence appears in the top 10 at all shows **no detectable difference** (Recall@10 +0.04 [−0.04, +0.11]).
+- **Hybrid does not beat dense.** MRR@10 −0.06 [−0.13, +0.01] against dense: no detectable difference, with the point estimate in favour of dense. The [analysis](./docs/evaluation/m1b-hybrid-analysis.md) of the earlier run explains why: equal-weight fusion gives the weaker FTS channel the same vote.
+- **FTS against BM25: a finding that did not hold.** On dataset v1, BM25 was measurably ahead of FTS (MRR@10 +0.10 [+0.02, +0.18]). On v2 the difference is +0.05 [−0.02, +0.12], which is no detectable difference. The earlier reports stay in the repository; the claim is withdrawn until a larger dataset supports it.
+- **Dense beats BM25** on MRR@10 (+0.17 [+0.07, +0.26]).
 
-The dataset is 21 fictional documents and 70 hand-checked cases, with 30 of the 63 answerable ones deliberately worded so they share almost no words with their evidence. It is a demo benchmark: it shows the method and the direction of the differences, not production quality. Keyword and BM25 rankings are identical on every machine; dense rankings can swap near-tied candidates between CPU architectures, which moves one case on a Mac (see [benchmarks/README.md](./benchmarks/README.md)). See the [dataset card](./data/eval/DATASET_CARD.md) for what it covers and what it does not.
+Nothing was tuned on the test split. The dataset is 28 fictional documents and 108 hand-checked cases, with 34 of the 77 answerable ones deliberately worded so they share almost no words with their evidence. It is a demo benchmark: it shows the method and the direction of the differences, not production quality. Reports before `m2-labelled-dataset` use dataset v1 and are not comparable with it. Keyword and BM25 rankings are identical on every machine; dense rankings can swap near-tied candidates between CPU architectures (see [benchmarks/README.md](./benchmarks/README.md)). See the [dataset card](./data/eval/DATASET_CARD.md) for what it covers and what it does not.
 
 Evidence is labelled as a **document version plus a quote**, not a chunk id, so chunking strategies can be compared on the same labels. Read the method in [docs/evaluation/strategy.md](./docs/evaluation/strategy.md).
 

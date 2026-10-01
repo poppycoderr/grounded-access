@@ -57,7 +57,7 @@ Deferred on purpose: the precomputed-embeddings cache. CI currently embeds the d
 
 ## M2 — Authorization (≈ 10 days, 4–5 weeks)
 
-**M2 progress:** 2.1 (access labels; scope fields move to 2.3), 2.2 and 2.4 delivered together, so labels were never stored without being enforced. 2.7 delivered as dataset v2: 30 authorization negatives, a gate that checks document and version for every chunk, and a listing check per principal. Separate reporting of scope failures waits for 2.3.
+**M2 progress:** 2.1 (access labels; scope fields move to 2.3), 2.2 and 2.4 delivered together, so labels were never stored without being enforced. 2.7 delivered as dataset v2: 30 authorization negatives, a gate that checks document and version for every chunk, and a listing check per principal. Separate reporting of scope failures waits for 2.3. The first v2 report is `benchmarks/reports/m2-labelled-dataset/`.
 
 **Exit:** the full decision table is enforced in both channels. The property-based tests and the eval security gate pass with zero unauthorized candidates on ≥ 25 authorization-negative cases. The threat model is published.
 
