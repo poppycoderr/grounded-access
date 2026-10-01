@@ -17,10 +17,14 @@ from ga_eval.client import ApiClient
 from ga_eval.dataset import Dataset
 from ga_eval.metrics import Result
 
-SYSTEM_STRATEGIES = ["sparse-only", "dense-only"]
+SYSTEM_STRATEGIES = ["sparse-only", "dense-only", "hybrid-rrf"]
 REFERENCE = "bm25-reference"
 QUALITY_METRICS = ["recall@5", "recall@10", "mrr@10", "ndcg@10"]
 COMPARED_METRICS = ["recall@10", "mrr@10", "ndcg@10"]
+
+
+class DegradedRunError(RuntimeError):
+    """The system answered without part of its plan (for example without the dense channel), so the result does not measure the strategy."""
 
 
 class MixedChunkerError(RuntimeError):
@@ -42,6 +46,7 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
     if len({chunker_release(v) for v in chunker_versions}) > 1:
         raise MixedChunkerError(f"the corpus mixes chunker versions {', '.join(chunker_versions)}; re-index it with a fresh load before evaluating")
     references: dict[str, Bm25Index] = {}
+    plans: dict[str, dict[str, dict]] = {}
     for case in cases:
         token = tokens_by_principal[case.principal]
         spans = [dataset.span(e) for e in case.evidence]
@@ -57,7 +62,12 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
                 results = [Result(c.document, c.version, c.start, c.end, rank) for rank, (c, _) in enumerate(ranked, start=1)]
             else:
                 response = client.search(token, case.query, strategy, k)
+                if response["degraded"]:
+                    raise DegradedRunError(
+                        f"case {case.id} · {strategy} was answered degraded ({', '.join(response['degraded'])}); the run is invalid"
+                    )
                 policy_versions.add(response["policyVersion"])
+                plans.setdefault(strategy, {})[response["planHash"]] = response["plan"]
                 results = [Result(r["documentKey"], r["versionNo"], r["charStart"], r["charEnd"], r["rank"]) for r in response["results"]]
             records.append(_record(case, strategy, results, spans, dataset.visibility[case.principal]))
     return {
@@ -72,6 +82,7 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
             "case_count": len(cases),
             "policy_versions": sorted(policy_versions),
             "chunker_versions": chunker_versions,
+            "plans": plans,
             "platform": platform.platform(),
             "bootstrap": {"samples": stats.SAMPLES, "seed": stats.SEED, "confidence": 0.95},
             "summary": {split: summarize([r for r in records if r["split"] == split], strategies) for split in sorted(splits)},
@@ -157,6 +168,9 @@ def render(output: dict) -> str:
         f"Intervals are 95% percentile bootstraps over cases ({run_info['bootstrap']['samples']:,} samples, seed {run_info['bootstrap']['seed']}).",
         "",
     ]
+    plans = run_info.get("plans", {})
+    if plans:
+        lines += ["Retrieval plans: " + "; ".join(f"`{s}` `{', '.join(sorted(hashes))}`" for s, hashes in plans.items()) + ".", ""]
     if REFERENCE in strategies:
         lines += [
             f"`{REFERENCE}` is not a system configuration: it is Okapi BM25 computed offline over the same authorized chunks, "

@@ -1,6 +1,8 @@
 package io.groundedaccess.retrieval;
 
+import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -17,8 +19,12 @@ import io.groundedaccess.HashingEmbeddingClient;
 import io.groundedaccess.TestcontainersConfiguration;
 import io.groundedaccess.ingestion.IngestionWorker;
 import io.groundedaccess.modelclient.EmbeddingClient;
+import io.groundedaccess.modelclient.Embeddings;
+import io.groundedaccess.modelclient.InputType;
 
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +40,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.RequestBuilder;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.web.client.ResourceAccessException;
 
 @SpringBootTest(properties = {"ga.ingestion.worker.enabled=false", "ga.corpus.cleanup.enabled=false"})
 @AutoConfigureMockMvc
@@ -48,13 +55,25 @@ class RetrievalIT {
             EU employees receive two paid volunteer days per calendar year.
             """;
 
+    /** While true, embedding a query fails as if the model service were down; ingestion keeps working. */
+    private static final AtomicBoolean QUERY_EMBEDDING_DOWN = new AtomicBoolean();
+
     @TestConfiguration
     static class FakeModels {
 
         @Bean
         @Primary
         EmbeddingClient hashingEmbeddingClient() {
-            return new HashingEmbeddingClient();
+            return new HashingEmbeddingClient() {
+
+                @Override
+                public Embeddings embed(List<String> texts, InputType inputType) {
+                    if (inputType == InputType.QUERY && QUERY_EMBEDDING_DOWN.get()) {
+                        throw new ResourceAccessException("model service unavailable");
+                    }
+                    return super.embed(texts, inputType);
+                }
+            };
         }
     }
 
@@ -70,6 +89,7 @@ class RetrievalIT {
     @BeforeEach
     void resetCorpus() {
         jdbc.sql("truncate chunk, document_version, document, tenant cascade").update();
+        QUERY_EMBEDDING_DOWN.set(false);
     }
 
     @Test
@@ -77,7 +97,7 @@ class RetrievalIT {
         ingest("northstar", "hr-volunteer-policy", VOLUNTEER_POLICY).andExpect(jsonPath("$.status").value("succeeded"));
         ingest("external", "public-faq", "# FAQ\n\nVolunteer days are described in each company's handbook.\n").andExpect(jsonPath("$.status").value("succeeded"));
 
-        for (String strategy : new String[] {"sparse-only", "dense-only"}) {
+        for (String strategy : new String[] {"sparse-only", "dense-only", "hybrid-rrf"}) {
             search("mallory", "external", "query", "How many paid volunteer days do EU employees receive?", strategy)
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.results", hasSize(1)))
@@ -92,7 +112,7 @@ class RetrievalIT {
         search("alice", "northstar", "query", "How many paid volunteer days do EU employees receive?", "sparse-only")
                 .andExpect(jsonPath("$.results", hasSize(1)))
                 .andExpect(jsonPath("$.results[0].sectionPath").value("Volunteer Policy > European Union"))
-                .andExpect(jsonPath("$.results[0].channel").value("SPARSE"))
+                .andExpect(jsonPath("$.strategy").value("sparse-only"))
                 .andExpect(jsonPath("$.policyVersion").value("tenant-only/1"));
     }
 
@@ -128,6 +148,49 @@ class RetrievalIT {
     @Test
     void rejectsAnUnknownDocumentFormat() throws Exception {
         submit(DemoTokens.token("admin", "northstar", "admin"), "doc", "text", "html").andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void hybridFusesBothChannelsAndExplainsTheRankingOnlyToDebugTokens() throws Exception {
+        ingest("northstar", "hr-volunteer-policy", VOLUNTEER_POLICY);
+        ingest("northstar", "hr-travel-policy", "# Travel\n\n## Meals\n\nThe meal allowance is 60 EUR.\n");
+
+        search("eval", "northstar", "query debug", "paid volunteer days", "hybrid-rrf")
+                .andExpect(jsonPath("$.strategy").value("hybrid-rrf"))
+                .andExpect(jsonPath("$.degraded", empty()))
+                .andExpect(jsonPath("$.planHash").value("bd71e8ef3c45267b"))
+                .andExpect(jsonPath("$.plan.rrfK").value(60))
+                .andExpect(jsonPath("$.plan.candidates").value(50))
+                .andExpect(jsonPath("$.results[0].documentKey").value("hr-volunteer-policy"))
+                .andExpect(jsonPath("$.results[0].rank").value(1))
+                .andExpect(jsonPath("$.results[0].sparseRank").value(1))
+                .andExpect(jsonPath("$.results[0].denseRank").value(1))
+                .andExpect(jsonPath("$.results[0].score", closeTo(2.0 / 61, 1e-9), Double.class))
+                .andExpect(jsonPath("$.results[1].documentKey").value("hr-travel-policy"))
+                .andExpect(jsonPath("$.results[1].sparseRank", nullValue()))
+                .andExpect(jsonPath("$.results[1].denseRank").value(2));
+
+        search("alice", "northstar", "query", "paid volunteer days", "hybrid-rrf")
+                .andExpect(jsonPath("$.planHash").value("bd71e8ef3c45267b"))
+                .andExpect(jsonPath("$.plan", nullValue()))
+                .andExpect(jsonPath("$.results[0].score", nullValue()))
+                .andExpect(jsonPath("$.results[0].sparseRank", nullValue()))
+                .andExpect(jsonPath("$.results[0].denseRank", nullValue()));
+    }
+
+    @Test
+    void hybridFallsBackToTheSparseChannelAndSaysSoWhenTheQueryCannotBeEmbedded() throws Exception {
+        ingest("northstar", "hr-volunteer-policy", VOLUNTEER_POLICY);
+        QUERY_EMBEDDING_DOWN.set(true);
+
+        search("eval", "northstar", "query debug", "paid volunteer days", "hybrid-rrf")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.degraded", contains("dense_unavailable")))
+                .andExpect(jsonPath("$.results[0].documentKey").value("hr-volunteer-policy"))
+                .andExpect(jsonPath("$.results[0].denseRank", nullValue()));
+        search("eval", "northstar", "query debug", "paid volunteer days", "dense-only")
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("MODEL_SERVICE_UNAVAILABLE"));
     }
 
     @Test

@@ -3,12 +3,15 @@ package io.groundedaccess.retrieval;
 import java.util.List;
 
 /**
- * Ranked authorized candidates together with the configuration and policy that produced them.
+ * Ranked authorized candidates together with the plan and policy that produced them. {@code degraded} names the parts of the plan that could
+ * not run; a result with any entry is not what the plan describes and must not be used as an evaluation result.
  */
 public record RetrievalResult(
-        RetrievalStrategy strategy,
+        RetrievalPlan plan,
 
         String policyVersion,
 
-        List<RetrievedChunk> chunks) {
+        List<RetrievedChunk> chunks,
+
+        List<String> degraded) {
 }

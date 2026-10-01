@@ -27,7 +27,7 @@ def main(argv: list[str] | None = None) -> int:
     search_parser = commands.add_parser("search", help="search as a demo principal and print the ranked results")
     search_parser.add_argument("principal")
     search_parser.add_argument("query")
-    search_parser.add_argument("--strategy", choices=["sparse-only", "dense-only"], default="dense-only")
+    search_parser.add_argument("--strategy", choices=runner.SYSTEM_STRATEGIES, default="hybrid-rrf")
     search_parser.add_argument("--k", type=int, default=3)
     mint_parser = commands.add_parser("mint-token", help="print a demo token for a principal")
     mint_parser.add_argument("principal")
@@ -52,8 +52,8 @@ def main(argv: list[str] | None = None) -> int:
         output = runner.run(
             dataset, client, args.strategy or [*runner.SYSTEM_STRATEGIES, runner.REFERENCE], args.k, set(args.split or ["dev", "test"])
         )
-    except runner.MixedChunkerError as mixed:
-        print(f"error: {mixed}", file=sys.stderr)
+    except (runner.MixedChunkerError, runner.DegradedRunError) as invalid:
+        print(f"error: {invalid}", file=sys.stderr)
         return 1
     out_dir = args.out or Path("results") / datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     runner.write(output, out_dir)

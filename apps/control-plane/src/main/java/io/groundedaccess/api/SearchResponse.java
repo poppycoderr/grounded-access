@@ -1,21 +1,32 @@
 package io.groundedaccess.api;
 
+import io.groundedaccess.retrieval.RetrievalPlan;
 import io.groundedaccess.retrieval.RetrievalResult;
 import io.groundedaccess.retrieval.RetrievalStrategy;
 
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 /**
- * Ranked results plus the strategy and policy version, so an evaluation run can record exactly what produced them.
+ * Ranked results plus the plan hash and policy version, so an evaluation run can record exactly what produced them. The plan itself is a debug
+ * field. A non-empty {@code degraded} means the results did not come from the full plan.
  */
 public record SearchResponse(
         RetrievalStrategy strategy,
 
         String policyVersion,
 
+        String planHash,
+
+        @Nullable RetrievalPlan plan,
+
+        List<String> degraded,
+
         List<SearchResultResponse> results) {
 
     static SearchResponse from(RetrievalResult result, boolean debug) {
-        return new SearchResponse(result.strategy(), result.policyVersion(), result.chunks().stream().map(c -> SearchResultResponse.from(c, debug)).toList());
+        return new SearchResponse(result.plan().strategy(), result.policyVersion(), result.plan().hash(), debug ? result.plan() : null, result.degraded(),
+                result.chunks().stream().map(c -> SearchResultResponse.from(c, debug)).toList());
     }
 }
