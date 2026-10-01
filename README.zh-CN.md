@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-    <a href="./README.md">English</a> · <b>简体中文</b> · <a href="./docs/architecture/overview.md">架构</a> · <a href="./docs/evaluation/strategy.md">评测</a> · <a href="./benchmarks/reports/m1b-hybrid/report.md">基准报告</a> · <a href="./docs/project/milestones.md">里程碑</a>
+    <a href="./README.md">English</a> · <b>简体中文</b> · <a href="./docs/architecture/overview.md">架构</a> · <a href="./docs/evaluation/strategy.md">评测</a> · <a href="./benchmarks/reports/m2-labelled-dataset/report.md">基准报告</a> · <a href="./docs/project/milestones.md">里程碑</a>
 </p>
 
 ---
@@ -89,25 +89,27 @@ curl -s localhost:8080/api/v1/retrieval/search -H "Authorization: Bearer $TOKEN"
 
 ## 检索评测
 
-[`benchmarks/reports/m1b-hybrid/`](./benchmarks/reports/m1b-hybrid/) 保存了提交在仓库中的运行结果：`run.json`（数据集版本、commit、策略、policy 版本、bootstrap 种子、运行平台）、`cases.jsonl`（逐用例排名）与渲染出的 `report.md`。用 `./scripts/benchmark --out benchmarks/reports/<名称>` 可重新生成。
+[`benchmarks/reports/m2-labelled-dataset/`](./benchmarks/reports/m2-labelled-dataset/) 保存了提交在仓库中的运行结果：`run.json`（数据集版本、commit、检索配置、policy 与 chunker 版本、bootstrap 种子、平台）、`cases.jsonl`（逐条排名）和渲染出的 `report.md`。用 `./scripts/benchmark --out benchmarks/reports/<name>` 可以重新生成。
 
-数据集 v1（21 篇无标签文档、70 条用例；带标签的数据集 v2 比这份报告新），`test` 划分，47 条可回答用例，95% bootstrap 区间，由 CI runner（Linux x86_64）生成：
+数据集 v2，`test` 划分，57 条可回答用例，95% bootstrap 区间，由 CI runner（Linux x86_64）生成：
 
 | 策略 | Recall@10 | MRR@10 | nDCG@10 | 越权结果 |
 |---|---|---|---|---|
-| `sparse-only`（PostgreSQL FTS） | 0.936 [0.85, 1.00] | 0.616 [0.51, 0.72] | 0.697 [0.61, 0.79] | **0** |
-| `dense-only`（pgvector 精确检索） | 0.979 [0.94, 1.00] | 0.860 [0.77, 0.94] | 0.891 [0.82, 0.95] | **0** |
-| `hybrid-rrf`（两者的 RRF 融合） | 0.979 [0.94, 1.00] | 0.810 [0.72, 0.89] | 0.850 [0.78, 0.91] | **0** |
-| `bm25-reference`（离线，同一批已授权 chunk） | 0.926 [0.85, 0.99] | 0.716 [0.61, 0.82] | 0.765 [0.67, 0.85] | **0** |
+| `sparse-only`（PostgreSQL FTS） | 0.930 [0.86, 0.98] | 0.640 [0.54, 0.74] | 0.711 [0.63, 0.79] | **0** |
+| `dense-only`（pgvector 精确检索） | 0.965 [0.91, 1.00] | 0.856 [0.78, 0.93] | 0.884 [0.81, 0.94] | **0** |
+| `hybrid-rrf`（两者的 RRF 融合） | 0.965 [0.91, 1.00] | 0.797 [0.71, 0.88] | 0.837 [0.77, 0.90] | **0** |
+| `bm25-reference`（离线，同一批已授权 chunk） | 0.921 [0.84, 0.98] | 0.689 [0.59, 0.78] | 0.744 [0.66, 0.82] | **0** |
+
+**安全。** 108 条用例的越权结果为 0，其中 30 条专门去够身份无权查看的文档：在别的租户、高于自己的密级、不在自己参与的项目里，或者属于别的部门。每个返回的 chunk 都按文档和版本检查；在任何查询运行之前，每个身份能列出的全部 chunk 还会和人工标注的可见集合比较。
 
 配对比较能支持什么、不能支持什么：
 
-- **dense 把正确证据排得比 FTS 更靠前**：MRR@10 +0.24 [+0.13, +0.35]。但证据是否出现在前 10 条，**看不出可检测的差异**（Recall@10 +0.04 [−0.04, +0.13]）。
-- **PostgreSQL FTS 确实弱于 BM25**：BM25 的 MRR@10 高 +0.10 [+0.02, +0.18]。这正是 ADR-0002 基于「FTS 没有语料统计」所预测的差距，因此将来 hybrid 的提升必须对照 BM25 这一行来看，而不能只和 FTS 比。
-- **dense 也优于 BM25**（MRR@10 +0.14）。
-- **hybrid 没有超过 dense。** 相对 dense，MRR@10 为 −0.05 [−0.12, +0.03]：没有可检测的差异，点估计偏向 dense。hybrid 能救回 dense 错得离谱的用例（Recall@5 为 0.957，dense 为 0.926），但更常把本来排第一的正确结果往下挤一位，因为等权融合让较弱的 FTS 通道拥有同样的投票权。逐条分析见[这份文档](./docs/evaluation/m1b-hybrid-analysis.md)。没有任何参数是在 test 划分上调的。
+- **dense 把正确证据排得比 FTS 更靠前**：MRR@10 +0.22 [+0.12, +0.31]。但证据是否出现在前 10 条，**看不出可检测的差异**（Recall@10 +0.04 [−0.04, +0.11]）。
+- **hybrid 没有超过 dense。** 相对 dense，MRR@10 为 −0.06 [−0.13, +0.01]：没有可检测的差异，点估计偏向 dense。对上一份报告的[分析](./docs/evaluation/m1b-hybrid-analysis.md)解释了原因：等权融合让较弱的 FTS 通道拥有同样的投票权。
+- **FTS 与 BM25：一个没能站住的结论。** 在数据集 v1 上，BM25 明显领先 FTS（MRR@10 +0.10 [+0.02, +0.18]）。在 v2 上差值是 +0.05 [−0.02, +0.12]，没有可检测的差异。旧报告仍保留在仓库里；在更大的数据集支持它之前，这个结论撤回。
+- **dense 优于 BM25**：MRR@10 +0.17 [+0.07, +0.26]。
 
-数据集是 21 篇虚构文档、70 条人工核对的用例，63 条可回答用例中有 30 条刻意写得与证据几乎没有共同词汇。这是 demo benchmark：它展示的是方法与差异的方向，而不是生产效果。关键词与 BM25 的排名在任何机器上都完全一致；dense 的排名在不同 CPU 架构之间可能交换得分几乎相同的候选，在 Mac 上会让一条用例的结果不同（见 [benchmarks/README.md](./benchmarks/README.md)）。覆盖范围与局限见[数据集说明卡](./data/eval/DATASET_CARD.md)。
+没有任何参数是在 test 划分上调的。数据集是 28 篇虚构文档、108 条人工核对的用例，77 条可回答用例中有 34 条刻意写得与证据几乎没有共同词汇。这是 demo benchmark：它展示的是方法与差异的方向，而不是生产效果。`m2-labelled-dataset` 之前的报告使用数据集 v1，不能与它直接比较。关键词与 BM25 的排名在任何机器上都完全一致；dense 的排名在不同 CPU 架构之间可能交换得分几乎相同的候选（见 [benchmarks/README.md](./benchmarks/README.md)）。覆盖范围与局限见[数据集说明卡](./data/eval/DATASET_CARD.md)。
 
 证据以**文档版本 + 原文引用**标注，而不是 chunk id，因此不同切分策略可以在同一份标注上比较。方法见 [docs/evaluation/strategy.md](./docs/evaluation/strategy.md)。
 
