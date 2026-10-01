@@ -44,7 +44,7 @@ The outsider gets no "permission denied", no hit count and no Northstar document
 | Capability | Today | Planned |
 |---|---|---|
 | Authorization in the retrieval query | Tenant isolation, compiled once per request and carried by both channels | Clearance, department and project labels (M2) |
-| Retrieval | `sparse-only` (PostgreSQL FTS) and `dense-only` (exact pgvector) | RRF hybrid (M1), cross-encoder reranking (M3) |
+| Retrieval | `sparse-only` (PostgreSQL FTS), `dense-only` (exact pgvector) and `hybrid-rrf` (reciprocal rank fusion with overlap deduplication); every response carries a plan hash | Cross-encoder reranking (M3) |
 | Ingestion | Asynchronous jobs (`202` + poll) with a `SKIP LOCKED` worker, bounded retry and resume; content-hash versioning; Markdown and plain-text chunking with sentence-level splitting and overlap; disable and delete apply to the next query, with background cleanup | – |
 | Evaluation | 70 cases over 21 documents, hard negatives, a BM25 reference row, bootstrap intervals and paired comparisons, security gate in CI | Hybrid in the same report (M1b), label-level authorization negatives (M2) |
 | Answers | Ranked evidence from `/api/v1/retrieval/search` | `/api/v1/query` with citations and abstention (M3) |

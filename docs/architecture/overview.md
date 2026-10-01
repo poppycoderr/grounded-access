@@ -226,7 +226,11 @@ GET    /api/v1/query-executions/{id}          # own executions only
 ```
 
 - Admin endpoints (ingestion, delete) need an `admin` scope in the token. Query endpoints need `query`.
-- `/retrieval/search` returns per-candidate channel ranks and scores and the serialized `RetrievalPlan`. The debug fields need a `debug` scope. The eval tokens carry it and ordinary demo users do not.
+- `/retrieval/search` takes a strategy (`sparse-only`, `dense-only` or `hybrid-rrf`) and `k`. Every response carries `planHash` and `degraded`. Per-candidate channel ranks and scores and the `RetrievalPlan` itself are debug fields that need the `debug` scope. The eval tokens carry it and ordinary demo users do not.
+- **`RetrievalPlan`** is everything that decides how candidates are fetched and ordered: strategy, `k`, candidates per channel (50), the RRF constant (60, hybrid only) and overlap deduplication. Its hash is taken over a fixed serialization, for example `{"strategy":"hybrid-rrf","k":10,"candidates":50,"rrfK":60,"dedupeOverlaps":true}`. Candidate count and RRF constant are server settings (`ga.retrieval.*`), not request parameters, and the defaults are the common ones from ADR-0002, not tuned on this dataset.
+- **Fusion and deduplication.** Each channel returns its top candidates under the same compiled predicate. RRF scores a chunk `Σ 1 / (rrfK + rank)` over the channels that returned it, so only ranks are combined and score scales never meet. Ties are broken by document key, version and offset. A chunk whose span overlaps a higher-ranked chunk of the same document version is then dropped, so chunk overlap never spends two result slots on one passage. Fusion and deduplication only reorder and trim rows the SQL predicate already admitted.
+- **Degraded hybrid.** If the query cannot be embedded, `hybrid-rrf` answers from the sparse channel and reports `degraded: ["dense_unavailable"]`. `dense-only` has nothing to fall back to and returns 503. The evaluation rejects any degraded response.
+- The two channels run one after the other in v0.1. Running them in parallel is a latency optimization that does not change results.
 - Documents are addressed by the key they were ingested under, unique per tenant. Clients know keys from their manifests and from search results; internal ids never appear in the API.
 - A document that is not visible returns 404, never 403.
 - Evaluation runs are **not** an API resource. The Python CLI owns them (see evaluation strategy).

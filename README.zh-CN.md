@@ -44,7 +44,7 @@ mallory-outsider (tenant external) · dense-only · policy tenant-only/1
 | 能力 | 当前可用 | 计划中 |
 |---|---|---|
 | 检索查询内的授权 | 租户隔离，每次请求编译一次，两条通道共用 | 密级、部门、项目标签（M2） |
-| 检索 | `sparse-only`（PostgreSQL FTS）与 `dense-only`（pgvector 精确检索） | RRF hybrid（M1）、cross-encoder 重排（M3） |
+| 检索 | `sparse-only`（PostgreSQL FTS）、`dense-only`（pgvector 精确检索）与 `hybrid-rrf`（RRF 融合并去除重叠 chunk）；每个响应带检索配置哈希 | cross-encoder 重排（M3） |
 | 入库 | 异步任务（`202` + 轮询），`SKIP LOCKED` worker、有限重试与断点续跑；内容哈希版本管理；Markdown 与纯文本切分，按句拆分长段落并带重叠；停用与删除对下一次查询生效，后台清理 | – |
 | 评测 | 21 篇文档 70 条用例、hard negatives、BM25 参考行、bootstrap 置信区间与配对比较、CI 安全门禁 | 同一报告中加入 hybrid（M1b）、标签级授权负例（M2） |
 | 回答 | `/api/v1/retrieval/search` 返回排序后的证据 | 带引用与拒答的 `/api/v1/query`（M3） |

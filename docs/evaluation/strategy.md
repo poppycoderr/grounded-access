@@ -84,7 +84,7 @@ Reference row, which is not a system configuration: `bm25-reference`. It shows h
 - Tokens are lowercased, English stopwords are removed and words are Snowball-stemmed. This approximates PostgreSQL's `english` configuration; it does not reproduce it exactly.
 - Ties keep corpus order (document key, version, ordinal), the same rule the SQL channels use.
 
-Every configuration is a serialized `RetrievalPlan` and its hash is stored with the results.
+Every configuration is a serialized `RetrievalPlan`. `run.json` stores each strategy's plan and hash, and the report prints the hashes. A response marked `degraded` (for example hybrid answered without the dense channel) aborts the run, because it does not measure the strategy it is filed under.
 
 ## 4. Metrics
 
