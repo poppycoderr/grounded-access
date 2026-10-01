@@ -42,12 +42,26 @@ class Case(BaseModel):
     tags: list[str]
 
 
-class ManifestDocument(BaseModel):
+class ManifestVersion(BaseModel):
+    """One version of a document: its file and who may read it. Missing labels mean public and unrestricted."""
+
     model_config = ConfigDict(extra="forbid")
+
+    file: str
+    classification: Literal["public", "internal", "confidential", "restricted"] = "public"
+    allowed_departments: list[str] = []
+    required_projects: list[str] = []
+
+
+class ManifestDocument(ManifestVersion):
+    """The current version of a document. `history` lists its earlier versions, oldest first."""
 
     key: str
     title: str
-    file: str
+    history: list[ManifestVersion] = []
+
+    def versions(self) -> list[ManifestVersion]:
+        return [*self.history, self]
 
 
 class Manifest(BaseModel):
@@ -71,6 +85,7 @@ class Dataset:
     version: str
     manifests: list[Manifest]
     texts: dict[str, str]
+    current_version: dict[str, int]
     tenant_of: dict[str, str]
     cases: list[Case]
     visibility: dict[str, set[str]]
@@ -82,24 +97,27 @@ class Dataset:
         return Span(evidence.document, evidence.version, start, start + len(evidence.quote))
 
 
-def load(root: Path, version: str = "v1") -> Dataset:
+def load(root: Path, version: str = "v2") -> Dataset:
     manifests = [Manifest.model_validate(yaml.safe_load(p.read_text())) for p in sorted((root / "manifests").glob("*.yaml"))]
     texts: dict[str, str] = {}
+    current_version: dict[str, int] = {}
     tenant_of: dict[str, str] = {}
     for manifest in manifests:
         for doc in manifest.documents:
             texts[doc.key] = normalize((root / doc.file).read_text(encoding="utf-8"))
+            current_version[doc.key] = len(doc.versions())
             tenant_of[doc.key] = manifest.tenant
     eval_dir = root / "eval" / version
     cases = [Case.model_validate_json(line) for line in (eval_dir / "cases.jsonl").read_text().splitlines() if line.strip()]
     visibility = {p: set(docs) for p, docs in yaml.safe_load((eval_dir / "visibility.yaml").read_text())["principals"].items()}
     principals = yaml.safe_load((root / "principals.yaml").read_text())["principals"]
-    return Dataset(root, version, manifests, texts, tenant_of, cases, visibility, principals)
+    return Dataset(root, version, manifests, texts, current_version, tenant_of, cases, visibility, principals)
 
 
 LOW_OVERLAP_BELOW = 1 / 3
 HIGH_OVERLAP_FROM = 2 / 3
 MIN_LOW_OVERLAP_SHARE = 0.30
+MIN_AUTHORIZATION_NEGATIVES = 25
 
 
 def lexical_overlap(case: Case) -> float:
@@ -117,6 +135,11 @@ def overlap_bands(dataset: Dataset) -> dict[str, list[str]]:
             band = "low" if overlap < LOW_OVERLAP_BELOW else "high" if overlap >= HIGH_OVERLAP_FROM else "mid"
             bands[band].append(case.id)
     return bands
+
+
+def authorization_negatives(dataset: Dataset) -> list[Case]:
+    """Cases that try to reach a document their principal may not see, in another tenant or in their own."""
+    return [c for c in dataset.cases if c.unauthorized_documents]
 
 
 def validate(dataset: Dataset) -> list[str]:
@@ -143,6 +166,11 @@ def validate(dataset: Dataset) -> list[str]:
                 problems.append(f"{where}: quote must occur exactly once in {evidence.document}, found {text.count(evidence.quote)}")
             elif evidence.document not in visible:
                 problems.append(f"{where}: evidence {evidence.document} is not visible to {case.principal}")
+            elif evidence.version != dataset.current_version[evidence.document]:
+                problems.append(
+                    f"{where}: evidence cites version {evidence.version} of {evidence.document}, "
+                    f"but only the current version {dataset.current_version[evidence.document]} can be retrieved"
+                )
         for doc in case.unauthorized_documents:
             if doc not in dataset.texts:
                 problems.append(f"{where}: unknown unauthorized document {doc}")
@@ -155,6 +183,9 @@ def validate(dataset: Dataset) -> list[str]:
         problems.append(
             f"only {len(bands['low'])} of {answerable} answerable cases are low-overlap paraphrases; at least {MIN_LOW_OVERLAP_SHARE:.0%} required"
         )
+    negatives = authorization_negatives(dataset)
+    if len(negatives) < MIN_AUTHORIZATION_NEGATIVES:
+        problems.append(f"only {len(negatives)} authorization-negative cases; at least {MIN_AUTHORIZATION_NEGATIVES} required")
     for principal, docs in dataset.visibility.items():
         tenant = dataset.principals.get(principal, {}).get("tenant_id")
         problems += [f"visibility {principal}: {doc} belongs to another tenant" for doc in sorted(docs) if dataset.tenant_of.get(doc) != tenant]

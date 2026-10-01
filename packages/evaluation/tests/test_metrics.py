@@ -33,7 +33,11 @@ def test_reciprocal_rank_uses_the_first_relevant_result():
 def test_violations_list_every_document_outside_the_visible_set():
     results = [result(1), result(2, document="secret"), result(3, document="secret")]
 
-    assert metrics.violations(results, {"policy"}) == ["secret"]
+    assert metrics.violations(results, {"policy"}, {"policy": 1, "secret": 1}) == ["secret"]
+
+
+def test_a_chunk_of_a_replaced_version_is_a_violation_even_for_a_visible_document():
+    assert metrics.violations([result(1)], {"policy"}, {"policy": 2}) == ["policy@v1"]
 
 
 def test_ndcg_rewards_early_evidence_and_ignores_duplicate_coverage():

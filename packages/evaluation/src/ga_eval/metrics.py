@@ -57,9 +57,12 @@ def first_relevant_rank(results: list[Result], spans: list[Span]) -> int | None:
     return next((r.rank for r in sorted(results, key=lambda r: r.rank) if any(covers(r, s) for s in spans)), None)
 
 
-def violations(results: list[Result], visible: set[str]) -> list[str]:
-    """Documents that were returned but are outside the principal's human-labelled visible set."""
-    return sorted({r.document for r in results if r.document not in visible})
+def violations(results: list[Result], visible: set[str], current_version: dict[str, int]) -> list[str]:
+    """Every returned chunk is checked: its document must be in the principal's human-labelled visible set, and it must come from the
+    document's current version. A chunk of a replaced version is reported as `key@vN`, because its labels may differ from the current ones."""
+    unauthorized = {r.document for r in results if r.document not in visible}
+    stale = {f"{r.document}@v{r.version}" for r in results if r.document in visible and r.version != current_version[r.document]}
+    return sorted(unauthorized | stale)
 
 
 def mean(values: list[float]) -> float:

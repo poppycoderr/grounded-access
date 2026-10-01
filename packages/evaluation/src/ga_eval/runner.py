@@ -27,6 +27,10 @@ class DegradedRunError(RuntimeError):
     """The system answered without part of its plan (for example without the dense channel), so the result does not measure the strategy."""
 
 
+class VisibilityMismatchError(RuntimeError):
+    """A principal cannot list a document the labels say it may see: the system and the hand-written labels disagree, so no result is valid."""
+
+
 class MixedChunkerError(RuntimeError):
     """The corpus was chunked by more than one chunker release, so a run would compare results of different chunkings."""
 
@@ -45,6 +49,7 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
     chunker_versions = sorted({c["chunkerVersion"] for _, chunks in listings.values() for c in chunks})
     if len({chunker_release(v) for v in chunker_versions}) > 1:
         raise MixedChunkerError(f"the corpus mixes chunker versions {', '.join(chunker_versions)}; re-index it with a fresh load before evaluating")
+    visibility_check = check_visibility(dataset, listings)
     references: dict[str, Bm25Index] = {}
     plans: dict[str, dict[str, dict]] = {}
     for case in cases:
@@ -69,7 +74,7 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
                 policy_versions.add(response["policyVersion"])
                 plans.setdefault(strategy, {})[response["planHash"]] = response["plan"]
                 results = [Result(r["documentKey"], r["versionNo"], r["charStart"], r["charEnd"], r["rank"]) for r in response["results"]]
-            records.append(_record(case, strategy, results, spans, dataset.visibility[case.principal]))
+            records.append(_record(case, strategy, results, spans, dataset.visibility[case.principal], dataset.current_version))
     return {
         "run": {
             "dataset_version": dataset.version,
@@ -83,24 +88,46 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
             "policy_versions": sorted(policy_versions),
             "chunker_versions": chunker_versions,
             "plans": plans,
+            "visibility_check": visibility_check,
             "platform": platform.platform(),
             "bootstrap": {"samples": stats.SAMPLES, "seed": stats.SEED, "confidence": 0.95},
             "summary": {split: summarize([r for r in records if r["split"] == split], strategies) for split in sorted(splits)},
             "comparisons": compare([r for r in records if r["split"] == "test"], strategies),
-            "security_violations": sum(len(r["violations"]) for r in records),
+            "security_violations": sum(len(r["violations"]) for r in records) + sum(len(v["violations"]) for v in visibility_check.values()),
         },
         "cases": records,
     }
 
 
-def _record(case, strategy: str, results: list[Result], spans, visible: set[str]) -> dict:
+def check_visibility(dataset: Dataset, listings: dict[str, tuple[str, list[dict]]]) -> dict[str, dict]:
+    """Compares everything each principal can list with its hand-labelled visible set. This covers documents no query happens to reach.
+    Listing too much is a security violation; listing too little means the labels and the system disagree and aborts the run."""
+    check: dict[str, dict] = {}
+    for principal, (_, chunks) in listings.items():
+        visible = dataset.visibility[principal]
+        listed = [Result(c["documentKey"], c["versionNo"], c["charStart"], c["charEnd"], 0) for c in chunks]
+        missing = sorted(visible - {r.document for r in listed})
+        if missing:
+            raise VisibilityMismatchError(
+                f"{principal} cannot list {', '.join(missing)}, which visibility.yaml says it may see; "
+                "check the labels, or reload the corpus on a fresh stack"
+            )
+        check[principal] = {
+            "visible_documents": len(visible),
+            "listed_chunks": len(listed),
+            "violations": metrics.violations(listed, visible, dataset.current_version),
+        }
+    return check
+
+
+def _record(case, strategy: str, results: list[Result], spans, visible: set[str], current_version: dict[str, int]) -> dict:
     record = {
         "case": case.id,
         "split": case.split,
         "strategy": strategy,
         "tags": case.tags,
         "must_abstain": case.must_abstain,
-        "violations": metrics.violations(results, visible),
+        "violations": metrics.violations(results, visible, current_version),
         "results": [[r.document, r.version, r.start, r.end, r.rank] for r in results],
     }
     if spans:
