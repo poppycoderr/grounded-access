@@ -52,7 +52,7 @@ def main(argv: list[str] | None = None) -> int:
         output = runner.run(
             dataset, client, args.strategy or [*runner.SYSTEM_STRATEGIES, runner.REFERENCE], args.k, set(args.split or ["dev", "test"])
         )
-    except (runner.MixedChunkerError, runner.DegradedRunError) as invalid:
+    except (runner.MixedChunkerError, runner.DegradedRunError, runner.VisibilityMismatchError) as invalid:
         print(f"error: {invalid}", file=sys.stderr)
         return 1
     out_dir = args.out or Path("results") / datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
@@ -75,6 +75,7 @@ def _validate(dataset: ds.Dataset) -> int:
     splits = Counter(c.split for c in dataset.cases)
     print("lexical overlap of answerable cases: " + ", ".join(f"{band} {len(ids)}" for band, ids in bands.items()))
     print("splits: " + ", ".join(f"{split} {count}" for split, count in sorted(splits.items())))
+    print(f"authorization negatives: {len(ds.authorization_negatives(dataset))}")
     return 1 if problems else 0
 
 
@@ -82,18 +83,34 @@ def _load(dataset: ds.Dataset, client: ApiClient) -> int:
     for manifest in dataset.manifests:
         admin = f"{manifest.tenant}-admin"
         token = tokens.mint(dataset.root, admin, dataset.principals[admin])
-        documents = [
-            {"key": d.key, "title": d.title, "content": (dataset.root / d.file).read_text(encoding="utf-8"), "format": _format(d.file)}
-            for d in manifest.documents
-        ]
-        try:
-            job = client.ingest(token, documents)
-        except IngestionFailedError as failure:
-            print(f"{manifest.tenant}: {failure}", file=sys.stderr)
-            return 1
-        counts = ", ".join(f"{job[field]} {field}" for field in ("created", "updated", "unchanged", "chunks"))
-        print(f"{manifest.tenant}: job {job['jobId']} succeeded after {job['attempts']} attempt(s): {counts}")
+        rounds = max(len(d.versions()) for d in manifest.documents)
+        for number in range(rounds):
+            # Documents with a history are ingested oldest version first, so their version numbers match the labels in the dataset.
+            documents = [
+                _document(dataset, d, d.versions()[number - (rounds - len(d.versions()))])
+                for d in manifest.documents
+                if number >= rounds - len(d.versions())
+            ]
+            try:
+                job = client.ingest(token, documents)
+            except IngestionFailedError as failure:
+                print(f"{manifest.tenant}: {failure}", file=sys.stderr)
+                return 1
+            counts = ", ".join(f"{job[field]} {field}" for field in ("created", "updated", "unchanged", "chunks"))
+            print(f"{manifest.tenant}: job {job['jobId']} succeeded after {job['attempts']} attempt(s): {counts}")
     return 0
+
+
+def _document(dataset: ds.Dataset, document: ds.ManifestDocument, version: ds.ManifestVersion) -> dict:
+    return {
+        "key": document.key,
+        "title": document.title,
+        "content": (dataset.root / version.file).read_text(encoding="utf-8"),
+        "format": _format(version.file),
+        "classification": version.classification,
+        "allowedDepartments": version.allowed_departments,
+        "requiredProjects": version.required_projects,
+    }
 
 
 def _format(file: str) -> str:

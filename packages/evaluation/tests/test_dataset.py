@@ -1,3 +1,4 @@
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -24,7 +25,7 @@ def data() -> ds.Dataset:
 
 def with_case(data: ds.Dataset, **changes) -> ds.Dataset:
     case = data.cases[0].model_copy(update=changes)
-    return ds.Dataset(data.root, data.version, data.manifests, data.texts, data.tenant_of, [case], data.visibility, data.principals)
+    return replace(data, cases=[case])
 
 
 def test_rejects_quotes_that_are_not_in_the_document(data):
@@ -41,7 +42,7 @@ def test_rejects_unauthorized_documents_that_the_principal_can_see(data):
 
 def test_rejects_visibility_labels_that_cross_tenants(data):
     visibility = dict(data.visibility) | {"mallory-outsider": {"it-faq", "hr-travel-policy"}}
-    broken = ds.Dataset(data.root, data.version, data.manifests, data.texts, data.tenant_of, data.cases, visibility, data.principals)
+    broken = replace(data, visibility=visibility)
 
     assert "visibility mallory-outsider: hr-travel-policy belongs to another tenant" in ds.validate(broken)
 
@@ -63,6 +64,26 @@ def test_lexical_overlap_separates_paraphrases_from_keyword_matches(data):
 
 def test_rejects_a_dataset_made_only_of_keyword_matches(data):
     keyword_cases = [c for c in data.cases if c.evidence and ds.lexical_overlap(c) >= ds.LOW_OVERLAP_BELOW]
-    easy = ds.Dataset(data.root, data.version, data.manifests, data.texts, data.tenant_of, keyword_cases, data.visibility, data.principals)
+    easy = replace(data, cases=keyword_cases)
 
     assert any("low-overlap paraphrases" in problem for problem in ds.validate(easy))
+
+
+def test_rejects_evidence_from_a_version_that_was_replaced(data):
+    current = next(c for c in data.cases if c.id == "authz-price-enterprise-078")
+    stale = current.evidence[0].model_copy(update={"version": 1})
+
+    problems = ds.validate(replace(data, cases=[current.model_copy(update={"evidence": [stale]})]))
+
+    assert any("only the current version 2 can be retrieved" in problem for problem in problems)
+
+
+def test_requires_enough_authorization_negatives(data):
+    without = [c for c in data.cases if not c.unauthorized_documents]
+
+    assert f"only 0 authorization-negative cases; at least {ds.MIN_AUTHORIZATION_NEGATIVES} required" in ds.validate(replace(data, cases=without))
+
+
+def test_documents_with_a_history_count_their_versions(data):
+    assert data.current_version["sales-pricing-guide"] == 2
+    assert data.current_version["hr-travel-policy"] == 1
