@@ -5,14 +5,18 @@
 <h1 align="center">Grounded Access</h1>
 
 <p align="center">
-    <b>在检索查询内部执行授权，并用可复现的评测检验每一次检索改动。</b><br/>
-    <b>当前可用：</b>SQL 内的租户隔离，基于 PostgreSQL 的 sparse、dense 与 hybrid 检索，带置信区间的 70 条用例评测。<b>下一步：</b>完整的属性决策表。
+    <b>感知权限的 RAG，用证据说话。</b><br/>授权被编译进检索 SQL；每一次检索改动都在可复现的 benchmark 上衡量，负面结果照样公布。
 </p>
 
 <p align="center">
     <a href="https://github.com/poppycoderr/grounded-access/actions/workflows/build.yml"><img src="https://github.com/poppycoderr/grounded-access/actions/workflows/build.yml/badge.svg" alt="Build" /></a>
+    <a href="https://github.com/poppycoderr/grounded-access/releases"><img src="https://img.shields.io/github/v/release/poppycoderr/grounded-access?include_prereleases&label=release&color=8B5CF6" alt="Release" /></a>
     <a href="./LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License" /></a>
-    <img src="https://img.shields.io/badge/status-M1b%20hybrid%20retrieval-8B5CF6" alt="Status" />
+    <img src="https://img.shields.io/badge/Java-21%20%7C%2025-ED8B00?logo=openjdk&logoColor=white" alt="Java 21 | 25" />
+    <img src="https://img.shields.io/badge/Spring%20Boot-4.1-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot 4.1" />
+    <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12" />
+    <img src="https://img.shields.io/badge/PostgreSQL-17%20%2B%20pgvector-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL 17 + pgvector" />
+    <a href="https://poppycoder.netlify.app/grounded-access/"><img src="https://img.shields.io/badge/docs-codesphere-06B6D4" alt="Docs" /></a>
 </p>
 
 <p align="center">
@@ -20,6 +24,16 @@
 </p>
 
 ---
+
+## 亮点
+
+- 🛡️ **授权写在查询里**：租户、密级、部门、项目四条规则被编译进每条检索路径的 SQL，未授权的行不会离开 PostgreSQL
+- 🔎 **一个数据库上的三种检索策略**：PostgreSQL 全文检索、pgvector 精确检索和 RRF 融合，每个响应都带检索配置的哈希
+- 📊 **带置信区间的评测**：108 条人工核对的用例、bootstrap 区间、配对比较和 BM25 参考行；区间不跨零才算有差异
+- 🚨 **CI 里的安全门禁**：30 条用例专门去够无权查看的文档，每个返回的 chunk 都对照手写的可见性标注检查；出现一条越权结果，构建就失败
+- 🧪 **负面结果照样公布**：在这份数据集上 hybrid 没有超过 dense；还有一条早先的结论，在更大的数据集不再支持它之后被撤回
+- ⚙️ **真实的入库流程**：带重试和断点续跑的异步任务、带版本的文档、标签变更对下一次查询生效且不需要重新计算向量
+- 🚀 **笔记本上就能跑**：一条 `docker compose up`，CPU embedding 模型已打进镜像，不需要 API key，也不需要 GPU
 
 ## 同一个问题，两种身份
 
@@ -39,18 +53,23 @@ mallory-outsider (tenant external) · dense-only · policy abac/1
 
 外部身份拿到的不是「权限不足」，没有命中数量，也看不到任何 Northstar 文档的标题。租户条件是筛选候选的那条 SQL 的一部分，因此 Northstar 的政策从来没有成为他结果集里的一行。
 
-## 当前已实现的能力
+在同一个租户内部也是如此。Alice 的密级是 `internal`，Carol 是 `confidential`；两人都问「staff 级别的工程师 on-call 津贴是多少」：
 
-| 能力 | 当前可用 | 计划中 |
-|---|---|---|
-| 检索查询内的授权 | 租户、密级、部门、项目四条规则，每次请求编译一次，写进每条通道的 SQL；用基于属性的测试对照参考实现验证 | 适用范围过滤、审计事件、带标签的评测数据（M2） |
-| 检索 | `sparse-only`（PostgreSQL FTS）、`dense-only`（pgvector 精确检索）与 `hybrid-rrf`（RRF 融合并去除重叠 chunk）；每个响应带检索配置哈希 | cross-encoder 重排（M3） |
-| 入库 | 异步任务（`202` + 轮询），`SKIP LOCKED` worker、有限重试与断点续跑；内容哈希版本管理；Markdown 与纯文本切分，按句拆分长段落并带重叠；停用与删除对下一次查询生效，后台清理 | – |
-| 评测 | 28 篇带标签的文档、108 条用例：改写、hard negatives 与 30 条授权负例；BM25 参考行、bootstrap 置信区间与配对比较；CI 安全门禁逐个检查返回的 chunk 和每个身份的完整可见列表 | 适用范围与时间相关的用例（M2） |
-| 回答 | `/api/v1/retrieval/search` 返回排序后的证据 | 带引用与拒答的 `/api/v1/query`（M3） |
-| 运维 | Docker Compose、每个 PR 的 CI | OpenTelemetry trace、审计事件、dashboard（M2–M4） |
+```text
+alice-engineer (tenant northstar) · dense-only · policy abac/1
+  1. eng-oncall-handbook › On-call Handbook > Compensation
+     Engineers receive an on-call allowance of 250 EUR per week of primary on-call, ...
+  2. eng-oncall-handbook › On-call Handbook > Acknowledging pages
+     The on-call engineer must acknowledge a page within 5 minutes. ...
 
-以下是设计目标，但**尚未端到端验证**，括号内是负责验证它的里程碑：隐藏无权访问内容的存在性（M2–M3）、基于属性的访问决策（M2）、回答只引用模型实际看到的内容（M3）。
+carol-manager (tenant northstar) · dense-only · policy abac/1
+  1. hr-compensation-bands › Compensation Bands > On-call pay
+     Engineers at staff level and above receive an on-call allowance of 400 EUR per week ...
+  2. eng-oncall-handbook › On-call Handbook > Compensation
+     Engineers receive an on-call allowance of 250 EUR per week of primary on-call, ...
+```
+
+Alice 拿到的是通用手册，没有任何信息提示她还有一篇机密文档。Carol 拿到的第一条就是机密文档里的答案。
 
 ## 快速开始
 
@@ -85,9 +104,38 @@ curl -s localhost:8080/api/v1/retrieval/search -H "Authorization: Bearer $TOKEN"
     <img src="./assets/diagrams/ga-authorization.zh-CN.svg" alt="授权属于检索环节，不是事后过滤" />
 </p>
 
-谓词里已经包含租户、密级、部门和项目四条规则；这个演示展示的是租户规则。重点是解法的形状：无论规则是什么，它都应该待在筛选候选的那条查询里。
+谓词里已经包含租户、密级、部门和项目四条规则。重点是解法的形状：无论规则是什么，它都应该待在筛选候选的那条查询里。
+
+## 权限如何生效
+
+身份被编译成一个带绑定参数的谓词（绝不做字符串拼接），每条 chunk 查询嵌入的都是同一个对象（`policy abac/1`）。
+
+<p align="center">
+    <img src="./assets/diagrams/ga-decision-table.zh-CN.svg" alt="四条授权规则以及它们编译成的 SQL 谓词" />
+</p>
+
+缺失或无法识别的密级按最低级处理；没有部门或项目的身份，只能看到不限制该属性的文档。标签变更对下一次查询生效，不需要重新计算向量。
+
+租户、密级、部门、项目属于**授权**，计入安全门禁；region、有效期与文档状态属于**适用范围**，它们影响相关性而非访问权。把两者分开，安全指标才只统计真正的越权。完整决策表见 [docs/architecture/authorization.md](./docs/architecture/authorization.md)。
+
+<p align="center">
+    <img src="./assets/diagrams/ga-security-gate.zh-CN.svg" alt="评测安全门禁如何拿系统和手写标注做比较" />
+</p>
+
+当前已有的防线：
+
+- 架构测试——只有 `AuthorizedChunkQuery` 可以读取 chunk 表；
+- 基于属性的测试——随机生成身份和标签，把每条查询路径的结果与一份独立的参考实现对照；
+- 真实 pgvector 上的集成测试——决策表的每条规则在三种策略上的表现、跨租户隔离、恶意的 claim 值、无效与权限不足的 token；
+- 评测安全门禁——每个返回的 chunk 都按文档和版本与人工标注的可见集合比较，绝不与编译器自己比较；每个身份能列出的全部 chunk 也必须与它的可见集合一致。
+
+M2 计划补上：适用范围过滤、审计事件和威胁模型。
 
 ## 检索评测
+
+<p align="center">
+    <img src="./assets/diagrams/ga-eval-results.zh-CN.svg" alt="各检索策略的 MRR@10 与置信区间" />
+</p>
 
 [`benchmarks/reports/m2-labelled-dataset/`](./benchmarks/reports/m2-labelled-dataset/) 保存了提交在仓库中的运行结果：`run.json`（数据集版本、commit、检索配置、policy 与 chunker 版本、bootstrap 种子、平台）、`cases.jsonl`（逐条排名）和渲染出的 `report.md`。用 `./scripts/benchmark --out benchmarks/reports/<name>` 可以重新生成。
 
@@ -113,6 +161,19 @@ curl -s localhost:8080/api/v1/retrieval/search -H "Authorization: Bearer $TOKEN"
 
 证据以**文档版本 + 原文引用**标注，而不是 chunk id，因此不同切分策略可以在同一份标注上比较。方法见 [docs/evaluation/strategy.md](./docs/evaluation/strategy.md)。
 
+## 当前已实现的能力
+
+| 能力 | 当前可用 | 计划中 |
+|---|---|---|
+| 检索查询内的授权 | 租户、密级、部门、项目四条规则，每次请求编译一次，写进每条通道的 SQL；用基于属性的测试对照参考实现验证 | 适用范围过滤与审计事件（M2） |
+| 检索 | `sparse-only`（PostgreSQL FTS）、`dense-only`（pgvector 精确检索）与 `hybrid-rrf`（RRF 融合并去除重叠 chunk）；每个响应带检索配置哈希 | cross-encoder 重排（M3） |
+| 入库 | 异步任务（`202` + 轮询），`SKIP LOCKED` worker、有限重试与断点续跑；内容哈希版本管理；Markdown 与纯文本切分，按句拆分长段落并带重叠；停用与删除对下一次查询生效，后台清理 | – |
+| 评测 | 28 篇带标签的文档、108 条用例：改写、hard negatives 与 30 条授权负例；BM25 参考行、bootstrap 置信区间与配对比较；CI 安全门禁逐个检查返回的 chunk 和每个身份的完整可见列表 | 适用范围与时间相关的用例（M2） |
+| 回答 | `/api/v1/retrieval/search` 返回排序后的证据 | 带引用与拒答的 `/api/v1/query`（M3） |
+| 运维 | Docker Compose、每个 PR 的 CI | OpenTelemetry trace、审计事件、dashboard（M2–M4） |
+
+以下是设计目标，但**尚未端到端验证**，括号内是负责验证它的里程碑：隐藏无权访问内容的存在性（M2–M3）、基于属性的访问决策（M2）、回答只引用模型实际看到的内容（M3）。
+
 ## 架构
 
 <p align="center">
@@ -131,46 +192,24 @@ curl -s localhost:8080/api/v1/retrieval/search -H "Authorization: Bearer $TOKEN"
 io.groundedaccess
 ├── identity        # 验签 JWT → Principal（属性只来自 token）
 ├── authorization   # PolicyCompiler → 单一参数化 SQL 谓词
-├── corpus          # 规范化 · 按标题切分 · 内容哈希版本管理
-├── retrieval       # AuthorizedChunkQuery：chunk 表唯一的读取方
+├── corpus          # 规范化 · 切分 · 版本与访问标签 · 清理
+├── ingestion       # 任务队列：SKIP LOCKED worker、租约、重试与断点续跑
+├── retrieval       # AuthorizedChunkQuery：chunk 表唯一的读取方 · RRF · 配置哈希
 ├── modelclient     # model-service 客户端：分批、超时、固定模型
 └── api             # REST controller、作用域、问题响应
 ```
 
-## 权限如何生效
-
-身份被编译成带绑定参数的谓词（绝不做字符串拼接），两条通道嵌入的是同一个对象。
-
-完整的谓词（`policy abac/1`）。它的文本对所有身份都相同，只有绑定的值不同：
-
-```sql
-c.tenant_id = :auth_tenant_id
-AND v.classification_rank <= :auth_clearance_rank
-AND (cardinality(v.allowed_departments) = 0 OR CAST(:auth_department AS text) = ANY(v.allowed_departments))
-AND (cardinality(v.required_projects)  = 0 OR v.required_projects && CAST(:auth_projects AS text[]))
-```
-
-缺失或无法识别的密级按最低级处理；没有部门或项目的身份，只能看到不限制该属性的文档。标签变更对下一次查询生效，不需要重新计算向量。
-
-租户、密级、部门、项目属于**授权**，计入安全门禁；region、有效期与文档状态属于**适用范围**，它们影响相关性而非访问权。把两者分开，安全指标才只统计真正的越权。完整决策表见 [docs/architecture/authorization.md](./docs/architecture/authorization.md)。
-
-当前已有的防线：
-
-- 架构测试——只有 `AuthorizedChunkQuery` 可以读取 chunk 表；
-- 基于属性的测试——随机生成身份和标签，把每条查询路径的结果与一份独立的参考实现对照；
-- 真实 pgvector 上的集成测试——决策表的每条规则在三种策略上的表现、跨租户隔离、恶意的 claim 值、无效与权限不足的 token；
-- 评测安全门禁——每个返回的 chunk 都按文档和版本与人工标注的可见集合比较，绝不与编译器自己比较；每个身份能列出的全部 chunk 也必须与它的可见集合一致。
-
-M2 计划补上：带标签的评测数据、细到版本与 chunk 粒度的门禁、审计事件。
-
 ## 路线图
+
+<p align="center">
+    <img src="./assets/diagrams/ga-roadmap.zh-CN.svg" alt="Grounded Access 路线图" />
+</p>
 
 | 里程碑 | 范围 | 状态 |
 |---|---|---|
-| **M0** Walking skeleton | demo 身份、Markdown 入库、sparse 与 dense 检索、租户隔离、评测 CLI、CI 冒烟 benchmark | ✅ 已完成 |
-| **M1a** 评测基线 | 70 条用例与 hard negatives、BM25 参考行、配对置信区间、并发入库安全 | ✅ 已完成 |
-| **M1b** hybrid 检索 | 异步入库任务、停用与删除、chunker v1、RRF hybrid 及公开结论 | ✅ 已完成 |
-| **M2** 授权 | 访问标签、完整决策表、适用范围过滤、审计事件、最小 trace 元数据、威胁模型 | 计划中 |
+| **M0** Walking skeleton | demo 身份、Markdown 入库、sparse 与 dense 检索、租户隔离、评测 CLI、CI 安全门禁 | ✅ 已完成 |
+| **M1** 检索基线 | 带 hard negatives 的数据集、BM25 参考行、置信区间；异步入库、停用与删除、chunker v1；RRF hybrid 及公开结论 | ✅ 已完成 · `v0.1.0-alpha.1` |
+| **M2** 授权 | 已完成：完整决策表、基于属性的测试、带标签的数据集 v2 和更严格的门禁。接下来：适用范围过滤、审计事件、存在性保护、威胁模型 | ⏳ 进行中 |
 | **M3** 重排与回答 | 带降级的 cross-encoder 重排、上下文构建、结构化引用、拒答 | 计划中 |
 | **M4** 运维与发布 | trace 与 dashboard、故障与压力测试、v0.1 benchmark 报告 | 计划中 |
 
@@ -193,6 +232,21 @@ M2 计划补上：带标签的评测数据、细到版本与 chunk 粒度的门�
 ## 相关项目
 
 - [domain-driven-kit](https://github.com/poppycoderr/domain-driven-kit)——面向 Spring Boot 的可执行 DDD 工具箱。Grounded Access 复用它的工程约定（架构测试、空安全、CI 结构），但不依赖它。
+
+## 构建工具
+
+<p>
+    <a href="https://spring.io/projects/spring-boot"><img src="https://img.shields.io/badge/Spring%20Boot-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot" /></a>
+    <a href="https://www.postgresql.org"><img src="https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL" /></a>
+    <a href="https://github.com/pgvector/pgvector"><img src="https://img.shields.io/badge/pgvector-336791" alt="pgvector" /></a>
+    <a href="https://fastapi.tiangolo.com"><img src="https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white" alt="FastAPI" /></a>
+    <a href="https://onnxruntime.ai"><img src="https://img.shields.io/badge/ONNX%20Runtime-005CED?logo=onnx&logoColor=white" alt="ONNX Runtime" /></a>
+    <a href="https://testcontainers.com"><img src="https://img.shields.io/badge/Testcontainers-17A6B2" alt="Testcontainers" /></a>
+    <a href="https://jqwik.net"><img src="https://img.shields.io/badge/jqwik-5B21B6" alt="jqwik" /></a>
+    <a href="https://github.com/features/actions"><img src="https://img.shields.io/badge/GitHub%20Actions-2088FF?logo=githubactions&logoColor=white" alt="GitHub Actions" /></a>
+    <a href="https://claude.com/claude-code"><img src="https://img.shields.io/badge/Claude%20Code-D97757?logo=claude&logoColor=white" alt="Claude Code" /></a>
+    <a href="https://openai.com/codex"><img src="https://img.shields.io/badge/Codex-111111" alt="Codex" /></a>
+</p>
 
 ## 许可证
 

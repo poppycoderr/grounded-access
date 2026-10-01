@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Ask the same questions as different demo identities to show tenant isolation and retrieval quality.
+# Ask the same questions as different demo identities to show authorization in the query and retrieval quality.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 ga() { uv run -q --project packages/evaluation ga-eval "$@"; }
@@ -7,6 +7,11 @@ ga() { uv run -q --project packages/evaluation ga-eval "$@"; }
 echo "== Same question, two tenants =="
 ga search alice-engineer "How many paid volunteer days do EU employees receive?"
 ga search mallory-outsider "How many paid volunteer days do EU employees receive?"
+
+echo
+echo "== Same tenant, different clearance =="
+ga search alice-engineer "How much on-call allowance do engineers at staff level receive?" --k 2
+ga search carol-manager "How much on-call allowance do engineers at staff level receive?" --k 2
 
 echo
 echo "== A paraphrase with no shared keywords =="

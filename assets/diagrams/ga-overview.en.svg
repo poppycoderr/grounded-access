@@ -1,96 +1,99 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1050 570" width="1050" height="570"
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 600" width="1120" height="600"
      role="img" aria-labelledby="ttl dsc" style="max-width:100%;height:auto">
-  <title id="ttl">One compiled predicate governs both retrieval channels</title>
+  <title id="ttl">One compiled predicate governs every retrieval path</title>
   <desc id="dsc">Java owns identity, authorization and retrieval; Python owns model work; the evaluation CLI drives the same public API.</desc>
   <defs>
     <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk" d="M0 0 L10 5 L0 10 z"/></marker>
-    <marker id="ar-s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-s" d="M0 0 L10 5 L0 10 z"/></marker>
+    <marker id="ar-v" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-v" d="M0 0 L10 5 L0 10 z"/></marker>
   </defs>
   <style>
-    text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Inter,Roboto,sans-serif}
+    text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Inter,Roboto,sans-serif;}
     .bg{fill:#FBFCFE}
+    .kicker{font-size:11.5px;font-weight:700;fill:#94A3B8;letter-spacing:1.4px}
     .title{font-size:26px;font-weight:700;fill:#0F172A;letter-spacing:-.2px}
-    .sub{font-size:13.5px;font-weight:400;fill:#64748B}
-    .kicker{font-size:11px;font-weight:700;fill:#94A3B8;letter-spacing:1.4px}
+    .sub{font-size:14px;fill:#64748B}
     .lbl{font-size:15px;font-weight:650;fill:#0F172A}
-    .lbl-sm{font-size:13px;font-weight:650;fill:#0F172A}
-    .txt{font-size:12px;font-weight:400;fill:#64748B}
-    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;font-weight:500;fill:#334155}
-    .edgelbl{font-size:11px;font-weight:500;fill:#94A3B8}
+    .lbl-sm{font-size:13.5px;font-weight:650;fill:#0F172A}
+    .txt{font-size:12.5px;fill:#64748B}
+    .txt-d{font-size:12.5px;fill:#334155}
+    .foot{font-size:12.5px;fill:#64748B}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;font-weight:500;fill:#334155}
+    .code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;fill:#E2E8F0}
+    .codek{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;fill:#7DD3FC}
+    .num{font-size:13px;font-weight:650;fill:#0F172A}
+    .big{font-size:30px;font-weight:700;fill:#0F172A}
+    .bigok{font-size:30px;font-weight:700;fill:#059669}
     .card{fill:#FFFFFF;stroke:#E2E8F0;stroke-width:1.25}
-    .group{fill:#F8FAFC;stroke:#E2E8F0;stroke-width:1.25}
+    .dash{fill:#FFFFFF;stroke:#CBD5E1;stroke-width:1.25;stroke-dasharray:5 4}
+    .group{fill:#F1F5F9;fill-opacity:.55;stroke:#E2E8F0;stroke-width:1.25}
     .blue{fill:#EFF6FF;stroke:#BFDBFE;stroke-width:1.25}
     .teal{fill:#F0FDFA;stroke:#99F6E4;stroke-width:1.25}
     .violet{fill:#F5F3FF;stroke:#DDD6FE;stroke-width:1.25}
     .amber{fill:#FFFBEB;stroke:#FDE68A;stroke-width:1.25}
     .rose{fill:#FFF1F2;stroke:#FECDD3;stroke-width:1.25}
-    .planned{fill:#FFFFFF;stroke:#CBD5E1;stroke-width:1.25;stroke-dasharray:5 4}
-    .edge{stroke:#94A3B8;stroke-width:1.5;fill:none}
-    .edge-strong{stroke:#6366F1;stroke-width:2;fill:none}
-    .mk{fill:#94A3B8}
-    .mk-s{fill:#6366F1}
-    .pill{fill:#EEF2FF;stroke:#C7D2FE;stroke-width:1}
-    .pill-ok{fill:#ECFDF5;stroke:#A7F3D0;stroke-width:1}
-    .pill-bad{fill:#FFF1F2;stroke:#FECDD3;stroke-width:1}
-    .pill-txt{font-size:11px;font-weight:650;fill:#4338CA}
-    .pill-txt-ok{font-size:11px;font-weight:650;fill:#047857}
-    .pill-txt-bad{font-size:11px;font-weight:650;fill:#BE123C}
+    .green{fill:#ECFDF5;stroke:#A7F3D0;stroke-width:1.25}
+    .dark{fill:#0F172A}
+    .ln{stroke:#94A3B8;stroke-width:1.5;fill:none}
+    .ln-v{stroke:#6366F1;stroke-width:1.75;fill:none}
+    .mk{fill:#94A3B8}.mk-v{fill:#6366F1}
+    .bar-s{fill:#38BDF8}.bar-d{fill:#6366F1}.bar-h{fill:#A78BFA}.bar-r{fill:#CBD5E1}
+    .axis{stroke:#E2E8F0;stroke-width:1}
+    .whisk{stroke:#0F172A;stroke-width:1.5}
+    .pill-ok{fill:#D1FAE5}.pill-ok-t{font-size:11.5px;font-weight:700;fill:#047857}
+    .pill-now{fill:#E0E7FF}.pill-now-t{font-size:11.5px;font-weight:700;fill:#4338CA}
+    .pill-next{fill:#F1F5F9}.pill-next-t{font-size:11.5px;font-weight:700;fill:#64748B}
   </style>
-  <rect class="bg" x="0" y="0" width="1050" height="570" rx="16"/>
+  <rect class="bg" width="1120" height="600" rx="18"/>
   <text class="kicker" x="40" y="44">GROUNDED ACCESS · v0.1</text>
-  <text class="title" x="40" y="74">One compiled predicate governs both retrieval channels</text>
-  <text class="sub" x="40" y="98">Java owns identity, authorization and retrieval; Python owns model work; the evaluation CLI drives the same public API.</text>
-  <rect class="card" x="40" y="128" width="186" height="74" rx="11"/>
-  <text class="lbl-sm" x="56" y="153">Query user</text>
-  <text class="txt" x="56" y="174">demo JWT, scope query</text>
-  <rect class="card" x="40" y="228" width="186" height="74" rx="11"/>
-  <text class="lbl-sm" x="56" y="253">Corpus maintainer</text>
-  <text class="txt" x="56" y="274">manifest, scope admin</text>
-  <rect class="card" x="40" y="328" width="186" height="74" rx="11"/>
-  <text class="lbl-sm" x="56" y="353">ga-eval CLI</text>
-  <text class="txt" x="56" y="374">one token per principal</text>
-  <rect class="group" x="300" y="112" width="424" height="404" rx="14"/>
-  <text class="lbl-sm" x="316" y="136">Control plane · Java / Spring Boot</text>
-  <rect class="blue" x="316" y="150" width="392" height="70" rx="11"/>
-  <text class="lbl-sm" x="332" y="175">identity</text>
-  <text class="txt" x="332" y="196">verify JWT · iss / aud</text>
-  <text class="mono" x="332" y="213">requires sub + tenant_id</text>
-  <rect class="violet" x="316" y="232" width="392" height="70" rx="11"/>
-  <text class="lbl-sm" x="332" y="257">authorization</text>
-  <text class="txt" x="332" y="278">PolicyCompiler → one SQL predicate</text>
-  <text class="mono" x="332" y="295">policy version recorded per query</text>
-  <rect class="teal" x="316" y="314" width="392" height="70" rx="11"/>
-  <text class="lbl-sm" x="332" y="339">retrieval</text>
-  <text class="txt" x="332" y="360">PostgreSQL FTS + pgvector</text>
-  <text class="mono" x="332" y="377">RRF fusion · M1</text>
-  <rect class="amber" x="316" y="396" width="392" height="70" rx="11"/>
-  <text class="lbl-sm" x="332" y="421">corpus</text>
-  <text class="txt" x="332" y="442">normalize · heading-aware chunks</text>
-  <text class="mono" x="332" y="459">content hash → new version</text>
-  <rect class="planned" x="316" y="478" width="392" height="52" rx="11"/>
-  <text class="lbl-sm" x="332" y="503">answering · M3</text>
-  <text class="txt" x="332" y="524">citations · abstention</text>
-  <rect class="card" x="790" y="150" width="236" height="92" rx="11"/>
-  <text class="lbl-sm" x="806" y="175">PostgreSQL 17 + pgvector</text>
-  <text class="txt" x="806" y="196">authorization runs inside</text>
-  <text class="txt" x="806" y="213">the retrieval query</text>
-  <rect class="card" x="790" y="274" width="236" height="92" rx="11"/>
-  <text class="lbl-sm" x="806" y="299">model-service · Python</text>
-  <text class="txt" x="806" y="320">receives authorized text only</text>
-  <text class="txt" x="806" y="337">embed now · rerank in M3 · CPU</text>
-  <rect class="planned" x="790" y="398" width="236" height="70" rx="11"/>
-  <text class="lbl-sm" x="806" y="423">local chat model</text>
-  <text class="txt" x="806" y="444">optional, no API key needed</text>
-  <path class="edge-strong" d="M226 165 L296 165" marker-end="url(#ar-s)"/>
-  <text class="edgelbl" x="261" y="156" text-anchor="middle">search</text>
-  <path class="edge" d="M226 265 L296 265" marker-end="url(#ar)"/>
-  <text class="edgelbl" x="261" y="256" text-anchor="middle">ingest</text>
-  <path class="edge" d="M226 365 L296 365" marker-end="url(#ar)"/>
-  <text class="edgelbl" x="261" y="356" text-anchor="middle">evaluate</text>
-  <path class="edge-strong" d="M512 220 L512 246" marker-end="url(#ar-s)"/>
-  <path class="edge-strong" d="M512 302 L512 328" marker-end="url(#ar-s)"/>
-  <path class="edge-strong" d="M726 196 L786 196" marker-end="url(#ar-s)"/>
-  <path class="edge" d="M726 320 L786 320" marker-end="url(#ar)"/>
-  <path class="edge" d="M726 433 L786 433" marker-end="url(#ar)"/>
-  <text class="txt" x="40" y="548" >Unauthorized rows never leave PostgreSQL  ·  hidden and missing content look identical  ·  every evaluation run is reproducible</text>
+  <text class="title" x="40" y="76">One compiled predicate governs every retrieval path</text>
+  <text class="sub" x="40" y="101">Java owns identity, authorization and retrieval; Python owns model work; the evaluation CLI drives the same public API.</text>
+  <rect class="card" x="40" y="172" width="210" height="66" rx="12"/>
+  <text class="lbl-sm" x="56" y="197">Query user</text>
+  <text class="txt" x="56" y="217">demo JWT, scope query</text>
+  <path class="ln-v" d="M250 205 L298 205" marker-end="url(#ar-v)"/>
+  <text class="txt" x="274" y="196" text-anchor="middle">search</text>
+  <rect class="card" x="40" y="276" width="210" height="66" rx="12"/>
+  <text class="lbl-sm" x="56" y="301">Corpus maintainer</text>
+  <text class="txt" x="56" y="321">documents + labels, scope admin</text>
+  <path class="ln" d="M250 309 L298 309" marker-end="url(#ar)"/>
+  <text class="txt" x="274" y="300" text-anchor="middle">ingest</text>
+  <rect class="card" x="40" y="380" width="210" height="66" rx="12"/>
+  <text class="lbl-sm" x="56" y="405">ga-eval CLI</text>
+  <text class="txt" x="56" y="425">one token per principal</text>
+  <path class="ln" d="M250 413 L298 413" marker-end="url(#ar)"/>
+  <text class="txt" x="274" y="404" text-anchor="middle">evaluate</text>
+  <rect class="group" x="300" y="128" width="440" height="414" rx="16"/>
+  <text class="lbl" x="318" y="155">Control plane · Java / Spring Boot</text>
+  <rect class="blue" x="318" y="170" width="404" height="62" rx="12"/>
+  <text class="lbl-sm" x="334" y="195">identity</text>
+  <text class="txt" x="334" y="215">verify JWT · requires sub + tenant_id</text>
+  <path class="ln-v" d="M520 232 L520 242" marker-end="url(#ar-v)"/>
+  <rect class="violet" x="318" y="243" width="404" height="62" rx="12"/>
+  <text class="lbl-sm" x="334" y="268">authorization</text>
+  <text class="txt" x="334" y="288">PolicyCompiler → one SQL predicate · policy abac/1</text>
+  <path class="ln-v" d="M520 305 L520 315" marker-end="url(#ar-v)"/>
+  <rect class="teal" x="318" y="316" width="404" height="62" rx="12"/>
+  <text class="lbl-sm" x="334" y="341">retrieval</text>
+  <text class="txt" x="334" y="361">PostgreSQL FTS · pgvector · RRF fusion · plan hash</text>
+  <rect class="amber" x="318" y="389" width="404" height="62" rx="12"/>
+  <text class="lbl-sm" x="334" y="414">corpus + ingestion</text>
+  <text class="txt" x="334" y="434">job queue · chunking · versions · access labels</text>
+  <rect class="dash" x="318" y="462" width="404" height="62" rx="12"/>
+  <text class="lbl-sm" x="334" y="487">answering · M3</text>
+  <text class="txt" x="334" y="507">citations · abstention</text>
+  <rect class="card" x="800" y="170" width="280" height="84" rx="12"/>
+  <text class="lbl-sm" x="816" y="195">PostgreSQL 17 + pgvector</text>
+  <text class="txt" x="816" y="215">authorization runs inside</text>
+  <text class="txt" x="816" y="233">the retrieval query</text>
+  <path class="ln-v" d="M740 212 L798 212" marker-end="url(#ar-v)"/>
+  <rect class="card" x="800" y="290" width="280" height="84" rx="12"/>
+  <text class="lbl-sm" x="816" y="315">model-service · Python</text>
+  <text class="txt" x="816" y="335">receives authorized text only</text>
+  <text class="txt" x="816" y="353">embeddings on CPU · rerank in M3</text>
+  <path class="ln" d="M740 332 L798 332" marker-end="url(#ar)"/>
+  <rect class="dash" x="800" y="410" width="280" height="84" rx="12"/>
+  <text class="lbl-sm" x="816" y="435">local chat model · M3</text>
+  <text class="txt" x="816" y="455">optional, no API key needed</text>
+  <path class="ln" d="M740 452 L798 452" marker-end="url(#ar)"/>
+  <text class="foot" x="40" y="574">Unauthorized rows never leave PostgreSQL  ·  label changes apply to the next query  ·  every evaluation run is reproducible</text>
 </svg>

@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 640" width="1120" height="640"
+     role="img" aria-labelledby="ttl dsc" style="max-width:100%;height:auto">
+  <title id="ttl">四条规则，一个谓词，默认拒绝</title>
+  <desc id="dsc">只有四条规则同时成立，chunk 才会被返回。规则被编译进筛选候选的那条 SQL。</desc>
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk" d="M0 0 L10 5 L0 10 z"/></marker>
+    <marker id="ar-v" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-v" d="M0 0 L10 5 L0 10 z"/></marker>
+  </defs>
+  <style>
+    text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Inter,Roboto,sans-serif;}
+    .bg{fill:#FBFCFE}
+    .kicker{font-size:11.5px;font-weight:700;fill:#94A3B8;letter-spacing:1.4px}
+    .title{font-size:26px;font-weight:700;fill:#0F172A;letter-spacing:-.2px}
+    .sub{font-size:14px;fill:#64748B}
+    .lbl{font-size:15px;font-weight:650;fill:#0F172A}
+    .lbl-sm{font-size:13.5px;font-weight:650;fill:#0F172A}
+    .txt{font-size:12.5px;fill:#64748B}
+    .txt-d{font-size:12.5px;fill:#334155}
+    .foot{font-size:12.5px;fill:#64748B}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;font-weight:500;fill:#334155}
+    .code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;fill:#E2E8F0}
+    .codek{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;fill:#7DD3FC}
+    .num{font-size:13px;font-weight:650;fill:#0F172A}
+    .big{font-size:30px;font-weight:700;fill:#0F172A}
+    .bigok{font-size:30px;font-weight:700;fill:#059669}
+    .card{fill:#FFFFFF;stroke:#E2E8F0;stroke-width:1.25}
+    .dash{fill:#FFFFFF;stroke:#CBD5E1;stroke-width:1.25;stroke-dasharray:5 4}
+    .group{fill:#F1F5F9;fill-opacity:.55;stroke:#E2E8F0;stroke-width:1.25}
+    .blue{fill:#EFF6FF;stroke:#BFDBFE;stroke-width:1.25}
+    .teal{fill:#F0FDFA;stroke:#99F6E4;stroke-width:1.25}
+    .violet{fill:#F5F3FF;stroke:#DDD6FE;stroke-width:1.25}
+    .amber{fill:#FFFBEB;stroke:#FDE68A;stroke-width:1.25}
+    .rose{fill:#FFF1F2;stroke:#FECDD3;stroke-width:1.25}
+    .green{fill:#ECFDF5;stroke:#A7F3D0;stroke-width:1.25}
+    .dark{fill:#0F172A}
+    .ln{stroke:#94A3B8;stroke-width:1.5;fill:none}
+    .ln-v{stroke:#6366F1;stroke-width:1.75;fill:none}
+    .mk{fill:#94A3B8}.mk-v{fill:#6366F1}
+    .bar-s{fill:#38BDF8}.bar-d{fill:#6366F1}.bar-h{fill:#A78BFA}.bar-r{fill:#CBD5E1}
+    .axis{stroke:#E2E8F0;stroke-width:1}
+    .whisk{stroke:#0F172A;stroke-width:1.5}
+    .pill-ok{fill:#D1FAE5}.pill-ok-t{font-size:11.5px;font-weight:700;fill:#047857}
+    .pill-now{fill:#E0E7FF}.pill-now-t{font-size:11.5px;font-weight:700;fill:#4338CA}
+    .pill-next{fill:#F1F5F9}.pill-next-t{font-size:11.5px;font-weight:700;fill:#64748B}
+  </style>
+  <rect class="bg" width="1120" height="640" rx="18"/>
+  <text class="kicker" x="40" y="44">GROUNDED ACCESS · AUTHORIZATION</text>
+  <text class="title" x="40" y="76">四条规则，一个谓词，默认拒绝</text>
+  <text class="sub" x="40" y="101">只有四条规则同时成立，chunk 才会被返回。规则被编译进筛选候选的那条 SQL。</text>
+  <text class="kicker" x="40" y="142">已验证的 TOKEN</text>
+  <text class="kicker" x="360" y="142">规则</text>
+  <text class="kicker" x="790" y="142">文档版本上的标签</text>
+  <rect class="blue" x="40" y="156" width="290" height="64" rx="12"/>
+  <text class="lbl-sm" x="56" y="181">tenant_id</text>
+  <text class="txt" x="56" y="201">必填 claim；缺失则拒绝 token</text>
+  <rect class="violet" x="360" y="156" width="400" height="64" rx="12"/>
+  <text class="lbl-sm" x="376" y="181">租户必须相同</text>
+  <text class="txt" x="376" y="201">任何内容都不跨租户</text>
+  <rect class="amber" x="790" y="156" width="290" height="64" rx="12"/>
+  <text class="lbl-sm" x="806" y="181">tenant_id</text>
+  <text class="txt" x="806" y="201">取自入库管理员的 token</text>
+  <path class="ln" d="M330 188 L358 188" marker-end="url(#ar)"/>
+  <path class="ln" d="M790 188 L762 188" marker-end="url(#ar)"/>
+  <rect class="blue" x="40" y="236" width="290" height="64" rx="12"/>
+  <text class="lbl-sm" x="56" y="261">clearance</text>
+  <text class="txt" x="56" y="281">缺失或无法识别 → public</text>
+  <rect class="violet" x="360" y="236" width="400" height="64" rx="12"/>
+  <text class="lbl-sm" x="376" y="261">文档密级 ≤ 身份密级</text>
+  <text class="txt" x="376" y="281">public &lt; internal &lt; confidential &lt; restricted</text>
+  <rect class="amber" x="790" y="236" width="290" height="64" rx="12"/>
+  <text class="lbl-sm" x="806" y="261">classification</text>
+  <text class="txt" x="806" y="281">默认 public</text>
+  <path class="ln" d="M330 268 L358 268" marker-end="url(#ar)"/>
+  <path class="ln" d="M790 268 L762 268" marker-end="url(#ar)"/>
+  <rect class="blue" x="40" y="316" width="290" height="64" rx="12"/>
+  <text class="lbl-sm" x="56" y="341">department</text>
+  <text class="txt" x="56" y="361">缺失 → 只能看不限部门的文档</text>
+  <rect class="violet" x="360" y="316" width="400" height="64" rx="12"/>
+  <text class="lbl-sm" x="376" y="341">不限部门，或部门在列表中</text>
+  <text class="txt" x="376" y="361">每个身份一个部门</text>
+  <rect class="amber" x="790" y="316" width="290" height="64" rx="12"/>
+  <text class="lbl-sm" x="806" y="341">allowed_departments</text>
+  <text class="txt" x="806" y="361">为空 = 不限制</text>
+  <path class="ln" d="M330 348 L358 348" marker-end="url(#ar)"/>
+  <path class="ln" d="M790 348 L762 348" marker-end="url(#ar)"/>
+  <rect class="blue" x="40" y="396" width="290" height="64" rx="12"/>
+  <text class="lbl-sm" x="56" y="421">projects[ ]</text>
+  <text class="txt" x="56" y="441">为空 → 只能看不限项目的文档</text>
+  <rect class="violet" x="360" y="396" width="400" height="64" rx="12"/>
+  <text class="lbl-sm" x="376" y="421">不限项目，或有共同项目</text>
+  <text class="txt" x="376" y="441">有一个共同项目即可</text>
+  <rect class="amber" x="790" y="396" width="290" height="64" rx="12"/>
+  <text class="lbl-sm" x="806" y="421">required_projects</text>
+  <text class="txt" x="806" y="441">为空 = 不限制</text>
+  <path class="ln" d="M330 428 L358 428" marker-end="url(#ar)"/>
+  <path class="ln" d="M790 428 L762 428" marker-end="url(#ar)"/>
+  <rect class="dark" x="40" y="486" width="1040" height="112" rx="12"/>
+  <text class="codek" x="60" y="512">-- 谓词文本对所有身份都相同，只有绑定的值不同</text>
+  <text class="code" x="60" y="534">c.tenant_id = :auth_tenant_id AND v.classification_rank &lt;= :auth_clearance_rank</text>
+  <text class="code" x="60" y="552">AND (cardinality(v.allowed_departments) = 0 OR CAST(:auth_department AS text) = ANY(v.allowed_departments))</text>
+  <text class="code" x="60" y="570">AND (cardinality(v.required_projects)  = 0 OR v.required_projects &amp;&amp; CAST(:auth_projects AS text[]))</text>
+  <text class="foot" x="40" y="622">region、有效期和文档状态属于适用范围，不属于授权，单独统计。</text>
+</svg>

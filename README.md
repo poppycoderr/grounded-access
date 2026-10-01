@@ -5,14 +5,18 @@
 <h1 align="center">Grounded Access</h1>
 
 <p align="center">
-    <b>Retrieval that applies authorization inside the search query, with a reproducible evaluation behind every retrieval change.</b><br/>
-    <b>Today:</b> tenant isolation in SQL, sparse, dense and hybrid retrieval on PostgreSQL, a demo benchmark with confidence intervals. <b>Next:</b> the full attribute-based decision table.
+    <b>Permission-aware RAG, judged by evidence.</b><br/>Authorization is compiled into the retrieval SQL, and every retrieval change is measured on a reproducible benchmark, negative results included.
 </p>
 
 <p align="center">
     <a href="https://github.com/poppycoderr/grounded-access/actions/workflows/build.yml"><img src="https://github.com/poppycoderr/grounded-access/actions/workflows/build.yml/badge.svg" alt="Build" /></a>
+    <a href="https://github.com/poppycoderr/grounded-access/releases"><img src="https://img.shields.io/github/v/release/poppycoderr/grounded-access?include_prereleases&label=release&color=8B5CF6" alt="Release" /></a>
     <a href="./LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License" /></a>
-    <img src="https://img.shields.io/badge/status-M1b%20hybrid%20retrieval-8B5CF6" alt="Status" />
+    <img src="https://img.shields.io/badge/Java-21%20%7C%2025-ED8B00?logo=openjdk&logoColor=white" alt="Java 21 | 25" />
+    <img src="https://img.shields.io/badge/Spring%20Boot-4.1-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot 4.1" />
+    <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12" />
+    <img src="https://img.shields.io/badge/PostgreSQL-17%20%2B%20pgvector-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL 17 + pgvector" />
+    <a href="https://poppycoder.netlify.app/grounded-access/"><img src="https://img.shields.io/badge/docs-codesphere-06B6D4" alt="Docs" /></a>
 </p>
 
 <p align="center">
@@ -20,6 +24,16 @@
 </p>
 
 ---
+
+## Highlights
+
+- 🛡️ **Authorization inside the query**: tenant, clearance, department and project rules are compiled into the SQL of every retrieval path, so unauthorized rows never leave PostgreSQL
+- 🔎 **Three retrieval strategies on one database**: PostgreSQL full-text search, exact pgvector search and reciprocal rank fusion, each response tagged with the hash of its retrieval plan
+- 📊 **Evaluation with confidence intervals**: 108 hand-checked cases, bootstrap intervals, paired comparisons and a BM25 reference row; a difference counts only if its interval excludes zero
+- 🚨 **A security gate in CI**: 30 cases try to reach forbidden documents, and every returned chunk is checked against hand-written visibility; one unauthorized result fails the build
+- 🧪 **Negative results are published**: hybrid does not beat dense on this dataset, and one earlier claim was withdrawn when a larger dataset stopped supporting it
+- ⚙️ **Real ingestion**: asynchronous jobs with retry and resume, versioned documents, label changes that apply to the next query without re-embedding
+- 🚀 **Runs on a laptop**: one `docker compose up`, a CPU embedding model baked into the image, no API key and no GPU
 
 ## Same question, two identities
 
@@ -39,18 +53,23 @@ mallory-outsider (tenant external) · dense-only · policy abac/1
 
 The outsider gets no "permission denied", no hit count and no Northstar document title. The tenant condition is part of the SQL that selects candidates, so the Northstar policy is never a row in their result set.
 
-## What works today
+The same holds inside a tenant. Alice has `internal` clearance and Carol has `confidential`; both ask how much on-call allowance staff engineers receive:
 
-| Capability | Today | Planned |
-|---|---|---|
-| Authorization in the retrieval query | Tenant, clearance, department and project rules compiled once per request into the SQL of every channel; property-tested against a reference evaluator | Scope filters, audit events, labelled evaluation data (M2) |
-| Retrieval | `sparse-only` (PostgreSQL FTS), `dense-only` (exact pgvector) and `hybrid-rrf` (reciprocal rank fusion with overlap deduplication); every response carries a plan hash | Cross-encoder reranking (M3) |
-| Ingestion | Asynchronous jobs (`202` + poll) with a `SKIP LOCKED` worker, bounded retry and resume; content-hash versioning; Markdown and plain-text chunking with sentence-level splitting and overlap; disable and delete apply to the next query, with background cleanup | – |
-| Evaluation | 108 cases over 28 labelled documents: paraphrases, hard negatives and 30 authorization negatives; a BM25 reference row, bootstrap intervals and paired comparisons; a security gate in CI that checks every returned chunk and every principal's full listing | Scope and time-dependent cases (M2) |
-| Answers | Ranked evidence from `/api/v1/retrieval/search` | `/api/v1/query` with citations and abstention (M3) |
-| Operations | Docker Compose, CI on every PR | OpenTelemetry traces, audit events, dashboards (M2–M4) |
+```text
+alice-engineer (tenant northstar) · dense-only · policy abac/1
+  1. eng-oncall-handbook › On-call Handbook > Compensation
+     Engineers receive an on-call allowance of 250 EUR per week of primary on-call, ...
+  2. eng-oncall-handbook › On-call Handbook > Acknowledging pages
+     The on-call engineer must acknowledge a page within 5 minutes. ...
 
-Design goals that are **not** yet verified end to end, and the milestone that will verify them: hiding the existence of content a principal may not see (M2–M3), attribute-based access decisions (M2), answers that cite only what the model was shown (M3).
+carol-manager (tenant northstar) · dense-only · policy abac/1
+  1. hr-compensation-bands › Compensation Bands > On-call pay
+     Engineers at staff level and above receive an on-call allowance of 400 EUR per week ...
+  2. eng-oncall-handbook › On-call Handbook > Compensation
+     Engineers receive an on-call allowance of 250 EUR per week of primary on-call, ...
+```
+
+Alice gets the general handbook, and nothing tells her that a confidential document exists. Carol gets the confidential answer first.
 
 ## Quick start
 
@@ -85,9 +104,38 @@ Most RAG demos retrieve first and filter afterwards. That leaks rows into applic
     <img src="./assets/diagrams/ga-authorization.en.svg" alt="Authorization is a retrieval concern, not a post-filter" />
 </p>
 
-The predicate carries the tenant, clearance, department and project rules; this demo shows the tenant rule. The shape of the solution is the point: whatever the rules are, they belong in the query that selects candidates.
+The predicate carries the tenant, clearance, department and project rules. The shape of the solution is the point: whatever the rules are, they belong in the query that selects candidates.
+
+## How authorization works
+
+A principal is compiled into one predicate with bound parameters, never string concatenation, and every chunk query embeds the same object (`policy abac/1`).
+
+<p align="center">
+    <img src="./assets/diagrams/ga-decision-table.en.svg" alt="The four authorization rules and the SQL predicate they compile to" />
+</p>
+
+A missing or unknown clearance counts as the lowest level, and a principal without a department or projects sees only documents that do not restrict that attribute. A change of labels applies to the next query and needs no re-embedding.
+
+Tenant, clearance, department and project are **authorization** and count toward the security gate. Region, validity dates and document status are **scope**: they shape relevance rather than access. Keeping them apart means the security metrics only ever count real access violations. The full decision table is in [docs/architecture/authorization.md](./docs/architecture/authorization.md).
+
+<p align="center">
+    <img src="./assets/diagrams/ga-security-gate.en.svg" alt="How the evaluation security gate compares the system with hand-written labels" />
+</p>
+
+Guards in place today:
+
+- an architecture test — only `AuthorizedChunkQuery` may read the chunk table;
+- a property-based test — random principals and labels, with every query path compared against a separate reference evaluator;
+- integration tests on real pgvector — each rule of the decision table on all three strategies, cross-tenant isolation, hostile claim values, invalid and under-scoped tokens;
+- the evaluation security gate — every returned chunk is checked for document and version against hand-labelled visibility, never against the compiler itself, and each principal's full chunk listing must match its visible set.
+
+Planned with M2: scope filters, audit events and the threat model.
 
 ## Retrieval evaluation
+
+<p align="center">
+    <img src="./assets/diagrams/ga-eval-results.en.svg" alt="MRR@10 with confidence intervals for each retrieval strategy" />
+</p>
 
 [`benchmarks/reports/m2-labelled-dataset/`](./benchmarks/reports/m2-labelled-dataset/) holds the committed run: `run.json` (dataset version, commit, retrieval plans, policy and chunker versions, bootstrap seed, platform), `cases.jsonl` (per-case rankings) and the rendered `report.md`. Regenerate it with `./scripts/benchmark --out benchmarks/reports/<name>`.
 
@@ -113,6 +161,19 @@ Nothing was tuned on the test split. The dataset is 28 fictional documents and 1
 
 Evidence is labelled as a **document version plus a quote**, not a chunk id, so chunking strategies can be compared on the same labels. Read the method in [docs/evaluation/strategy.md](./docs/evaluation/strategy.md).
 
+## What works today
+
+| Capability | Today | Planned |
+|---|---|---|
+| Authorization in the retrieval query | Tenant, clearance, department and project rules compiled once per request into the SQL of every channel; property-tested against a reference evaluator | Scope filters and audit events (M2) |
+| Retrieval | `sparse-only` (PostgreSQL FTS), `dense-only` (exact pgvector) and `hybrid-rrf` (reciprocal rank fusion with overlap deduplication); every response carries a plan hash | Cross-encoder reranking (M3) |
+| Ingestion | Asynchronous jobs (`202` + poll) with a `SKIP LOCKED` worker, bounded retry and resume; content-hash versioning; Markdown and plain-text chunking with sentence-level splitting and overlap; disable and delete apply to the next query, with background cleanup | – |
+| Evaluation | 108 cases over 28 labelled documents: paraphrases, hard negatives and 30 authorization negatives; a BM25 reference row, bootstrap intervals and paired comparisons; a security gate in CI that checks every returned chunk and every principal's full listing | Scope and time-dependent cases (M2) |
+| Answers | Ranked evidence from `/api/v1/retrieval/search` | `/api/v1/query` with citations and abstention (M3) |
+| Operations | Docker Compose, CI on every PR | OpenTelemetry traces, audit events, dashboards (M2–M4) |
+
+Design goals that are **not** yet verified end to end, and the milestone that will verify them: hiding the existence of content a principal may not see (M2–M3), attribute-based access decisions (M2), answers that cite only what the model was shown (M3).
+
 ## Architecture
 
 <p align="center">
@@ -131,46 +192,24 @@ Evidence is labelled as a **document version plus a quote**, not a chunk id, so 
 io.groundedaccess
 ├── identity        # verify the JWT → Principal (attributes only from the token)
 ├── authorization   # PolicyCompiler → one parameterized SQL predicate
-├── corpus          # normalize · heading-aware chunking · content-hash versioning
-├── retrieval       # AuthorizedChunkQuery: the only reader of the chunk table
+├── corpus          # normalize · chunking · versions and access labels · cleanup
+├── ingestion       # job queue: SKIP LOCKED worker, leases, retry and resume
+├── retrieval       # AuthorizedChunkQuery: the only reader of the chunk table · RRF · plan hash
 ├── modelclient     # model-service client: batching, timeouts, pinned model
 └── api             # REST controllers, scopes, problem responses
 ```
 
-## How authorization works
-
-A principal is compiled into a predicate with bound parameters, never string concatenation, and both channels embed the same object.
-
-The whole predicate (`policy abac/1`). Its text is the same for every principal; only the bound values differ:
-
-```sql
-c.tenant_id = :auth_tenant_id
-AND v.classification_rank <= :auth_clearance_rank
-AND (cardinality(v.allowed_departments) = 0 OR CAST(:auth_department AS text) = ANY(v.allowed_departments))
-AND (cardinality(v.required_projects)  = 0 OR v.required_projects && CAST(:auth_projects AS text[]))
-```
-
-A missing or unknown clearance counts as the lowest level, and a principal without a department or projects sees only documents that do not restrict that attribute. A change of labels applies to the next query and needs no re-embedding.
-
-Tenant, clearance, department and project are **authorization** and count toward the security gate. Region, validity dates and document status are **scope**: they shape relevance rather than access. Keeping them apart means the security metrics only ever count real access violations. The full decision table is in [docs/architecture/authorization.md](./docs/architecture/authorization.md).
-
-Guards in place today:
-
-- an architecture test — only `AuthorizedChunkQuery` may read the chunk table;
-- a property-based test — random principals and labels, with every query path compared against a separate reference evaluator;
-- integration tests on real pgvector — each rule of the decision table on all three strategies, cross-tenant isolation, hostile claim values, invalid and under-scoped tokens;
-- the evaluation security gate — every returned chunk is checked for document and version against hand-labelled visibility, never against the compiler itself, and each principal's full chunk listing must match its visible set.
-
-Planned with M2: labelled evaluation data, a gate that checks version and chunk granularity, and audit events.
-
 ## Roadmap
+
+<p align="center">
+    <img src="./assets/diagrams/ga-roadmap.en.svg" alt="Grounded Access roadmap" />
+</p>
 
 | Milestone | Scope | Status |
 |---|---|---|
-| **M0** Walking skeleton | Demo identities, Markdown ingestion, sparse and dense retrieval, tenant isolation, eval CLI, CI smoke benchmark | ✅ Done |
-| **M1a** Evaluation baseline | 70-case dataset with hard negatives, BM25 reference, paired confidence intervals, concurrent-ingestion safety | ✅ Done |
-| **M1b** Hybrid retrieval | Async ingestion jobs, disable and delete, chunker v1, RRF hybrid with a published verdict | ✅ Done |
-| **M2** Authorization | Access labels, full decision table, scope filters, audit events, minimal trace metadata, threat model | Planned |
+| **M0** Walking skeleton | Demo identities, Markdown ingestion, sparse and dense retrieval, tenant isolation, eval CLI, CI security gate | ✅ Done |
+| **M1** Retrieval baseline | Dataset with hard negatives, BM25 reference, confidence intervals; async ingestion, disable and delete, chunker v1; RRF hybrid with a published verdict | ✅ Done · `v0.1.0-alpha.1` |
+| **M2** Authorization | Done: full decision table, property-based tests, labelled dataset v2 and the stricter gate. Next: scope filters, audit events, existence-leakage behaviour, threat model | ⏳ In progress |
 | **M3** Reranking and answers | Cross-encoder reranking with fallback, context builder, structured citations, abstention | Planned |
 | **M4** Operations and release | Traces and dashboards, failure and load tests, v0.1 benchmark report | Planned |
 
@@ -193,6 +232,21 @@ Security reports go through [GitHub security advisories](https://github.com/popp
 ## Related projects
 
 - [domain-driven-kit](https://github.com/poppycoderr/domain-driven-kit) — executable DDD for Spring Boot. Grounded Access reuses its engineering conventions (architecture tests, null safety, CI layout) without depending on it.
+
+## Built with
+
+<p>
+    <a href="https://spring.io/projects/spring-boot"><img src="https://img.shields.io/badge/Spring%20Boot-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot" /></a>
+    <a href="https://www.postgresql.org"><img src="https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL" /></a>
+    <a href="https://github.com/pgvector/pgvector"><img src="https://img.shields.io/badge/pgvector-336791" alt="pgvector" /></a>
+    <a href="https://fastapi.tiangolo.com"><img src="https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white" alt="FastAPI" /></a>
+    <a href="https://onnxruntime.ai"><img src="https://img.shields.io/badge/ONNX%20Runtime-005CED?logo=onnx&logoColor=white" alt="ONNX Runtime" /></a>
+    <a href="https://testcontainers.com"><img src="https://img.shields.io/badge/Testcontainers-17A6B2" alt="Testcontainers" /></a>
+    <a href="https://jqwik.net"><img src="https://img.shields.io/badge/jqwik-5B21B6" alt="jqwik" /></a>
+    <a href="https://github.com/features/actions"><img src="https://img.shields.io/badge/GitHub%20Actions-2088FF?logo=githubactions&logoColor=white" alt="GitHub Actions" /></a>
+    <a href="https://claude.com/claude-code"><img src="https://img.shields.io/badge/Claude%20Code-D97757?logo=claude&logoColor=white" alt="Claude Code" /></a>
+    <a href="https://openai.com/codex"><img src="https://img.shields.io/badge/Codex-111111" alt="Codex" /></a>
+</p>
 
 ## License
 
