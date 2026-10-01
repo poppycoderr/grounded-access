@@ -46,7 +46,7 @@ mallory-outsider (tenant external) · dense-only · policy abac/1
 | 检索查询内的授权 | 租户、密级、部门、项目四条规则，每次请求编译一次，写进每条通道的 SQL；用基于属性的测试对照参考实现验证 | 适用范围过滤、审计事件、带标签的评测数据（M2） |
 | 检索 | `sparse-only`（PostgreSQL FTS）、`dense-only`（pgvector 精确检索）与 `hybrid-rrf`（RRF 融合并去除重叠 chunk）；每个响应带检索配置哈希 | cross-encoder 重排（M3） |
 | 入库 | 异步任务（`202` + 轮询），`SKIP LOCKED` worker、有限重试与断点续跑；内容哈希版本管理；Markdown 与纯文本切分，按句拆分长段落并带重叠；停用与删除对下一次查询生效，后台清理 | – |
-| 评测 | 21 篇文档 70 条用例、hard negatives、BM25 参考行、bootstrap 置信区间与配对比较、CI 安全门禁 | 标签级授权负例（M2） |
+| 评测 | 28 篇带标签的文档、108 条用例：改写、hard negatives 与 30 条授权负例；BM25 参考行、bootstrap 置信区间与配对比较；CI 安全门禁逐个检查返回的 chunk 和每个身份的完整可见列表 | 适用范围与时间相关的用例（M2） |
 | 回答 | `/api/v1/retrieval/search` 返回排序后的证据 | 带引用与拒答的 `/api/v1/query`（M3） |
 | 运维 | Docker Compose、每个 PR 的 CI | OpenTelemetry trace、审计事件、dashboard（M2–M4） |
 
@@ -85,13 +85,13 @@ curl -s localhost:8080/api/v1/retrieval/search -H "Authorization: Bearer $TOKEN"
     <img src="./assets/diagrams/ga-authorization.zh-CN.svg" alt="授权属于检索环节，不是事后过滤" />
 </p>
 
-谓词里已经包含租户、密级、部门和项目四条规则。demo 语料还没有访问标签，所以这个演示展示的是租户规则。重点是解法的形状：无论规则是什么，它都应该待在筛选候选的那条查询里。
+谓词里已经包含租户、密级、部门和项目四条规则；这个演示展示的是租户规则。重点是解法的形状：无论规则是什么，它都应该待在筛选候选的那条查询里。
 
 ## 检索评测
 
 [`benchmarks/reports/m1b-hybrid/`](./benchmarks/reports/m1b-hybrid/) 保存了提交在仓库中的运行结果：`run.json`（数据集版本、commit、策略、policy 版本、bootstrap 种子、运行平台）、`cases.jsonl`（逐用例排名）与渲染出的 `report.md`。用 `./scripts/benchmark --out benchmarks/reports/<名称>` 可重新生成。
 
-`test` 划分，47 条可回答用例，95% bootstrap 区间，由 CI runner（Linux x86_64）生成：
+数据集 v1（21 篇无标签文档、70 条用例；带标签的数据集 v2 比这份报告新），`test` 划分，47 条可回答用例，95% bootstrap 区间，由 CI runner（Linux x86_64）生成：
 
 | 策略 | Recall@10 | MRR@10 | nDCG@10 | 越权结果 |
 |---|---|---|---|---|
@@ -157,7 +157,7 @@ AND (cardinality(v.required_projects)  = 0 OR v.required_projects && CAST(:auth_
 - 架构测试——只有 `AuthorizedChunkQuery` 可以读取 chunk 表；
 - 基于属性的测试——随机生成身份和标签，把每条查询路径的结果与一份独立的参考实现对照；
 - 真实 pgvector 上的集成测试——决策表的每条规则在三种策略上的表现、跨租户隔离、恶意的 claim 值、无效与权限不足的 token；
-- 评测安全门禁——返回的文档与人工标注的可见性比较，而不是与编译器自己比较。
+- 评测安全门禁——每个返回的 chunk 都按文档和版本与人工标注的可见集合比较，绝不与编译器自己比较；每个身份能列出的全部 chunk 也必须与它的可见集合一致。
 
 M2 计划补上：带标签的评测数据、细到版本与 chunk 粒度的门禁、审计事件。
 
