@@ -78,6 +78,6 @@
   <rect class="pill-ok" x="538" y="444" width="412" height="62" rx="11"/>
   <text class="lbl-sm" x="554" y="469">10 of 10 candidates authorized</text>
   <text class="txt" x="554" y="490">no leak, no recall loss</text>
-  <text class="txt" x="40" y="552">Enforced by cross-tenant integration tests on both channels and an architecture test: only AuthorizedChunkQuery may read chunks.</text>
+  <text class="txt" x="40" y="552">Enforced by a property-based test against a reference evaluator and an architecture test: only AuthorizedChunkQuery may read chunks.</text>
   <text class="txt" x="40" y="570">Every pull request runs the evaluation security gate, which fails the build on a single unauthorized result.</text>
 </svg>

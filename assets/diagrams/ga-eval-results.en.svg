@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 560" width="1120" height="560"
+     role="img" aria-labelledby="ttl dsc" style="max-width:100%;height:auto">
+  <title id="ttl">Dense ranks evidence highest; hybrid does not beat it</title>
+  <desc id="dsc">Dataset v2, test split, 57 answerable cases. Bars are MRR@10 with 95% bootstrap intervals, from the committed CI run.</desc>
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk" d="M0 0 L10 5 L0 10 z"/></marker>
+    <marker id="ar-v" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-v" d="M0 0 L10 5 L0 10 z"/></marker>
+  </defs>
+  <style>
+    text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Inter,Roboto,sans-serif;}
+    .bg{fill:#FBFCFE}
+    .kicker{font-size:11.5px;font-weight:700;fill:#94A3B8;letter-spacing:1.4px}
+    .title{font-size:26px;font-weight:700;fill:#0F172A;letter-spacing:-.2px}
+    .sub{font-size:14px;fill:#64748B}
+    .lbl{font-size:15px;font-weight:650;fill:#0F172A}
+    .lbl-sm{font-size:13.5px;font-weight:650;fill:#0F172A}
+    .txt{font-size:12.5px;fill:#64748B}
+    .txt-d{font-size:12.5px;fill:#334155}
+    .foot{font-size:12.5px;fill:#64748B}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;font-weight:500;fill:#334155}
+    .code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;fill:#E2E8F0}
+    .codek{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;fill:#7DD3FC}
+    .num{font-size:13px;font-weight:650;fill:#0F172A}
+    .big{font-size:30px;font-weight:700;fill:#0F172A}
+    .bigok{font-size:30px;font-weight:700;fill:#059669}
+    .card{fill:#FFFFFF;stroke:#E2E8F0;stroke-width:1.25}
+    .dash{fill:#FFFFFF;stroke:#CBD5E1;stroke-width:1.25;stroke-dasharray:5 4}
+    .group{fill:#F1F5F9;fill-opacity:.55;stroke:#E2E8F0;stroke-width:1.25}
+    .blue{fill:#EFF6FF;stroke:#BFDBFE;stroke-width:1.25}
+    .teal{fill:#F0FDFA;stroke:#99F6E4;stroke-width:1.25}
+    .violet{fill:#F5F3FF;stroke:#DDD6FE;stroke-width:1.25}
+    .amber{fill:#FFFBEB;stroke:#FDE68A;stroke-width:1.25}
+    .rose{fill:#FFF1F2;stroke:#FECDD3;stroke-width:1.25}
+    .green{fill:#ECFDF5;stroke:#A7F3D0;stroke-width:1.25}
+    .dark{fill:#0F172A}
+    .ln{stroke:#94A3B8;stroke-width:1.5;fill:none}
+    .ln-v{stroke:#6366F1;stroke-width:1.75;fill:none}
+    .mk{fill:#94A3B8}.mk-v{fill:#6366F1}
+    .bar-s{fill:#38BDF8}.bar-d{fill:#6366F1}.bar-h{fill:#A78BFA}.bar-r{fill:#CBD5E1}
+    .axis{stroke:#E2E8F0;stroke-width:1}
+    .whisk{stroke:#0F172A;stroke-width:1.5}
+    .pill-ok{fill:#D1FAE5}.pill-ok-t{font-size:11.5px;font-weight:700;fill:#047857}
+    .pill-now{fill:#E0E7FF}.pill-now-t{font-size:11.5px;font-weight:700;fill:#4338CA}
+    .pill-next{fill:#F1F5F9}.pill-next-t{font-size:11.5px;font-weight:700;fill:#64748B}
+  </style>
+  <rect class="bg" width="1120" height="560" rx="18"/>
+  <text class="kicker" x="40" y="44">GROUNDED ACCESS · EVALUATION</text>
+  <text class="title" x="40" y="76">Dense ranks evidence highest; hybrid does not beat it</text>
+  <text class="sub" x="40" y="101">Dataset v2, test split, 57 answerable cases. Bars are MRR@10 with 95% bootstrap intervals, from the committed CI run.</text>
+  <text class="kicker" x="290" y="142">MRR@10</text>
+  <text class="kicker" x="980" y="142">Recall@10</text>
+  <line class="axis" x1="290" y1="152" x2="290" y2="392"/>
+  <text class="txt" x="290" y="410" text-anchor="middle">0</text>
+  <line class="axis" x1="425.0" y1="152" x2="425.0" y2="392"/>
+  <text class="txt" x="425.0" y="410" text-anchor="middle">0.25</text>
+  <line class="axis" x1="560.0" y1="152" x2="560.0" y2="392"/>
+  <text class="txt" x="560.0" y="410" text-anchor="middle">0.5</text>
+  <line class="axis" x1="695.0" y1="152" x2="695.0" y2="392"/>
+  <text class="txt" x="695.0" y="410" text-anchor="middle">0.75</text>
+  <line class="axis" x1="830.0" y1="152" x2="830.0" y2="392"/>
+  <text class="txt" x="830.0" y="410" text-anchor="middle">1</text>
+  <text class="mono" x="40" y="183">sparse-only</text>
+  <text class="txt" x="40" y="201">PostgreSQL full-text search</text>
+  <rect class="bar-s" x="290" y="166" width="346" height="30" rx="6"/>
+  <path class="whisk" d="M581.6 181 L689.6 181 M581.6 175 v12 M689.6 175 v12"/>
+  <text class="num" x="701.6" y="186">0.640  [0.54, 0.74]</text>
+  <text class="num" x="980" y="186">0.930</text>
+  <text class="mono" x="40" y="241">dense-only</text>
+  <text class="txt" x="40" y="259">exact pgvector search</text>
+  <rect class="bar-d" x="290" y="224" width="462" height="30" rx="6"/>
+  <path class="whisk" d="M711.2 239 L792.2 239 M711.2 233 v12 M792.2 233 v12"/>
+  <text class="num" x="804.2" y="244">0.856  [0.78, 0.93]</text>
+  <text class="num" x="980" y="244">0.965</text>
+  <text class="mono" x="40" y="299">hybrid-rrf</text>
+  <text class="txt" x="40" y="317">reciprocal rank fusion of the two</text>
+  <rect class="bar-h" x="290" y="282" width="430" height="30" rx="6"/>
+  <path class="whisk" d="M673.4 297 L765.2 297 M673.4 291 v12 M765.2 291 v12"/>
+  <text class="num" x="777.2" y="302">0.797  [0.71, 0.88]</text>
+  <text class="num" x="980" y="302">0.965</text>
+  <text class="mono" x="40" y="357">bm25-reference</text>
+  <text class="txt" x="40" y="375">offline reference row</text>
+  <rect class="bar-r" x="290" y="340" width="372" height="30" rx="6"/>
+  <path class="whisk" d="M608.5999999999999 355 L711.2 355 M608.5999999999999 349 v12 M711.2 349 v12"/>
+  <text class="num" x="723.2" y="360">0.689  [0.59, 0.78]</text>
+  <text class="num" x="980" y="360">0.921</text>
+  <rect class="green" x="40" y="436" width="330" height="70" rx="12"/>
+  <text class="bigok" x="58" y="482">0</text>
+  <text class="lbl-sm" x="89" y="470">unauthorized results</text>
+  <text class="txt" x="89" y="489">across 108 cases and every strategy</text>
+  <rect class="card" x="390" y="436" width="330" height="70" rx="12"/>
+  <text class="big" x="408" y="482">30</text>
+  <text class="lbl-sm" x="458" y="470">authorization negatives</text>
+  <text class="txt" x="458" y="489">tenant, clearance, project, department</text>
+  <rect class="card" x="740" y="436" width="330" height="70" rx="12"/>
+  <text class="big" x="758" y="482">−0.06</text>
+  <text class="lbl-sm" x="865" y="470">hybrid vs dense, MRR@10</text>
+  <text class="txt" x="865" y="489">no detectable difference</text>
+  <text class="foot" x="40" y="536">Source: benchmarks/reports/m2-labelled-dataset. A demo benchmark on a small fictional corpus, not a claim about production quality.</text>
+</svg>

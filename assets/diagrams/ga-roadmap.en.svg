@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 400" width="1120" height="400"
+     role="img" aria-labelledby="ttl dsc" style="max-width:100%;height:auto">
+  <title id="ttl">Each milestone ends with something that can be checked</title>
+  <desc id="dsc">A tagged pre-release, a changelog entry and, where there are numbers, a committed report.</desc>
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk" d="M0 0 L10 5 L0 10 z"/></marker>
+    <marker id="ar-v" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-v" d="M0 0 L10 5 L0 10 z"/></marker>
+  </defs>
+  <style>
+    text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Inter,Roboto,sans-serif;}
+    .bg{fill:#FBFCFE}
+    .kicker{font-size:11.5px;font-weight:700;fill:#94A3B8;letter-spacing:1.4px}
+    .title{font-size:26px;font-weight:700;fill:#0F172A;letter-spacing:-.2px}
+    .sub{font-size:14px;fill:#64748B}
+    .lbl{font-size:15px;font-weight:650;fill:#0F172A}
+    .lbl-sm{font-size:13.5px;font-weight:650;fill:#0F172A}
+    .txt{font-size:12.5px;fill:#64748B}
+    .txt-d{font-size:12.5px;fill:#334155}
+    .foot{font-size:12.5px;fill:#64748B}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;font-weight:500;fill:#334155}
+    .code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;fill:#E2E8F0}
+    .codek{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;fill:#7DD3FC}
+    .num{font-size:13px;font-weight:650;fill:#0F172A}
+    .big{font-size:30px;font-weight:700;fill:#0F172A}
+    .bigok{font-size:30px;font-weight:700;fill:#059669}
+    .card{fill:#FFFFFF;stroke:#E2E8F0;stroke-width:1.25}
+    .dash{fill:#FFFFFF;stroke:#CBD5E1;stroke-width:1.25;stroke-dasharray:5 4}
+    .group{fill:#F1F5F9;fill-opacity:.55;stroke:#E2E8F0;stroke-width:1.25}
+    .blue{fill:#EFF6FF;stroke:#BFDBFE;stroke-width:1.25}
+    .teal{fill:#F0FDFA;stroke:#99F6E4;stroke-width:1.25}
+    .violet{fill:#F5F3FF;stroke:#DDD6FE;stroke-width:1.25}
+    .amber{fill:#FFFBEB;stroke:#FDE68A;stroke-width:1.25}
+    .rose{fill:#FFF1F2;stroke:#FECDD3;stroke-width:1.25}
+    .green{fill:#ECFDF5;stroke:#A7F3D0;stroke-width:1.25}
+    .dark{fill:#0F172A}
+    .ln{stroke:#94A3B8;stroke-width:1.5;fill:none}
+    .ln-v{stroke:#6366F1;stroke-width:1.75;fill:none}
+    .mk{fill:#94A3B8}.mk-v{fill:#6366F1}
+    .bar-s{fill:#38BDF8}.bar-d{fill:#6366F1}.bar-h{fill:#A78BFA}.bar-r{fill:#CBD5E1}
+    .axis{stroke:#E2E8F0;stroke-width:1}
+    .whisk{stroke:#0F172A;stroke-width:1.5}
+    .pill-ok{fill:#D1FAE5}.pill-ok-t{font-size:11.5px;font-weight:700;fill:#047857}
+    .pill-now{fill:#E0E7FF}.pill-now-t{font-size:11.5px;font-weight:700;fill:#4338CA}
+    .pill-next{fill:#F1F5F9}.pill-next-t{font-size:11.5px;font-weight:700;fill:#64748B}
+  </style>
+  <rect class="bg" width="1120" height="400" rx="18"/>
+  <text class="kicker" x="40" y="44">GROUNDED ACCESS · ROADMAP</text>
+  <text class="title" x="40" y="76">Each milestone ends with something that can be checked</text>
+  <text class="sub" x="40" y="101">A tagged pre-release, a changelog entry and, where there are numbers, a committed report.</text>
+  <line class="axis" x1="60" y1="150" x2="1060" y2="150" style="stroke-width:2"/>
+  <circle cx="60" cy="150" r="7" fill="#10B981" stroke="#FBFCFE" stroke-width="3"/>
+  <rect class="card" x="40" y="176" width="200" height="190" rx="12"/>
+  <text class="kicker" x="56" y="202">M0</text>
+  <text class="lbl" x="56" y="226">Walking skeleton</text>
+  <text class="txt" x="56" y="250">tenant isolation in SQL</text>
+  <text class="txt" x="56" y="269">sparse + dense retrieval</text>
+  <text class="txt" x="56" y="288">eval CLI, CI security gate</text>
+  <rect class="pill-ok" x="56" y="334" width="40" height="20" rx="10"/>
+  <text class="pill-ok-t" x="76.0" y="348" text-anchor="middle">Done</text>
+  <circle cx="270" cy="150" r="7" fill="#10B981" stroke="#FBFCFE" stroke-width="3"/>
+  <rect class="card" x="250" y="176" width="200" height="190" rx="12"/>
+  <text class="kicker" x="266" y="202">M1</text>
+  <text class="lbl" x="266" y="226">Retrieval baseline</text>
+  <text class="txt" x="266" y="250">dataset, BM25 reference, CIs</text>
+  <text class="txt" x="266" y="269">async ingestion, chunker</text>
+  <text class="txt" x="266" y="288">RRF hybrid + verdict</text>
+  <rect class="pill-ok" x="266" y="334" width="153" height="20" rx="10"/>
+  <text class="pill-ok-t" x="342.5" y="348" text-anchor="middle">Done · v0.1.0-alpha.1</text>
+  <circle cx="480" cy="150" r="7" fill="#6366F1" stroke="#FBFCFE" stroke-width="3"/>
+  <rect class="card" x="460" y="176" width="200" height="190" rx="12"/>
+  <text class="kicker" x="476" y="202">M2</text>
+  <text class="lbl" x="476" y="226">Authorization</text>
+  <text class="txt" x="476" y="250">full decision table ✓</text>
+  <text class="txt" x="476" y="269">labelled dataset + gate ✓</text>
+  <text class="txt" x="476" y="288">scope, audit, threat model</text>
+  <rect class="pill-now" x="476" y="334" width="87" height="20" rx="10"/>
+  <text class="pill-now-t" x="519.5" y="348" text-anchor="middle">In progress</text>
+  <circle cx="690" cy="150" r="7" fill="#CBD5E1" stroke="#FBFCFE" stroke-width="3"/>
+  <rect class="dash" x="670" y="176" width="200" height="190" rx="12"/>
+  <text class="kicker" x="686" y="202">M3</text>
+  <text class="lbl" x="686" y="226">Reranking + answers</text>
+  <text class="txt" x="686" y="250">cross-encoder reranker</text>
+  <text class="txt" x="686" y="269">cited answers</text>
+  <text class="txt" x="686" y="288">abstention</text>
+  <rect class="pill-next" x="686" y="334" width="60" height="20" rx="10"/>
+  <text class="pill-next-t" x="716.0" y="348" text-anchor="middle">Planned</text>
+  <circle cx="900" cy="150" r="7" fill="#CBD5E1" stroke="#FBFCFE" stroke-width="3"/>
+  <rect class="dash" x="880" y="176" width="200" height="190" rx="12"/>
+  <text class="kicker" x="896" y="202">M4</text>
+  <text class="lbl" x="896" y="226">Operations + v0.1</text>
+  <text class="txt" x="896" y="250">OpenTelemetry traces</text>
+  <text class="txt" x="896" y="269">failure and load tests</text>
+  <text class="txt" x="896" y="288">full benchmark, release</text>
+  <rect class="pill-next" x="896" y="334" width="60" height="20" rx="10"/>
+  <text class="pill-next-t" x="926.0" y="348" text-anchor="middle">Planned</text>
+</svg>

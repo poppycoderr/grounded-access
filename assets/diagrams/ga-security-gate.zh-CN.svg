@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 520" width="1120" height="520"
+     role="img" aria-labelledby="ttl dsc" style="max-width:100%;height:auto">
+  <title id="ttl">安全门禁拿系统和手写标注做比较</title>
+  <desc id="dsc">预期的可见范围由人对照访问标签写出，绝不由被检验的 policy compiler 生成。</desc>
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk" d="M0 0 L10 5 L0 10 z"/></marker>
+    <marker id="ar-v" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-v" d="M0 0 L10 5 L0 10 z"/></marker>
+  </defs>
+  <style>
+    text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Inter,Roboto,sans-serif;}
+    .bg{fill:#FBFCFE}
+    .kicker{font-size:11.5px;font-weight:700;fill:#94A3B8;letter-spacing:1.4px}
+    .title{font-size:26px;font-weight:700;fill:#0F172A;letter-spacing:-.2px}
+    .sub{font-size:14px;fill:#64748B}
+    .lbl{font-size:15px;font-weight:650;fill:#0F172A}
+    .lbl-sm{font-size:13.5px;font-weight:650;fill:#0F172A}
+    .txt{font-size:12.5px;fill:#64748B}
+    .txt-d{font-size:12.5px;fill:#334155}
+    .foot{font-size:12.5px;fill:#64748B}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;font-weight:500;fill:#334155}
+    .code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;fill:#E2E8F0}
+    .codek{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;fill:#7DD3FC}
+    .num{font-size:13px;font-weight:650;fill:#0F172A}
+    .big{font-size:30px;font-weight:700;fill:#0F172A}
+    .bigok{font-size:30px;font-weight:700;fill:#059669}
+    .card{fill:#FFFFFF;stroke:#E2E8F0;stroke-width:1.25}
+    .dash{fill:#FFFFFF;stroke:#CBD5E1;stroke-width:1.25;stroke-dasharray:5 4}
+    .group{fill:#F1F5F9;fill-opacity:.55;stroke:#E2E8F0;stroke-width:1.25}
+    .blue{fill:#EFF6FF;stroke:#BFDBFE;stroke-width:1.25}
+    .teal{fill:#F0FDFA;stroke:#99F6E4;stroke-width:1.25}
+    .violet{fill:#F5F3FF;stroke:#DDD6FE;stroke-width:1.25}
+    .amber{fill:#FFFBEB;stroke:#FDE68A;stroke-width:1.25}
+    .rose{fill:#FFF1F2;stroke:#FECDD3;stroke-width:1.25}
+    .green{fill:#ECFDF5;stroke:#A7F3D0;stroke-width:1.25}
+    .dark{fill:#0F172A}
+    .ln{stroke:#94A3B8;stroke-width:1.5;fill:none}
+    .ln-v{stroke:#6366F1;stroke-width:1.75;fill:none}
+    .mk{fill:#94A3B8}.mk-v{fill:#6366F1}
+    .bar-s{fill:#38BDF8}.bar-d{fill:#6366F1}.bar-h{fill:#A78BFA}.bar-r{fill:#CBD5E1}
+    .axis{stroke:#E2E8F0;stroke-width:1}
+    .whisk{stroke:#0F172A;stroke-width:1.5}
+    .pill-ok{fill:#D1FAE5}.pill-ok-t{font-size:11.5px;font-weight:700;fill:#047857}
+    .pill-now{fill:#E0E7FF}.pill-now-t{font-size:11.5px;font-weight:700;fill:#4338CA}
+    .pill-next{fill:#F1F5F9}.pill-next-t{font-size:11.5px;font-weight:700;fill:#64748B}
+  </style>
+  <rect class="bg" width="1120" height="520" rx="18"/>
+  <text class="kicker" x="40" y="44">GROUNDED ACCESS · SECURITY GATE</text>
+  <text class="title" x="40" y="76">安全门禁拿系统和手写标注做比较</text>
+  <text class="sub" x="40" y="101">预期的可见范围由人对照访问标签写出，绝不由被检验的 policy compiler 生成。</text>
+  <rect class="amber" x="40" y="150" width="300" height="104" rx="12"/>
+  <text class="lbl-sm" x="56" y="175">visibility.yaml</text>
+  <text class="txt" x="56" y="195">人工标注的可见文档</text>
+  <text class="txt" x="56" y="213">按身份列出，只认当前版本</text>
+  <text class="mono" x="56" y="231">data/eval/v2</text>
+  <rect class="blue" x="40" y="284" width="300" height="104" rx="12"/>
+  <text class="lbl-sm" x="56" y="309">被测系统</text>
+  <text class="txt" x="56" y="329">公开 API + demo token</text>
+  <text class="txt" x="56" y="347">每个身份一个 token</text>
+  <text class="mono" x="56" y="365">/retrieval/chunks · /retrieval/search</text>
+  <rect class="group" x="400" y="130" width="340" height="290" rx="16"/>
+  <text class="lbl" x="418" y="157">ga-eval run</text>
+  <rect class="violet" x="418" y="172" width="304" height="104" rx="12"/>
+  <text class="lbl-sm" x="434" y="197">1 · 列表检查</text>
+  <text class="txt" x="434" y="217">每个身份能列出的全部 chunk</text>
+  <text class="txt" x="434" y="235">必须与它的可见集合完全一致</text>
+  <text class="txt" x="434" y="253">覆盖没有被任何查询检索到的文档</text>
+  <rect class="violet" x="418" y="290" width="304" height="104" rx="12"/>
+  <text class="lbl-sm" x="434" y="315">2 · 逐条结果检查</text>
+  <text class="txt" x="434" y="335">108 条用例 × 每种策略</text>
+  <text class="txt" x="434" y="353">每个 chunk：文档可见</text>
+  <text class="txt" x="434" y="371">且来自当前版本</text>
+  <path class="ln" d="M340 202 L398 222" marker-end="url(#ar)"/>
+  <path class="ln" d="M340 336 L398 316" marker-end="url(#ar)"/>
+  <rect class="rose" x="800" y="130" width="280" height="84" rx="12"/>
+  <text class="lbl-sm" x="816" y="155">多出文档或返回旧版本</text>
+  <text class="txt" x="816" y="175">记为越权：退出码 2</text>
+  <text class="txt" x="816" y="193">CI 任务失败</text>
+  <path class="ln" d="M740 275 L798 172" marker-end="url(#ar)"/>
+  <rect class="amber" x="800" y="230" width="280" height="84" rx="12"/>
+  <text class="lbl-sm" x="816" y="255">可见文档列不出来</text>
+  <text class="txt" x="816" y="275">标注与系统不一致</text>
+  <text class="txt" x="816" y="293">评测中止</text>
+  <path class="ln" d="M740 275 L798 272" marker-end="url(#ar)"/>
+  <rect class="green" x="800" y="330" width="280" height="84" rx="12"/>
+  <text class="lbl-sm" x="816" y="355">0 条越权</text>
+  <text class="txt" x="816" y="375">生成报告</text>
+  <text class="txt" x="816" y="393">可以发布</text>
+  <path class="ln" d="M740 275 L798 372" marker-end="url(#ar)"/>
+  <text class="foot" x="40" y="462">30 条用例专门去够身份无权查看的文档：别的租户、更高的密级、别的项目或部门。</text>
+  <text class="foot" x="40" y="484">在运行中的环境里把一篇 restricted 文档改标成 public，门禁就会失败——门禁本身就是这样验证的。</text>
+</svg>
