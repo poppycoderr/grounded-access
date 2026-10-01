@@ -1,9 +1,12 @@
 package io.groundedaccess.corpus;
 
+import io.groundedaccess.authorization.AccessLabels;
+
 import org.jspecify.annotations.Nullable;
 
 /**
- * A document as submitted for ingestion, identified by a key that is stable within its tenant. {@code format} decides how it is chunked.
+ * A document as submitted for ingestion, identified by a key that is stable within its tenant. {@code format} decides how it is chunked and
+ * {@code labels} who may read it.
  */
 public record SourceDocument(
         String key,
@@ -14,5 +17,7 @@ public record SourceDocument(
 
         String content,
 
-        DocumentFormat format) {
+        DocumentFormat format,
+
+        AccessLabels labels) {
 }

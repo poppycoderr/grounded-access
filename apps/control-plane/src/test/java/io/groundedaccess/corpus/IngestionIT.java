@@ -3,6 +3,7 @@ package io.groundedaccess.corpus;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.groundedaccess.HashingEmbeddingClient;
+import io.groundedaccess.authorization.AccessLabels;
 import io.groundedaccess.TestcontainersConfiguration;
 import io.groundedaccess.modelclient.EmbeddingClient;
 import io.groundedaccess.modelclient.Embeddings;
@@ -145,7 +146,7 @@ class IngestionIT {
     }
 
     private static SourceDocument document(String body) {
-        return new SourceDocument(KEY, "Volunteer Time Off Policy", null, "# Volunteer Time Off Policy\n\n" + body + "\n", DocumentFormat.MARKDOWN);
+        return new SourceDocument(KEY, "Volunteer Time Off Policy", null, "# Volunteer Time Off Policy\n\n" + body + "\n", DocumentFormat.MARKDOWN, AccessLabels.UNRESTRICTED);
     }
 
     private List<Integer> versionNumbers() {

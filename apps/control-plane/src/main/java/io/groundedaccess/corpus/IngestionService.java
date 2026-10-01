@@ -9,6 +9,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -47,9 +48,21 @@ public class IngestionService {
         for (SourceDocument source : documents) {
             String normalized = DocumentChunker.normalize(source.content());
             String sha = sha256(normalized);
-            if (writer.findActive(tenantId, source.key()).filter(active -> active.alreadyHas(sha, source.format())).isPresent()) {
-                unchanged++;
-                continue;
+            Optional<CorpusWriter.ActiveVersion> active = writer.findActive(tenantId, source.key()).filter(a -> a.hasContent(sha, source.format()));
+            if (active.isPresent()) {
+                if (active.get().hasLabels(source.labels())) {
+                    unchanged++;
+                    continue;
+                }
+                Outcome relabelled = transactions.execute(status -> relabel(tenantId, source, sha));
+                if (relabelled == Outcome.UPDATED) {
+                    updated++;
+                    continue;
+                }
+                if (relabelled == Outcome.UNCHANGED) {
+                    unchanged++;
+                    continue;
+                }
             }
             List<ChunkDraft> chunks = chunker.chunk(normalized, source.format());
             Embeddings vectors = embeddings.embed(chunks.stream().map(ChunkDraft::content).toList(), InputType.PASSAGE);
@@ -74,17 +87,34 @@ public class IngestionService {
      */
     private Outcome write(CorpusWriter.NewVersion version, String sha) {
         CorpusWriter.LockedDocument document = writer.lockDocument(version.tenantId(), version.source().key());
-        if (document.alreadyHas(sha, version.source().format())) {
+        if (document.hasContent(sha, version.source().format()) && document.hasLabels(version.source().labels())) {
             return Outcome.UNCHANGED;
         }
         writer.writeVersion(version, document);
         return document.versionNo() == 0 || document.deleted() ? Outcome.CREATED : Outcome.UPDATED;
     }
 
+    /**
+     * The label-only path: no chunking and no model call, so a change of labels does not depend on the model service. Returns
+     * {@code CONTENT_CHANGED} when the content changed between the pre-check and the lock; the caller then takes the full path.
+     */
+    private Outcome relabel(String tenantId, SourceDocument source, String sha) {
+        CorpusWriter.LockedDocument document = writer.lockDocument(tenantId, source.key());
+        if (!document.hasContent(sha, source.format())) {
+            return Outcome.CONTENT_CHANGED;
+        }
+        if (document.hasLabels(source.labels())) {
+            return Outcome.UNCHANGED;
+        }
+        writer.relabel(source, document);
+        return Outcome.UPDATED;
+    }
+
     private enum Outcome {
         CREATED,
         UPDATED,
-        UNCHANGED
+        UNCHANGED,
+        CONTENT_CHANGED
     }
 
     private static String sha256(String text) {
