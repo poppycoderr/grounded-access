@@ -1,6 +1,5 @@
 # Fictional demo identities. Attributes become JWT claims via scripts/mint-token.py.
-# tenant_id, clearance, department and projects are enforced. The demo corpus carries no access labels yet, so within a tenant every
-# principal still sees every document; labelled documents arrive with the M2 dataset.
+# tenant_id, clearance, department and projects are enforced against the access labels in data/manifests.
 principals:
   alice-engineer:
     tenant_id: northstar
@@ -21,6 +20,12 @@ principals:
     department: engineering
     projects: [atlas, borealis]
     clearance: confidential
+    region: EU
+    scope: query
+  dave-contractor:
+    tenant_id: northstar
+    projects: []
+    clearance: public
     region: EU
     scope: query
   mallory-outsider:

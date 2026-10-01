@@ -5,15 +5,17 @@ Everything in this directory is fictional. Northstar Cloud and Orbit Labs do not
 | Path | Contents |
 |---|---|
 | `corpus/<tenant>/` | The documents themselves, in Markdown |
-| `manifests/<tenant>.yaml` | Document key, title and file for ingestion |
+| `manifests/<tenant>.yaml` | Document key, title, file, access labels and version history for ingestion |
 | `principals.yaml` | Demo identities and the attributes that become token claims |
-| `eval/v1/cases.jsonl` | Evaluation cases: query, principal, evidence quotes, expectations, tags |
-| `eval/v1/visibility.yaml` | Hand-labelled visible documents per principal, used by the security gate |
+| `eval/v2/cases.jsonl` | Evaluation cases: query, principal, evidence quotes, expectations, tags |
+| `eval/v2/visibility.yaml` | Hand-labelled visible documents per principal, used by the security gate |
 | `demo-keys/` | The public demo signing key pair — insecure by design, local demos only |
 
 The corpus and the evaluation labels are published under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The code in this repository is Apache-2.0.
 
 Orbit Labs deliberately shares vocabulary with Northstar Cloud ("volunteer days", "billing database") so that cross-tenant isolation is tested with wording that would otherwise match.
+
+Load the corpus into a freshly started stack. A document with a version history is ingested oldest version first, so loading it again into the same database adds further versions, and the evaluation then stops with a version mismatch.
 
 Validate the dataset after any change:
 
