@@ -27,7 +27,14 @@ These are the properties the design commits to. The table after them says which 
 
 Region and validity are scope filters, not authorization. An EU policy isn't secret from a US employee; it just doesn't apply to them. Keeping the two kinds separate means the security metrics only count real access violations. It also allows questions like "what was the travel policy in 2025?" through `asOf`.
 
-Default scope: `status = active`, `valid_from <= now() < coalesce(valid_to, 'infinity')`, and `region` taken from the principal's region, with an empty `applies_to_regions` matching every region.
+How scope is applied ([ADR-0005](../adr/0005-as-of-filters-the-current-version.md)):
+
+- **Validity.** A version is in scope when `valid_from <= asOf < valid_to`; a missing bound is open. `asOf` defaults to the time of the request.
+- **Region.** A version with no regions applies everywhere. Otherwise the request's region must be one of them. The region defaults to the principal's `region` claim, and a principal without one gets no region filter.
+- **The request may set both.** `asOf` and `region` are parameters of `/retrieval/search` because they are not authorization: asking about another region or another date changes what is relevant, never what the principal may read. The response echoes the scope it used.
+- **`asOf` never selects an older version.** Only the current version of a document is a candidate. To answer questions about the past, a superseded policy is published as its own document with a closed validity window.
+- **Scope is compiled separately.** It is a second condition next to the authorization predicate, with its own parameters, and the debug chunk listing can drop it (`includeOutOfScope`) without touching the predicate. That listing is what the evaluation compares with the hand-labelled visible set.
+- **A change of scope is a change of metadata.** Like a label change, it creates a version that takes over the existing chunks and applies to the next query without embedding again.
 
 ## 3. Decision table (v0.1)
 

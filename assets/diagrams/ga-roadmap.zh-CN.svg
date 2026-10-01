@@ -72,7 +72,7 @@
   <text class="lbl" x="476" y="226">授权</text>
   <text class="txt" x="476" y="250">完整决策表 ✓</text>
   <text class="txt" x="476" y="269">带标签的数据集与门禁 ✓</text>
-  <text class="txt" x="476" y="288">范围过滤、审计、威胁模型</text>
+  <text class="txt" x="476" y="288">范围过滤 ✓ · 审计、威胁模型</text>
   <rect class="pill-now" x="476" y="334" width="47" height="20" rx="10"/>
   <text class="pill-now-t" x="499.5" y="348" text-anchor="middle">进行中</text>
   <circle cx="690" cy="150" r="7" fill="#CBD5E1" stroke="#FBFCFE" stroke-width="3"/>

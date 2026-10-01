@@ -111,7 +111,7 @@ audit_event(id, occurred_at, tenant_id, principal_id, action, resource_type,
 Notes:
 
 - `tenant_id` is denormalized onto `chunk` so the tenant condition can run first and can later drive partitioning.
-- Access labels live on `document_version`. Changing labels creates a new version that takes over the chunks of the version it replaces, so a label change never chunks or embeds again. Region and validity columns are scope, not authorization, and arrive with the scope filters (M2.3).
+- Access labels live on `document_version`. Changing labels creates a new version that takes over the chunks of the version it replaces, so a label change never chunks or embeds again. Region and validity columns (`applies_to_regions`, `valid_from`, `valid_to`) are scope, not authorization, and are compiled into a separate condition (ADR-0005).
 - Only one embedding model is active per deployment in v0.1. Switching models means a full re-index (ADR-0004).
 - All timestamps are `timestamptz` and stored in UTC.
 
@@ -219,8 +219,8 @@ GET    /api/v1/ingestion-jobs/{jobId}         # status, progress, counts, error_
 GET    /api/v1/documents/{key}                # authorized metadata only; 404 if not visible (M2)
 PATCH  /api/v1/documents/{key}                # {"status": "active" | "disabled"}; admin scope
 DELETE /api/v1/documents/{key}                # 204; admin scope; 404 if unknown, deleted or another tenant's
-POST   /api/v1/retrieval/search               # ranked candidates + debug fields
-GET    /api/v1/retrieval/chunks               # every authorized chunk, keyset-paged; debug scope; feeds offline reference rankers
+POST   /api/v1/retrieval/search               # ranked candidates + debug fields; optional scope: asOf, region
+GET    /api/v1/retrieval/chunks               # every authorized chunk in scope, keyset-paged; debug scope; includeOutOfScope drops the scope only
 POST   /api/v1/query                          # answer / evidence / abstention
 GET    /api/v1/query-executions/{id}          # own executions only
 ```
