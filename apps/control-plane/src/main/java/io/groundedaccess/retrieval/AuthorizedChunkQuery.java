@@ -44,7 +44,7 @@ public class AuthorizedChunkQuery {
         String tsquery = "cast(replace(plainto_tsquery('english', :query)::text, '&', '|') as tsquery)";
         String sql = SELECT.formatted("ts_rank_cd(c.content_tsv, " + tsquery + ")", predicate.sql())
                 + " and c.content_tsv @@ " + tsquery + " order by score desc, " + TIE_BREAK + " limit :limit";
-        return run(sql, predicate, RetrievalChannel.SPARSE, limit, "query", query);
+        return run(sql, predicate, true, limit, "query", query);
     }
 
     /**
@@ -53,7 +53,7 @@ public class AuthorizedChunkQuery {
     public List<RetrievedChunk> dense(float[] queryVector, AuthorizationPredicate predicate, int limit) {
         String distance = "(c.embedding <=> cast(:vector as vector))";
         String sql = SELECT.formatted("1 - " + distance, predicate.sql()) + " and c.embedding is not null order by " + distance + ", " + TIE_BREAK + " limit :limit";
-        return run(sql, predicate, RetrievalChannel.DENSE, limit, "vector", Vectors.toLiteral(queryVector));
+        return run(sql, predicate, false, limit, "vector", Vectors.toLiteral(queryVector));
     }
 
     /**
@@ -79,17 +79,19 @@ public class AuthorizedChunkQuery {
                 rs.getString(5), rs.getInt(6), rs.getInt(7), rs.getInt(8), rs.getString(9), rs.getString(10))).list();
     }
 
-    private List<RetrievedChunk> run(String sql, AuthorizationPredicate predicate, RetrievalChannel channel, int limit, String name, String value) {
+    private List<RetrievedChunk> run(String sql, AuthorizationPredicate predicate, boolean sparse, int limit, String name, String value) {
         return jdbc.sql(sql)
                 .params(predicate.parameters())
                 .param(name, value)
                 .param("limit", limit)
-                .query((rs, rowNum) -> map(rs, channel, rowNum + 1))
+                .query((rs, rowNum) -> map(rs, sparse, rowNum + 1))
                 .list();
     }
 
-    private static RetrievedChunk map(ResultSet rs, RetrievalChannel channel, int rank) throws SQLException {
+    private static RetrievedChunk map(ResultSet rs, boolean sparse, int rank) throws SQLException {
+        double score = rs.getDouble(9);
         return new RetrievedChunk(rs.getObject(1, UUID.class), rs.getString(2), rs.getInt(3), rs.getString(4), rs.getString(5), rs.getInt(6),
-                rs.getInt(7), rs.getString(8), rs.getString(10), channel, rank, rs.getDouble(9));
+                rs.getInt(7), rs.getString(8), rs.getString(10), rank, score, sparse ? rank : null, sparse ? score : null, sparse ? null : rank,
+                sparse ? null : score);
     }
 }

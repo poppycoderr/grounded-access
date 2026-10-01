@@ -1,6 +1,5 @@
 package io.groundedaccess.api;
 
-import io.groundedaccess.retrieval.RetrievalChannel;
 import io.groundedaccess.retrieval.RetrievedChunk;
 
 import java.util.UUID;
@@ -8,7 +7,7 @@ import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 /**
- * One ranked chunk. The raw score is a debug field and is only returned to tokens with the {@code debug} scope.
+ * One ranked chunk. Scores and per-channel ranks are debug fields and are only returned to tokens with the {@code debug} scope.
  */
 public record SearchResultResponse(
         UUID chunkId,
@@ -29,14 +28,21 @@ public record SearchResultResponse(
 
         String chunkerVersion,
 
-        RetrievalChannel channel,
-
         int rank,
 
-        @Nullable Double score) {
+        @Nullable Double score,
+
+        @Nullable Integer sparseRank,
+
+        @Nullable Double sparseScore,
+
+        @Nullable Integer denseRank,
+
+        @Nullable Double denseScore) {
 
     static SearchResultResponse from(RetrievedChunk chunk, boolean debug) {
         return new SearchResultResponse(chunk.chunkId(), chunk.documentKey(), chunk.versionNo(), chunk.title(), chunk.sectionPath(), chunk.charStart(),
-                chunk.charEnd(), chunk.content(), chunk.chunkerVersion(), chunk.channel(), chunk.rank(), debug ? chunk.score() : null);
+                chunk.charEnd(), chunk.content(), chunk.chunkerVersion(), chunk.rank(), debug ? chunk.score() : null, debug ? chunk.sparseRank() : null,
+                debug ? chunk.sparseScore() : null, debug ? chunk.denseRank() : null, debug ? chunk.denseScore() : null);
     }
 }

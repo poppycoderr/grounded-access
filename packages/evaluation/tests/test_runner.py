@@ -29,3 +29,13 @@ def test_chunker_release_ignores_the_format():
 def test_refuses_to_run_on_a_partially_re_indexed_corpus():
     with pytest.raises(runner.MixedChunkerError, match="markdown-headings/1, markdown/2"):
         runner.run(ds.load(DATA), ListingOnlyClient(["markdown/2", "markdown-headings/1"]), ["sparse-only"], 10, {"test"})
+
+
+class DegradedClient(ListingOnlyClient):
+    def search(self, *args: object) -> dict:
+        return {"policyVersion": "tenant-only/1", "planHash": "abc", "plan": {}, "degraded": ["dense_unavailable"], "results": []}
+
+
+def test_refuses_results_the_system_produced_without_its_full_plan():
+    with pytest.raises(runner.DegradedRunError, match="dense_unavailable"):
+        runner.run(ds.load(DATA), DegradedClient(["markdown/2"]), ["hybrid-rrf"], 10, {"test"})

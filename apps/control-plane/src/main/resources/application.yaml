@@ -26,6 +26,9 @@ ga:
     batch-size: 64
     connect-timeout: 2s
     read-timeout: 30s
+  retrieval:
+    candidates: 50
+    rrf-k: 60
   corpus:
     chunk-max-words: 180
     chunk-overlap-words: 30
