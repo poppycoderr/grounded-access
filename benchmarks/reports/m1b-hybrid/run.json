@@ -1,0 +1,416 @@
+{
+  "dataset_version": "v1",
+  "git_sha": "1e784e8",
+  "created_at": "2026-10-01T11:55:34+00:00",
+  "strategies": [
+    "sparse-only",
+    "dense-only",
+    "hybrid-rrf",
+    "bm25-reference"
+  ],
+  "reference_strategies": [
+    "bm25-reference"
+  ],
+  "k": 10,
+  "splits": [
+    "dev",
+    "test"
+  ],
+  "case_count": 70,
+  "policy_versions": [
+    "tenant-only/1"
+  ],
+  "chunker_versions": [
+    "markdown/2"
+  ],
+  "plans": {
+    "sparse-only": {
+      "e09e5b51cd5c36ac": {
+        "strategy": "sparse-only",
+        "k": 10,
+        "candidates": 50,
+        "rrfK": null,
+        "dedupeOverlaps": true
+      }
+    },
+    "dense-only": {
+      "d489d865e16bcda9": {
+        "strategy": "dense-only",
+        "k": 10,
+        "candidates": 50,
+        "rrfK": null,
+        "dedupeOverlaps": true
+      }
+    },
+    "hybrid-rrf": {
+      "bd71e8ef3c45267b": {
+        "strategy": "hybrid-rrf",
+        "k": 10,
+        "candidates": 50,
+        "rrfK": 60,
+        "dedupeOverlaps": true
+      }
+    }
+  },
+  "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+  "bootstrap": {
+    "samples": 10000,
+    "seed": 20260921,
+    "confidence": 0.95
+  },
+  "summary": {
+    "dev": {
+      "sparse-only": {
+        "answerable_cases": 16,
+        "recall@5": {
+          "mean": 0.9375,
+          "low": 0.8125,
+          "high": 1.0
+        },
+        "recall@10": {
+          "mean": 1.0,
+          "low": 1.0,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.6026041666666667,
+          "low": 0.42552083333333335,
+          "high": 0.7802083333333333
+        },
+        "ndcg@10": {
+          "mean": 0.6980349602316038,
+          "low": 0.5627419556137248,
+          "high": 0.833327964849483
+        },
+        "hard_negative_cases": 2,
+        "hard_negative_above_evidence": 0,
+        "security_violations": 0
+      },
+      "dense-only": {
+        "answerable_cases": 16,
+        "recall@5": {
+          "mean": 0.9375,
+          "low": 0.8125,
+          "high": 1.0
+        },
+        "recall@10": {
+          "mean": 0.9375,
+          "low": 0.8125,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.8125,
+          "low": 0.6458333333333334,
+          "high": 0.9583333333333334
+        },
+        "ndcg@10": {
+          "mean": 0.84375,
+          "low": 0.6875,
+          "high": 0.96875
+        },
+        "hard_negative_cases": 2,
+        "hard_negative_above_evidence": 0,
+        "security_violations": 0
+      },
+      "hybrid-rrf": {
+        "answerable_cases": 16,
+        "recall@5": {
+          "mean": 1.0,
+          "low": 1.0,
+          "high": 1.0
+        },
+        "recall@10": {
+          "mean": 1.0,
+          "low": 1.0,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.7729166666666667,
+          "low": 0.6166666666666667,
+          "high": 0.9083333333333333
+        },
+        "ndcg@10": {
+          "mean": 0.8299776292468072,
+          "low": 0.7139011205529088,
+          "high": 0.9307993287946483
+        },
+        "hard_negative_cases": 2,
+        "hard_negative_above_evidence": 0,
+        "security_violations": 0
+      },
+      "bm25-reference": {
+        "answerable_cases": 16,
+        "recall@5": {
+          "mean": 0.875,
+          "low": 0.6875,
+          "high": 1.0
+        },
+        "recall@10": {
+          "mean": 0.9375,
+          "low": 0.8125,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.6464285714285715,
+          "low": 0.4642857142857143,
+          "high": 0.8229166666666666
+        },
+        "ndcg@10": {
+          "mean": 0.7176278529819243,
+          "low": 0.5602664429315495,
+          "high": 0.8623497762648827
+        },
+        "hard_negative_cases": 2,
+        "hard_negative_above_evidence": 0,
+        "security_violations": 0
+      }
+    },
+    "test": {
+      "sparse-only": {
+        "answerable_cases": 47,
+        "recall@5": {
+          "mean": 0.8404255319148937,
+          "low": 0.7340425531914894,
+          "high": 0.9361702127659575
+        },
+        "recall@10": {
+          "mean": 0.9361702127659575,
+          "low": 0.851063829787234,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.6162445119891928,
+          "low": 0.5101823708206686,
+          "high": 0.7221040189125296
+        },
+        "ndcg@10": {
+          "mean": 0.6966978557804264,
+          "low": 0.6057410832586779,
+          "high": 0.7850302287684874
+        },
+        "hard_negative_cases": 16,
+        "hard_negative_above_evidence": 2,
+        "security_violations": 0
+      },
+      "dense-only": {
+        "answerable_cases": 47,
+        "recall@5": {
+          "mean": 0.925531914893617,
+          "low": 0.851063829787234,
+          "high": 0.9893617021276596
+        },
+        "recall@10": {
+          "mean": 0.9787234042553191,
+          "low": 0.9361702127659575,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.8603090172239108,
+          "low": 0.7743161094224925,
+          "high": 0.9352836879432624
+        },
+        "ndcg@10": {
+          "mean": 0.8907647580430248,
+          "low": 0.8195870722527542,
+          "high": 0.9499726024335629
+        },
+        "hard_negative_cases": 16,
+        "hard_negative_above_evidence": 2,
+        "security_violations": 0
+      },
+      "hybrid-rrf": {
+        "answerable_cases": 47,
+        "recall@5": {
+          "mean": 0.9574468085106383,
+          "low": 0.8936170212765957,
+          "high": 1.0
+        },
+        "recall@10": {
+          "mean": 0.9787234042553191,
+          "low": 0.9361702127659575,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.8101063829787235,
+          "low": 0.7198581560283689,
+          "high": 0.8925531914893617
+        },
+        "ndcg@10": {
+          "mean": 0.850435939182637,
+          "low": 0.7775929945835063,
+          "high": 0.914745949953231
+        },
+        "hard_negative_cases": 16,
+        "hard_negative_above_evidence": 2,
+        "security_violations": 0
+      },
+      "bm25-reference": {
+        "answerable_cases": 47,
+        "recall@5": {
+          "mean": 0.8829787234042553,
+          "low": 0.7872340425531915,
+          "high": 0.9574468085106383
+        },
+        "recall@10": {
+          "mean": 0.925531914893617,
+          "low": 0.851063829787234,
+          "high": 0.9893617021276596
+        },
+        "mrr@10": {
+          "mean": 0.7161347517730496,
+          "low": 0.6113475177304964,
+          "high": 0.8170212765957446
+        },
+        "ndcg@10": {
+          "mean": 0.7646280734780964,
+          "low": 0.6729359793652049,
+          "high": 0.850874996236454
+        },
+        "hard_negative_cases": 16,
+        "hard_negative_above_evidence": 3,
+        "security_violations": 0
+      }
+    }
+  },
+  "comparisons": [
+    {
+      "first": "sparse-only",
+      "second": "dense-only",
+      "cases": 47,
+      "recall@10": {
+        "mean": 0.0425531914893617,
+        "low": -0.0425531914893617,
+        "high": 0.1276595744680851,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": 0.244064505234718,
+        "low": 0.134709557581898,
+        "high": 0.3543819655521783,
+        "verdict": "better"
+      },
+      "ndcg@10": {
+        "mean": 0.19406690226259837,
+        "low": 0.10112859365377429,
+        "high": 0.28754897041249716,
+        "verdict": "better"
+      }
+    },
+    {
+      "first": "sparse-only",
+      "second": "hybrid-rrf",
+      "cases": 47,
+      "recall@10": {
+        "mean": 0.0425531914893617,
+        "low": 0.0,
+        "high": 0.10638297872340426,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": 0.1938618709895306,
+        "low": 0.11912360688956433,
+        "high": 0.27391084093211754,
+        "verdict": "better"
+      },
+      "ndcg@10": {
+        "mean": 0.15373808340221068,
+        "low": 0.09511868980383899,
+        "high": 0.21558774684382637,
+        "verdict": "better"
+      }
+    },
+    {
+      "first": "sparse-only",
+      "second": "bm25-reference",
+      "cases": 47,
+      "recall@10": {
+        "mean": -0.010638297872340425,
+        "low": -0.07446808510638298,
+        "high": 0.05319148936170213,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": 0.0998902397838568,
+        "low": 0.017975346166835528,
+        "high": 0.18277608915906787,
+        "verdict": "better"
+      },
+      "ndcg@10": {
+        "mean": 0.06793021769766999,
+        "low": 0.004206397810561621,
+        "high": 0.1322593266132472,
+        "verdict": "better"
+      }
+    },
+    {
+      "first": "dense-only",
+      "second": "hybrid-rrf",
+      "cases": 47,
+      "recall@10": {
+        "mean": 0.0,
+        "low": -0.06382978723404255,
+        "high": 0.06382978723404255,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": -0.050202634245187436,
+        "low": -0.12446808510638299,
+        "high": 0.026165146909827765,
+        "verdict": "no detectable difference"
+      },
+      "ndcg@10": {
+        "mean": -0.04032881886038771,
+        "low": -0.09757596149020838,
+        "high": 0.018055797019121148,
+        "verdict": "no detectable difference"
+      }
+    },
+    {
+      "first": "dense-only",
+      "second": "bm25-reference",
+      "cases": 47,
+      "recall@10": {
+        "mean": -0.05319148936170213,
+        "low": -0.13829787234042554,
+        "high": 0.02127659574468085,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": -0.1441742654508612,
+        "low": -0.25463525835866263,
+        "high": -0.03123100303951367,
+        "verdict": "worse"
+      },
+      "ndcg@10": {
+        "mean": -0.1261366845649284,
+        "low": -0.2213577445918525,
+        "high": -0.0307780089753276,
+        "verdict": "worse"
+      }
+    },
+    {
+      "first": "hybrid-rrf",
+      "second": "bm25-reference",
+      "cases": 47,
+      "recall@10": {
+        "mean": -0.05319148936170213,
+        "low": -0.1276595744680851,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": -0.09397163120567377,
+        "low": -0.18262411347517732,
+        "high": -0.010106382978723403,
+        "verdict": "worse"
+      },
+      "ndcg@10": {
+        "mean": -0.0858078657045407,
+        "low": -0.15712225314903472,
+        "high": -0.018246800766878696,
+        "verdict": "worse"
+      }
+    }
+  ],
+  "security_violations": 0
+}

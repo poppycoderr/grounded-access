@@ -6,17 +6,17 @@
 
 <p align="center">
     <b>Retrieval that applies authorization inside the search query, with a reproducible evaluation behind every retrieval change.</b><br/>
-    <b>Today:</b> tenant isolation in SQL, PostgreSQL FTS and exact pgvector search, an end-to-end demo benchmark. <b>Next:</b> hybrid ranking and the full attribute-based decision table.
+    <b>Today:</b> tenant isolation in SQL, sparse, dense and hybrid retrieval on PostgreSQL, a demo benchmark with confidence intervals. <b>Next:</b> the full attribute-based decision table.
 </p>
 
 <p align="center">
     <a href="https://github.com/poppycoderr/grounded-access/actions/workflows/build.yml"><img src="https://github.com/poppycoderr/grounded-access/actions/workflows/build.yml/badge.svg" alt="Build" /></a>
     <a href="./LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License" /></a>
-    <img src="https://img.shields.io/badge/status-M1a%20evaluation%20baseline-8B5CF6" alt="Status" />
+    <img src="https://img.shields.io/badge/status-M1b%20hybrid%20retrieval-8B5CF6" alt="Status" />
 </p>
 
 <p align="center">
-    <b>English</b> · <a href="./README.zh-CN.md">简体中文</a> · <a href="./docs/architecture/overview.md">Architecture</a> · <a href="./docs/evaluation/strategy.md">Evaluation</a> · <a href="./benchmarks/reports/m1a-baseline/report.md">Benchmark</a> · <a href="./docs/project/milestones.md">Milestones</a>
+    <b>English</b> · <a href="./README.zh-CN.md">简体中文</a> · <a href="./docs/architecture/overview.md">Architecture</a> · <a href="./docs/evaluation/strategy.md">Evaluation</a> · <a href="./benchmarks/reports/m1b-hybrid/report.md">Benchmark</a> · <a href="./docs/project/milestones.md">Milestones</a>
 </p>
 
 ---
@@ -46,7 +46,7 @@ The outsider gets no "permission denied", no hit count and no Northstar document
 | Authorization in the retrieval query | Tenant isolation, compiled once per request and carried by both channels | Clearance, department and project labels (M2) |
 | Retrieval | `sparse-only` (PostgreSQL FTS), `dense-only` (exact pgvector) and `hybrid-rrf` (reciprocal rank fusion with overlap deduplication); every response carries a plan hash | Cross-encoder reranking (M3) |
 | Ingestion | Asynchronous jobs (`202` + poll) with a `SKIP LOCKED` worker, bounded retry and resume; content-hash versioning; Markdown and plain-text chunking with sentence-level splitting and overlap; disable and delete apply to the next query, with background cleanup | – |
-| Evaluation | 70 cases over 21 documents, hard negatives, a BM25 reference row, bootstrap intervals and paired comparisons, security gate in CI | Hybrid in the same report (M1b), label-level authorization negatives (M2) |
+| Evaluation | 70 cases over 21 documents, hard negatives, a BM25 reference row, bootstrap intervals and paired comparisons, security gate in CI | Label-level authorization negatives (M2) |
 | Answers | Ranked evidence from `/api/v1/retrieval/search` | `/api/v1/query` with citations and abstention (M3) |
 | Operations | Docker Compose, CI on every PR | OpenTelemetry traces, audit events, dashboards (M2–M4) |
 
@@ -89,7 +89,7 @@ Today the predicate carries the tenant condition; M2 adds clearance, department 
 
 ## Retrieval evaluation
 
-[`benchmarks/reports/m1a-baseline/`](./benchmarks/reports/m1a-baseline/) holds the committed run: `run.json` (dataset version, commit, strategies, policy version, bootstrap seed, platform), `cases.jsonl` (per-case rankings) and the rendered `report.md`. Regenerate it with `./scripts/benchmark --out benchmarks/reports/<name>`.
+[`benchmarks/reports/m1b-hybrid/`](./benchmarks/reports/m1b-hybrid/) holds the committed run: `run.json` (dataset version, commit, strategies, policy version, bootstrap seed, platform), `cases.jsonl` (per-case rankings) and the rendered `report.md`. Regenerate it with `./scripts/benchmark --out benchmarks/reports/<name>`.
 
 `test` split, 47 answerable cases, 95% bootstrap intervals, produced by the CI runner (Linux x86_64):
 
@@ -97,13 +97,15 @@ Today the predicate carries the tenant condition; M2 adds clearance, department 
 |---|---|---|---|---|
 | `sparse-only` (PostgreSQL FTS) | 0.936 [0.85, 1.00] | 0.616 [0.51, 0.72] | 0.697 [0.61, 0.79] | **0** |
 | `dense-only` (pgvector, exact) | 0.979 [0.94, 1.00] | 0.860 [0.77, 0.94] | 0.891 [0.82, 0.95] | **0** |
+| `hybrid-rrf` (reciprocal rank fusion of the two) | 0.979 [0.94, 1.00] | 0.810 [0.72, 0.89] | 0.850 [0.78, 0.91] | **0** |
 | `bm25-reference` (offline, same authorized chunks) | 0.926 [0.85, 0.99] | 0.716 [0.61, 0.82] | 0.765 [0.67, 0.85] | **0** |
 
 What the paired comparisons support, and what they do not:
 
 - **Dense ranks the right evidence higher than FTS:** MRR@10 +0.24 [+0.13, +0.35]. Whether the evidence appears in the top 10 at all shows **no detectable difference** (Recall@10 +0.04 [−0.04, +0.13]).
 - **PostgreSQL FTS is measurably weaker than BM25:** MRR@10 +0.10 [+0.02, +0.18] for BM25. This is the gap ADR-0002 predicted from FTS having no corpus statistics, and it is why any future hybrid gain has to be read against the BM25 row, not only against FTS.
-- **Dense also beats BM25** on MRR@10 (+0.14). Hybrid ranking comes next (M1b) and will be judged on the same cases.
+- **Dense also beats BM25** on MRR@10 (+0.14).
+- **Hybrid does not beat dense.** MRR@10 −0.05 [−0.12, +0.03] against dense: no detectable difference, with the point estimate in favour of dense. Hybrid rescues cases dense gets badly wrong (Recall@5 0.957 against 0.926) but more often moves a correct first result down a place, because equal-weight fusion gives the weaker FTS channel the same vote. The [analysis](./docs/evaluation/m1b-hybrid-analysis.md) has the per-case breakdown. Nothing was tuned on the test split.
 
 The dataset is 21 fictional documents and 70 hand-checked cases, with 30 of the 63 answerable ones deliberately worded so they share almost no words with their evidence. It is a demo benchmark: it shows the method and the direction of the differences, not production quality. Keyword and BM25 rankings are identical on every machine; dense rankings can swap near-tied candidates between CPU architectures, which moves one case on a Mac (see [benchmarks/README.md](./benchmarks/README.md)). See the [dataset card](./data/eval/DATASET_CARD.md) for what it covers and what it does not.
 
@@ -167,7 +169,7 @@ Planned with M2: property-based tests over the decision table, a gate that check
 |---|---|---|
 | **M0** Walking skeleton | Demo identities, Markdown ingestion, sparse and dense retrieval, tenant isolation, eval CLI, CI smoke benchmark | ✅ Done |
 | **M1a** Evaluation baseline | 70-case dataset with hard negatives, BM25 reference, paired confidence intervals, concurrent-ingestion safety | ✅ Done |
-| **M1b** Hybrid retrieval | Async ingestion jobs, disable/delete and chunker v1 (done), RRF hybrid in the same report | ⏳ In progress |
+| **M1b** Hybrid retrieval | Async ingestion jobs, disable and delete, chunker v1, RRF hybrid with a published verdict | ✅ Done |
 | **M2** Authorization | Access labels, full decision table, scope filters, audit events, minimal trace metadata, threat model | Planned |
 | **M3** Reranking and answers | Cross-encoder reranking with fallback, context builder, structured citations, abstention | Planned |
 | **M4** Operations and release | Traces and dashboards, failure and load tests, v0.1 benchmark report | Planned |
