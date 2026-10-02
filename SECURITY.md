@@ -2,6 +2,8 @@
 
 Grounded Access is a reference system under active development. It has not been hardened for production use, and the demo identity setup (locally signed JWTs with a published demo key) is insecure by design.
 
+The [threat model](./docs/security/threat-model.md) lists what the system defends against, how each control is verified, and the risks it accepts.
+
 ## Reporting a vulnerability
 
 Please report vulnerabilities privately through [GitHub security advisories](https://github.com/poppycoderr/grounded-access/security/advisories/new) rather than in public issues.

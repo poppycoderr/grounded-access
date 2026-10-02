@@ -129,7 +129,7 @@ Guards in place today:
 - integration tests on real pgvector — each rule of the decision table on all three strategies, cross-tenant isolation, hostile claim values, invalid and under-scoped tokens;
 - the evaluation security gate — every returned chunk is checked for document and version against hand-labelled visibility, never against the compiler itself, and each principal's full chunk listing must match its visible set.
 
-Planned with M2: the threat model.
+The [threat model](./docs/security/threat-model.md) lists every control with the check that verifies it, and the risks that are accepted: above all, that the demo identity setup lets anyone mint any token.
 
 ## Retrieval evaluation
 
@@ -165,7 +165,7 @@ Evidence is labelled as a **document version plus a quote**, not a chunk id, so 
 
 | Capability | Today | Planned |
 |---|---|---|
-| Authorization in the retrieval query | Tenant, clearance, department and project rules compiled once per request into the SQL of every channel; region and validity scope compiled separately; both property-tested against a reference evaluator | Threat model (M2) |
+| Authorization in the retrieval query | Tenant, clearance, department and project rules compiled once per request into the SQL of every channel; region and validity scope compiled separately; both property-tested against a reference evaluator | A uniform "no answer" on the answering path (M3) |
 | Retrieval | `sparse-only` (PostgreSQL FTS), `dense-only` (exact pgvector) and `hybrid-rrf` (reciprocal rank fusion with overlap deduplication); every response carries a plan hash | Cross-encoder reranking (M3) |
 | Ingestion | Asynchronous jobs (`202` + poll) with a `SKIP LOCKED` worker, bounded retry and resume; content-hash versioning; Markdown and plain-text chunking with sentence-level splitting and overlap; disable and delete apply to the next query, with background cleanup | – |
 | Evaluation | 108 cases over 28 labelled documents: paraphrases, hard negatives and 30 authorization negatives; a BM25 reference row, bootstrap intervals and paired comparisons; a security gate in CI that checks every returned chunk and every principal's full listing | Scope and time-dependent cases (M2) |
@@ -209,7 +209,7 @@ io.groundedaccess
 |---|---|---|
 | **M0** Walking skeleton | Demo identities, Markdown ingestion, sparse and dense retrieval, tenant isolation, eval CLI, CI security gate | ✅ Done |
 | **M1** Retrieval baseline | Dataset with hard negatives, BM25 reference, confidence intervals; async ingestion, disable and delete, chunker v1; RRF hybrid with a published verdict | ✅ Done · `v0.1.0-alpha.1` |
-| **M2** Authorization | Done: full decision table, property-based tests, labelled dataset v2 and the stricter gate, scope filters with `asOf`, audit events, existence-safe document reads. Next: threat model, scope cases in the dataset | ⏳ In progress |
+| **M2** Authorization | Done: full decision table, property-based tests, labelled dataset v2 and the stricter gate, scope filters with `asOf`, audit events, existence-safe document reads, threat model. Next: scope cases in the dataset and the M2 report | ⏳ In progress |
 | **M3** Reranking and answers | Cross-encoder reranking with fallback, context builder, structured citations, abstention | Planned |
 | **M4** Operations and release | Traces and dashboards, failure and load tests, v0.1 benchmark report | Planned |
 
@@ -219,6 +219,7 @@ Not in the first phase: knowledge graphs or GraphRAG, autonomous agents, extra v
 
 - [Architecture overview](./docs/architecture/overview.md) — trust boundaries, data model, ingestion and query flows, failure behaviour
 - [Authorization model](./docs/architecture/authorization.md) — invariants, decision table, compiled SQL, what is verified today
+- [Threat model](./docs/security/threat-model.md) — assets, actors, abuse cases with their checks, residual risks
 - [Evaluation strategy](./docs/evaluation/strategy.md) — case schema, metrics, CI gates, reproducibility rules
 - [Architecture decisions](./docs/adr/) — modular monolith, PostgreSQL FTS + pgvector, retrieval-time authorization, the Python model service, what `asOf` means
 - [Milestones](./docs/project/milestones.md) and [open questions](./docs/project/open-questions.md)

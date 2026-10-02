@@ -78,7 +78,7 @@ A submission that changes only the labels creates a new version that takes over 
 
 - Tokens are JWTs signed by a local demo key. `scripts/mint-token <principal>` issues them from `data/principals.yaml`. The control plane only trusts the configured public key.
 - Claims: `sub`, `tenant_id`, `department`, `projects`, `clearance`, `region`, `scope`.
-- The limitations go in the threat model: there is no real IdP, no revocation, and the demo key is public. Integrating OIDC comes later.
+- The limitations are in the [threat model](../security/threat-model.md): there is no real IdP, no revocation, and the demo key is public. Integrating OIDC comes later.
 
 ## 5. Existence leakage
 
@@ -88,7 +88,7 @@ A submission that changes only the labels creates a new version that takes over 
 - Search responses never include "N results were filtered out". A keyword search that only hidden documents could answer is identical to one that nothing answers. A vector search always returns the nearest visible chunks, whatever the query, so its results say nothing about hidden content either.
 - Reads are audited as `allow` or `deny`. A `deny` does not record why, so the audit log does not become a list of which hidden documents exist either.
 - `status: "no_answer"` will be identical whether nothing was relevant or everything relevant was unauthorized (M3).
-- **Known residual risk:** a timing side channel, because an authorized hit, an unauthorized document and a missing one may take different amounts of time. v0.1 does not mitigate it and the threat model states this.
+- **Known residual risk:** a timing side channel, because an authorized hit, an unauthorized document and a missing one may take different amounts of time. v0.1 does not mitigate it; see the [threat model](../security/threat-model.md).
 
 ## 6. Caching
 
