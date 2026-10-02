@@ -1,6 +1,7 @@
 # Human-labelled expected visible documents per principal, written from the access labels in data/manifests and the attributes in
 # data/principals.yaml by reading them, not by running the policy compiler. The security gate compares what the system returns against this
-# file. Every listed document is visible in its current version only.
+# file. Every listed document is visible in its current version only. Visibility is about access only: a document that applies to another
+# region or another year is still listed here, because the principal is authorized to read it. Cases say what is out of scope.
 principals:
   # engineering, project atlas, clearance internal: the 17 unrestricted documents, the Atlas plan and the engineering-only standard
   alice-engineer:
@@ -23,6 +24,10 @@ principals:
     - sales-sla-credits
     - eng-atlas-migration-plan
     - eng-security-hardening
+    - hr-public-holidays-eu
+    - hr-public-holidays-us
+    - hr-travel-policy-2025
+    - hr-wellness-benefit-2099
   # support, no projects, clearance internal: the 17 unrestricted documents and the two support-department documents
   bob-support:
     - hr-volunteer-policy
@@ -44,6 +49,10 @@ principals:
     - sales-sla-credits
     - support-escalation-contacts
     - sales-pricing-guide
+    - hr-public-holidays-eu
+    - hr-public-holidays-us
+    - hr-travel-policy-2025
+    - hr-wellness-benefit-2099
   # engineering, projects atlas and borealis, clearance confidential: adds both confidential documents and both project documents
   carol-manager:
     - hr-volunteer-policy
@@ -67,6 +76,10 @@ principals:
     - eng-atlas-migration-plan
     - eng-borealis-launch-runbook
     - eng-security-hardening
+    - hr-public-holidays-eu
+    - hr-public-holidays-us
+    - hr-travel-policy-2025
+    - hr-wellness-benefit-2099
   # no department, no projects, clearance public: only the two public documents
   dave-contractor:
     - hr-volunteer-policy

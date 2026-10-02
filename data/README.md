@@ -5,10 +5,10 @@ Everything in this directory is fictional. Northstar Cloud and Orbit Labs do not
 | Path | Contents |
 |---|---|
 | `corpus/<tenant>/` | The documents themselves, in Markdown |
-| `manifests/<tenant>.yaml` | Document key, title, file, access labels and version history for ingestion |
+| `manifests/<tenant>.yaml` | Document key, title, file, access labels, scope (regions, validity) and version history for ingestion |
 | `principals.yaml` | Demo identities and the attributes that become token claims |
-| `eval/v2/cases.jsonl` | Evaluation cases: query, principal, evidence quotes, expectations, tags |
-| `eval/v2/visibility.yaml` | Hand-labelled visible documents per principal, used by the security gate |
+| `eval/v3/cases.jsonl` | Evaluation cases: query, principal, evidence quotes, expectations, tags |
+| `eval/v3/visibility.yaml` | Hand-labelled visible documents per principal, used by the security gate |
 | `demo-keys/` | The public demo signing key pair — insecure by design, local demos only |
 
 The corpus and the evaluation labels are published under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The code in this repository is Apache-2.0.
