@@ -129,7 +129,7 @@ Guards in place today:
 - integration tests on real pgvector — each rule of the decision table on all three strategies, cross-tenant isolation, hostile claim values, invalid and under-scoped tokens;
 - the evaluation security gate — every returned chunk is checked for document and version against hand-labelled visibility, never against the compiler itself, and each principal's full chunk listing must match its visible set.
 
-Planned with M2: audit events, existence-leakage behaviour and the threat model.
+Planned with M2: existence-leakage behaviour and the threat model.
 
 ## Retrieval evaluation
 
@@ -165,12 +165,12 @@ Evidence is labelled as a **document version plus a quote**, not a chunk id, so 
 
 | Capability | Today | Planned |
 |---|---|---|
-| Authorization in the retrieval query | Tenant, clearance, department and project rules compiled once per request into the SQL of every channel; region and validity scope compiled separately; both property-tested against a reference evaluator | Audit events (M2) |
+| Authorization in the retrieval query | Tenant, clearance, department and project rules compiled once per request into the SQL of every channel; region and validity scope compiled separately; both property-tested against a reference evaluator | Existence-leakage behaviour, threat model (M2) |
 | Retrieval | `sparse-only` (PostgreSQL FTS), `dense-only` (exact pgvector) and `hybrid-rrf` (reciprocal rank fusion with overlap deduplication); every response carries a plan hash | Cross-encoder reranking (M3) |
 | Ingestion | Asynchronous jobs (`202` + poll) with a `SKIP LOCKED` worker, bounded retry and resume; content-hash versioning; Markdown and plain-text chunking with sentence-level splitting and overlap; disable and delete apply to the next query, with background cleanup | – |
 | Evaluation | 108 cases over 28 labelled documents: paraphrases, hard negatives and 30 authorization negatives; a BM25 reference row, bootstrap intervals and paired comparisons; a security gate in CI that checks every returned chunk and every principal's full listing | Scope and time-dependent cases (M2) |
 | Answers | Ranked evidence from `/api/v1/retrieval/search` | `/api/v1/query` with citations and abstention (M3) |
-| Operations | Docker Compose, CI on every PR | OpenTelemetry traces, audit events, dashboards (M2–M4) |
+| Operations | Docker Compose, CI on every PR; a trace id per request, audit events and execution records written synchronously and failing closed | OpenTelemetry traces, dashboards (M4) |
 
 Design goals that are **not** yet verified end to end, and the milestone that will verify them: hiding the existence of content a principal may not see (M2–M3), attribute-based access decisions (M2), answers that cite only what the model was shown (M3).
 
@@ -209,7 +209,7 @@ io.groundedaccess
 |---|---|---|
 | **M0** Walking skeleton | Demo identities, Markdown ingestion, sparse and dense retrieval, tenant isolation, eval CLI, CI security gate | ✅ Done |
 | **M1** Retrieval baseline | Dataset with hard negatives, BM25 reference, confidence intervals; async ingestion, disable and delete, chunker v1; RRF hybrid with a published verdict | ✅ Done · `v0.1.0-alpha.1` |
-| **M2** Authorization | Done: full decision table, property-based tests, labelled dataset v2 and the stricter gate, scope filters with `asOf`. Next: audit events, existence-leakage behaviour, threat model | ⏳ In progress |
+| **M2** Authorization | Done: full decision table, property-based tests, labelled dataset v2 and the stricter gate, scope filters with `asOf`, audit events. Next: existence-leakage behaviour, threat model | ⏳ In progress |
 | **M3** Reranking and answers | Cross-encoder reranking with fallback, context builder, structured citations, abstention | Planned |
 | **M4** Operations and release | Traces and dashboards, failure and load tests, v0.1 benchmark report | Planned |
 

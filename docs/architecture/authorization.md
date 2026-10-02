@@ -14,7 +14,7 @@ These are the properties the design commits to. The table after them says which 
 
 | Invariant | Verified today | Verified by | Gap and milestone |
 |---|---|---|---|
-| Security | The full decision table | The evaluation security gate: 30 authorization negatives, every returned chunk checked for document and version against hand-labelled visibility, and each principal's full listing compared with its visible set. A property-based test that compares every query path with a separate reference evaluator over random principals and labels; integration tests per rule on all three strategies; an architecture test that only `AuthorizedChunkQuery` reads chunks | Chunk-level labels (v0.2). Audit of decisions (M2.5) |
+| Security | The full decision table | The evaluation security gate: 30 authorization negatives, every returned chunk checked for document and version against hand-labelled visibility, and each principal's full listing compared with its visible set. A property-based test that compares every query path with a separate reference evaluator over random principals and labels; integration tests per rule on all three strategies; an architecture test that only `AuthorizedChunkQuery` reads chunks | Chunk-level labels (v0.2) |
 | Recall | By construction | No ANN index exists, so every authorized row is a candidate | A measured comparison of exact search against a filtered HNSW index, once an index exists (post-v0.1, ADR-0002) |
 | Existence | Partially | Retrieval returns no filtered counts and no metadata for rows the predicate excluded; ingestion jobs and document changes answer 404 for another tenant's ids and keys, the same as for unknown ones | A document read endpoint returning 404, an answering path with a uniform `no_answer`, and timing side channels (M2–M3, threat model) |
 
@@ -66,7 +66,7 @@ AND (cardinality(v.required_projects)  = 0 OR v.required_projects && CAST(:auth_
 - A missing or unknown clearance claim binds the lowest rank. A mistyped claim can never widen access.
 - The project list is bound as one array literal with every element quoted, so commas, braces and quotes inside a value stay data.
 
-Every chunk query (sparse, dense and the chunk listing) embeds the **same** predicate object. `policy_version` is `abac/1` and is returned with every result; it will also be written to `query_execution` and `audit_event` (M2.5).
+Every chunk query (sparse, dense and the chunk listing) embeds the **same** predicate object. `policy_version` is `abac/1` and is returned with every result; it is also written to `query_execution` and `audit_event`.
 
 ### Labels and versions
 
