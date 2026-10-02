@@ -62,6 +62,10 @@ def main(argv: list[str] | None = None) -> int:
     if violations:
         print(f"SECURITY GATE FAILED: {violations} unauthorized results", file=sys.stderr)
         return 2
+    scope_failures = output["run"]["scope_failures"]
+    if scope_failures:
+        print(f"SCOPE CHECK FAILED: {scope_failures} results outside the scope of their request", file=sys.stderr)
+        return 3
     return 0
 
 
@@ -110,7 +114,14 @@ def _document(dataset: ds.Dataset, document: ds.ManifestDocument, version: ds.Ma
         "classification": version.classification,
         "allowedDepartments": version.allowed_departments,
         "requiredProjects": version.required_projects,
+        "appliesToRegions": version.applies_to_regions,
+        "validFrom": _instant(version.valid_from),
+        "validTo": _instant(version.valid_to),
     }
+
+
+def _instant(moment: datetime | None) -> str | None:
+    return moment.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ") if moment else None
 
 
 def _format(file: str) -> str:

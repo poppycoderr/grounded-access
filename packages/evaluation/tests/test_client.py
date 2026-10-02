@@ -1,3 +1,5 @@
+import json
+
 import httpx
 import pytest
 
@@ -45,3 +47,18 @@ def test_ingest_gives_up_after_the_timeout() -> None:
 
     with pytest.raises(TimeoutError, match="still"):
         client.ingest("token", [], timeout_seconds=0)
+
+
+def test_search_sends_the_scope_only_when_a_case_sets_one() -> None:
+    seen: list[dict] = []
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        seen.append(json.loads(request.content))
+        return httpx.Response(200, json={"results": []})
+
+    client = ApiClient("http://control-plane", transport=httpx.MockTransport(handle))
+    client.search("token", "q", "dense-only", 10)
+    client.search("token", "q", "dense-only", 10, "2025-06-01T00:00:00Z", "US")
+
+    assert seen[0] == {"query": "q", "strategy": "dense-only", "k": 10}
+    assert seen[1] == {"query": "q", "strategy": "dense-only", "k": 10, "asOf": "2025-06-01T00:00:00Z", "region": "US"}

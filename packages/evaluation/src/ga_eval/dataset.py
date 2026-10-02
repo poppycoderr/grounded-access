@@ -1,6 +1,7 @@
 """Evaluation dataset: manifests, documents, cases and visibility labels, plus validation against the corpus text."""
 
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Literal
 
@@ -26,7 +27,9 @@ class Evidence(BaseModel):
 
 
 class Case(BaseModel):
-    """Time semantics (a historical `as_of`) are deliberately absent until Q11 decides what they mean end to end."""
+    """One evaluation case. `as_of` and `region` are the scope of the request (ADR-0005): `as_of` filters current versions by their validity
+    window and defaults to now; `region` defaults to the principal's region. `out_of_scope_documents` are documents the principal may read
+    but that do not apply to this request; returning one is a scope failure, which is counted apart from security violations."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -39,11 +42,15 @@ class Case(BaseModel):
     must_abstain: bool
     unauthorized_documents: list[str]
     hard_negative_documents: list[str]
+    out_of_scope_documents: list[str] = []
+    as_of: datetime | None = None
+    region: str | None = None
     tags: list[str]
 
 
 class ManifestVersion(BaseModel):
-    """One version of a document: its file and who may read it. Missing labels mean public and unrestricted."""
+    """One version of a document: its file, who may read it, and where and when it applies. Missing labels mean public and unrestricted;
+    missing scope means everywhere and always."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -51,6 +58,9 @@ class ManifestVersion(BaseModel):
     classification: Literal["public", "internal", "confidential", "restricted"] = "public"
     allowed_departments: list[str] = []
     required_projects: list[str] = []
+    applies_to_regions: list[str] = []
+    valid_from: datetime | None = None
+    valid_to: datetime | None = None
 
 
 class ManifestDocument(ManifestVersion):
@@ -97,7 +107,7 @@ class Dataset:
         return Span(evidence.document, evidence.version, start, start + len(evidence.quote))
 
 
-def load(root: Path, version: str = "v2") -> Dataset:
+def load(root: Path, version: str = "v3") -> Dataset:
     manifests = [Manifest.model_validate(yaml.safe_load(p.read_text())) for p in sorted((root / "manifests").glob("*.yaml"))]
     texts: dict[str, str] = {}
     current_version: dict[str, int] = {}
@@ -177,6 +187,11 @@ def validate(dataset: Dataset) -> list[str]:
             elif doc in visible:
                 problems.append(f"{where}: {doc} is listed as unauthorized but is visible to {case.principal}")
         problems += [f"{where}: unknown hard negative {doc}" for doc in case.hard_negative_documents if doc not in dataset.texts]
+        for doc in case.out_of_scope_documents:
+            if doc not in visible:
+                problems.append(f"{where}: {doc} is listed as out of scope but is not visible to {case.principal}; that is an authorization case")
+            elif any(e.document == doc for e in case.evidence):
+                problems.append(f"{where}: {doc} is both evidence and out of scope")
     bands = overlap_bands(dataset)
     answerable = sum(len(ids) for ids in bands.values())
     if answerable and len(bands["low"]) / answerable < MIN_LOW_OVERLAP_SHARE:

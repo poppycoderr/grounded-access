@@ -87,3 +87,18 @@ def test_requires_enough_authorization_negatives(data):
 def test_documents_with_a_history_count_their_versions(data):
     assert data.current_version["sales-pricing-guide"] == 2
     assert data.current_version["hr-travel-policy"] == 1
+
+
+def test_an_out_of_scope_document_must_be_one_the_principal_may_read(data):
+    case = next(c for c in data.cases if c.id == "scope-holidays-eu-109")
+    hidden = case.model_copy(update={"out_of_scope_documents": ["hr-compensation-bands"]})
+
+    assert any("that is an authorization case" in problem for problem in ds.validate(replace(data, cases=[hidden])))
+
+
+def test_scope_cases_carry_their_date_and_region(data):
+    past = next(c for c in data.cases if c.id == "scope-meal-2025-116")
+    override = next(c for c in data.cases if c.id == "scope-holidays-override-111")
+
+    assert past.as_of is not None and past.as_of.year == 2025
+    assert override.region == "US"

@@ -14,7 +14,7 @@ class ListingOnlyClient:
     def __init__(self, versions: list[str]) -> None:
         self._versions = versions
 
-    def list_chunks(self, token: str) -> tuple[str, list[dict]]:
+    def list_chunks(self, token: str, *scope: object, **options: object) -> tuple[str, list[dict]]:
         return "abac/1", [
             {"documentKey": "hr-volunteer-policy", "versionNo": 1, "charStart": 0, "charEnd": 1, "text": "", "chunkerVersion": v}
             for v in self._versions
@@ -76,3 +76,17 @@ def test_a_principal_that_cannot_list_a_visible_document_aborts_the_run():
 
 def test_a_run_records_the_cpu_that_produced_it():
     assert runner.cpu_model().strip()
+
+
+def test_a_readable_document_outside_the_requests_scope_is_a_scope_failure_not_a_violation():
+    data = ds.load(DATA)
+    case = next(c for c in data.cases if c.id == "scope-holidays-eu-109")
+    wrong_region = [runner.Result("hr-public-holidays-us", 1, 0, 10, 1), runner.Result("hr-public-holidays-eu", 1, 0, 10, 2)]
+
+    record = runner._record(
+        case, "dense-only", wrong_region, [data.span(e) for e in case.evidence], data.visibility[case.principal], data.current_version
+    )
+
+    assert record["scope_failures"] == ["hr-public-holidays-us"]
+    assert record["violations"] == []
+    assert record["scoped"] is True
