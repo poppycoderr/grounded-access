@@ -129,7 +129,7 @@ curl -s localhost:8080/api/v1/retrieval/search -H "Authorization: Bearer $TOKEN"
 - 真实 pgvector 上的集成测试——决策表的每条规则在三种策略上的表现、跨租户隔离、恶意的 claim 值、无效与权限不足的 token；
 - 评测安全门禁——每个返回的 chunk 都按文档和版本与人工标注的可见集合比较，绝不与编译器自己比较；每个身份能列出的全部 chunk 也必须与它的可见集合一致。
 
-M2 计划补上：威胁模型。
+[威胁模型](./docs/security/threat-model.md)列出了每一项控制措施和验证它的检查，也列出了被接受的风险：首先就是 demo 身份方案允许任何人签发任意 token。
 
 ## 检索评测
 
@@ -165,7 +165,7 @@ M2 计划补上：威胁模型。
 
 | 能力 | 当前可用 | 计划中 |
 |---|---|---|
-| 检索查询内的授权 | 租户、密级、部门、项目四条规则，每次请求编译一次，写进每条通道的 SQL；region 与有效期作为适用范围单独编译；两者都用基于属性的测试对照参考实现验证 | 威胁模型（M2） |
+| 检索查询内的授权 | 租户、密级、部门、项目四条规则，每次请求编译一次，写进每条通道的 SQL；region 与有效期作为适用范围单独编译；两者都用基于属性的测试对照参考实现验证 | 回答链路上一致的「无法回答」（M3） |
 | 检索 | `sparse-only`（PostgreSQL FTS）、`dense-only`（pgvector 精确检索）与 `hybrid-rrf`（RRF 融合并去除重叠 chunk）；每个响应带检索配置哈希 | cross-encoder 重排（M3） |
 | 入库 | 异步任务（`202` + 轮询），`SKIP LOCKED` worker、有限重试与断点续跑；内容哈希版本管理；Markdown 与纯文本切分，按句拆分长段落并带重叠；停用与删除对下一次查询生效，后台清理 | – |
 | 评测 | 28 篇带标签的文档、108 条用例：改写、hard negatives 与 30 条授权负例；BM25 参考行、bootstrap 置信区间与配对比较；CI 安全门禁逐个检查返回的 chunk 和每个身份的完整可见列表 | 适用范围与时间相关的用例（M2） |
@@ -209,7 +209,7 @@ io.groundedaccess
 |---|---|---|
 | **M0** Walking skeleton | demo 身份、Markdown 入库、sparse 与 dense 检索、租户隔离、评测 CLI、CI 安全门禁 | ✅ 已完成 |
 | **M1** 检索基线 | 带 hard negatives 的数据集、BM25 参考行、置信区间；异步入库、停用与删除、chunker v1；RRF hybrid 及公开结论 | ✅ 已完成 · `v0.1.0-alpha.1` |
-| **M2** 授权 | 已完成：完整决策表、基于属性的测试、带标签的数据集 v2 和更严格的门禁、带 `asOf` 的适用范围过滤、审计事件、不泄漏存在性的文档读取。接下来：威胁模型、数据集里的适用范围用例 | ⏳ 进行中 |
+| **M2** 授权 | 已完成：完整决策表、基于属性的测试、带标签的数据集 v2 和更严格的门禁、带 `asOf` 的适用范围过滤、审计事件、不泄漏存在性的文档读取、威胁模型。接下来：数据集里的适用范围用例和 M2 报告 | ⏳ 进行中 |
 | **M3** 重排与回答 | 带降级的 cross-encoder 重排、上下文构建、结构化引用、拒答 | 计划中 |
 | **M4** 运维与发布 | trace 与 dashboard、故障与压力测试、v0.1 benchmark 报告 | 计划中 |
 
@@ -219,6 +219,7 @@ io.groundedaccess
 
 - [架构总览](./docs/architecture/overview.md)——信任边界、数据模型、入库与查询链路、故障行为
 - [授权模型](./docs/architecture/authorization.md)——不变量、决策表、编译后的 SQL、当前已验证的范围
+- [威胁模型](./docs/security/threat-model.md)——资产、参与者、滥用场景及其验证方式、残余风险
 - [评测策略](./docs/evaluation/strategy.md)——用例格式、指标、CI 门禁、可复现规则
 - [架构决策记录](./docs/adr/)——模块化单体、PostgreSQL FTS + pgvector、检索时授权、Python 模型服务、`asOf` 的含义
 - [里程碑](./docs/project/milestones.md)与[待决问题](./docs/project/open-questions.md)
