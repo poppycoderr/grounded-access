@@ -6,6 +6,7 @@ import io.groundedaccess.corpus.Vectors;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
@@ -79,6 +80,26 @@ public class AuthorizedChunkQuery {
         }
         return statement.query((rs, rowNum) -> new AuthorizedChunk(rs.getObject(1, UUID.class), rs.getString(2), rs.getInt(3), rs.getString(4),
                 rs.getString(5), rs.getInt(6), rs.getInt(7), rs.getInt(8), rs.getString(9), rs.getString(10))).list();
+    }
+
+    /**
+     * The document with this key, if the predicate admits it. It is answered from the same join and the same predicate as every search, so a
+     * document is readable here exactly when its chunks are retrievable: an unauthorized, disabled, deleted or unknown key all give no row.
+     */
+    public Optional<AuthorizedDocument> document(String key, AuthorizationPredicate predicate) {
+        String sql = """
+                select d.external_key, v.title, v.version_no
+                from chunk c
+                join document d on d.active_version_id = c.version_id and d.status = 'active'
+                join document_version v on v.id = c.version_id
+                where (%s) and d.external_key = :document_key
+                limit 1
+                """.formatted(predicate.sql());
+        return jdbc.sql(sql)
+                .params(predicate.parameters())
+                .param("document_key", key)
+                .query((rs, rowNum) -> new AuthorizedDocument(rs.getString(1), rs.getString(2), rs.getInt(3)))
+                .optional();
     }
 
     private List<RetrievedChunk> run(String sql, AuthorizationPredicate predicate, Scope scope, boolean sparse, int limit, String name,

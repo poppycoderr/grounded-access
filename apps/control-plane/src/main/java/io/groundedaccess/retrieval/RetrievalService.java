@@ -14,6 +14,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
@@ -64,6 +65,17 @@ public class RetrievalService {
         List<AuthorizedChunk> page = more ? rows.subList(0, limit) : rows;
         audit.recordListing(principal, TraceContext.current(), predicate.policyVersion(), page.size(), scope.asOf() != null);
         return new ChunkPage(predicate.policyVersion(), page, more ? page.getLast().cursor() : null);
+    }
+
+    /**
+     * The metadata of one document, under the same predicate as search. Scope is not applied: this answers whether the principal may read the
+     * document, not whether it applies to a region or a date. Both outcomes are audited.
+     */
+    public Optional<AuthorizedDocument> document(Principal principal, String key) {
+        AuthorizationPredicate predicate = policyCompiler.compile(principal);
+        Optional<AuthorizedDocument> document = chunks.document(key, predicate);
+        audit.recordDocumentRead(principal, TraceContext.current(), key, predicate.policyVersion(), document.isPresent());
+        return document;
     }
 
     /**
