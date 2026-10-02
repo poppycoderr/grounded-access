@@ -1,6 +1,7 @@
 package io.groundedaccess.retrieval;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Ranked authorized candidates together with the plan and policy that produced them. {@code degraded} names the parts of the plan that could
@@ -16,5 +17,9 @@ public record RetrievalResult(
 
         List<String> degraded,
 
-        Scope scope) {
+        Scope scope,
+
+        UUID executionId,
+
+        String traceId) {
 }

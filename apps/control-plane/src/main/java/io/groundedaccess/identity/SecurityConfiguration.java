@@ -40,6 +40,7 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/documents/*").hasAuthority("SCOPE_admin")
                         .requestMatchers(HttpMethod.GET, "/api/v1/retrieval/chunks").hasAllAuthorities("SCOPE_query", "SCOPE_debug")
                         .requestMatchers("/api/v1/retrieval/**").hasAuthority("SCOPE_query")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/query-executions/*").hasAuthority("SCOPE_query")
                         .anyRequest().denyAll())
                 .oauth2ResourceServer(server -> server.jwt(jwt -> { }));
         return http.build();

@@ -6,6 +6,7 @@ import io.groundedaccess.retrieval.RetrievalStrategy;
 import io.groundedaccess.retrieval.Scope;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
 
@@ -26,10 +27,14 @@ public record SearchResponse(
 
         Scope scope,
 
+        UUID executionId,
+
+        String traceId,
+
         List<SearchResultResponse> results) {
 
     static SearchResponse from(RetrievalResult result, boolean debug) {
-        return new SearchResponse(result.plan().strategy(), result.policyVersion(), result.plan().hash(), debug ? result.plan() : null, result.degraded(), result.scope(),
+        return new SearchResponse(result.plan().strategy(), result.policyVersion(), result.plan().hash(), debug ? result.plan() : null, result.degraded(), result.scope(), result.executionId(), result.traceId(),
                 result.chunks().stream().map(c -> SearchResultResponse.from(c, debug)).toList());
     }
 }

@@ -1,5 +1,7 @@
 package io.groundedaccess.api;
 
+import io.groundedaccess.audit.AuditUnavailableException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -27,6 +29,14 @@ public class ApiExceptionHandler {
     ProblemDetail notFound(NotFoundException exception) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
         problem.setProperty("code", "NOT_FOUND");
+        return problem;
+    }
+
+    @ExceptionHandler(AuditUnavailableException.class)
+    ProblemDetail auditUnavailable(AuditUnavailableException exception) {
+        log.error("Audit write failed, request refused: {}", String.valueOf(exception.getCause()));
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, "The request could not be audited and was not carried out");
+        problem.setProperty("code", "AUDIT_UNAVAILABLE");
         return problem;
     }
 
