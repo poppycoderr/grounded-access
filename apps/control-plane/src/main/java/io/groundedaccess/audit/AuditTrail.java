@@ -25,7 +25,7 @@ public class AuditTrail {
 
     private static final String EVENT = """
             insert into audit_event (id, tenant_id, principal_id, action, resource_type, resource_id, decision, policy_version, trace_id, attributes)
-            values (:id, :tenant, :principal, :action, :resourceType, :resourceId, 'allow', :policyVersion, :trace, %s)
+            values (:id, :tenant, :principal, :action, :resourceType, :resourceId, :decision, :policyVersion, :trace, %s)
             """;
 
     private final JdbcClient jdbc;
@@ -75,6 +75,7 @@ public class AuditTrail {
                     .param("action", "retrieval.search")
                     .param("resourceType", "query_execution")
                     .param("resourceId", executionId.toString())
+                    .param("decision", "allow")
                     .param("policyVersion", search.policyVersion())
                     .param("trace", search.traceId())
                     .param("strategy", search.strategy())
@@ -94,12 +95,12 @@ public class AuditTrail {
      * The debug listing discloses every chunk a principal may read, so each page is recorded with its size and whether scope was applied.
      */
     public void recordListing(Principal principal, String traceId, String policyVersion, int chunkCount, boolean scoped) {
-        event(principal, traceId, "retrieval.list_chunks", "chunk_listing", principal.tenantId(), policyVersion,
+        event(principal, traceId, "retrieval.list_chunks", "chunk_listing", principal.tenantId(), "allow", policyVersion,
                 "jsonb_build_object('chunkCount', cast(:count as int), 'scoped', cast(:scoped as boolean))", Map.of("count", chunkCount, "scoped", scoped));
     }
 
     public void recordIngestionSubmitted(Principal principal, String traceId, UUID jobId, List<String> documentKeys) {
-        event(principal, traceId, "ingestion.submit", "ingestion_job", jobId.toString(), null,
+        event(principal, traceId, "ingestion.submit", "ingestion_job", jobId.toString(), "allow", null,
                 "jsonb_build_object('documents', to_jsonb(cast(:documents as text[])))", Map.of("documents", TextArrays.literal(documentKeys)));
     }
 
@@ -107,7 +108,16 @@ public class AuditTrail {
      * A status change or deletion of a document. {@code outcome} is the status after the change.
      */
     public void recordDocumentChange(Principal principal, String traceId, String action, String documentKey, String outcome) {
-        event(principal, traceId, action, "document", documentKey, null, "jsonb_build_object('status', cast(:status as text))", Map.of("status", outcome));
+        event(principal, traceId, action, "document", documentKey, "allow", null, "jsonb_build_object('status', cast(:status as text))",
+                Map.of("status", outcome));
+    }
+
+    /**
+     * A read of one document's metadata. {@code deny} means the document was not visible to the principal; the event does not say whether it
+     * exists, and neither does the response. The key must already be validated, because it is stored as the resource id.
+     */
+    public void recordDocumentRead(Principal principal, String traceId, String documentKey, String policyVersion, boolean visible) {
+        event(principal, traceId, "document.read", "document", documentKey, visible ? "allow" : "deny", policyVersion, "jsonb_build_object()", Map.of());
     }
 
     /**
@@ -127,7 +137,8 @@ public class AuditTrail {
                 .optional();
     }
 
-    private void event(Principal principal, String traceId, String action, String resourceType, String resourceId, @Nullable String policyVersion,
+    private void event(Principal principal, String traceId, String action, String resourceType, String resourceId, String decision,
+            @Nullable String policyVersion,
             String attributes, Map<String, Object> values) {
         guarded(() -> jdbc.sql(EVENT.formatted(attributes))
                 .param("id", UUID.randomUUID())
@@ -136,6 +147,7 @@ public class AuditTrail {
                 .param("action", action)
                 .param("resourceType", resourceType)
                 .param("resourceId", resourceId)
+                .param("decision", decision)
                 .param("policyVersion", policyVersion)
                 .param("trace", traceId)
                 .params(values)
