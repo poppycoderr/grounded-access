@@ -1,0 +1,461 @@
+{
+  "dataset_version": "v3",
+  "git_sha": "8ccf91a",
+  "created_at": "2026-10-02T17:43:37+00:00",
+  "strategies": [
+    "sparse-only",
+    "dense-only",
+    "hybrid-rrf",
+    "bm25-reference"
+  ],
+  "reference_strategies": [
+    "bm25-reference"
+  ],
+  "k": 10,
+  "splits": [
+    "dev",
+    "test"
+  ],
+  "case_count": 122,
+  "policy_versions": [
+    "abac/1"
+  ],
+  "chunker_versions": [
+    "markdown/2"
+  ],
+  "plans": {
+    "sparse-only": {
+      "e09e5b51cd5c36ac": {
+        "strategy": "sparse-only",
+        "k": 10,
+        "candidates": 50,
+        "rrfK": null,
+        "dedupeOverlaps": true
+      }
+    },
+    "dense-only": {
+      "d489d865e16bcda9": {
+        "strategy": "dense-only",
+        "k": 10,
+        "candidates": 50,
+        "rrfK": null,
+        "dedupeOverlaps": true
+      }
+    },
+    "hybrid-rrf": {
+      "bd71e8ef3c45267b": {
+        "strategy": "hybrid-rrf",
+        "k": 10,
+        "candidates": 50,
+        "rrfK": 60,
+        "dedupeOverlaps": true
+      }
+    }
+  },
+  "visibility_check": {
+    "alice-engineer": {
+      "visible_documents": 23,
+      "listed_chunks": 89,
+      "violations": []
+    },
+    "bob-support": {
+      "visible_documents": 23,
+      "listed_chunks": 89,
+      "violations": []
+    },
+    "carol-manager": {
+      "visible_documents": 25,
+      "listed_chunks": 97,
+      "violations": []
+    },
+    "dave-contractor": {
+      "visible_documents": 2,
+      "listed_chunks": 8,
+      "violations": []
+    },
+    "mallory-outsider": {
+      "visible_documents": 4,
+      "listed_chunks": 12,
+      "violations": []
+    }
+  },
+  "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+  "cpu": "AMD EPYC 7763 64-Core Processor",
+  "bootstrap": {
+    "samples": 10000,
+    "seed": 20260921,
+    "confidence": 0.95
+  },
+  "summary": {
+    "dev": {
+      "sparse-only": {
+        "answerable_cases": 22,
+        "recall@5": {
+          "mean": 0.9090909090909091,
+          "low": 0.7727272727272727,
+          "high": 1.0
+        },
+        "recall@10": {
+          "mean": 1.0,
+          "low": 1.0,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.6501262626262626,
+          "low": 0.5005050505050505,
+          "high": 0.8007575757575758
+        },
+        "ndcg@10": {
+          "mean": 0.7338337665354523,
+          "low": 0.6185343623297591,
+          "high": 0.8490984396643985
+        },
+        "hard_negative_cases": 3,
+        "hard_negative_above_evidence": 0,
+        "security_violations": 0,
+        "scope_cases": 3,
+        "scope_failures": 0
+      },
+      "dense-only": {
+        "answerable_cases": 22,
+        "recall@5": {
+          "mean": 0.9545454545454546,
+          "low": 0.8636363636363636,
+          "high": 1.0
+        },
+        "recall@10": {
+          "mean": 0.9545454545454546,
+          "low": 0.8636363636363636,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.8636363636363636,
+          "low": 0.7272727272727273,
+          "high": 0.9696969696969696
+        },
+        "ndcg@10": {
+          "mean": 0.8863636363636364,
+          "low": 0.7727272727272727,
+          "high": 0.9772727272727273
+        },
+        "hard_negative_cases": 3,
+        "hard_negative_above_evidence": 0,
+        "security_violations": 0,
+        "scope_cases": 3,
+        "scope_failures": 0
+      },
+      "hybrid-rrf": {
+        "answerable_cases": 22,
+        "recall@5": {
+          "mean": 1.0,
+          "low": 1.0,
+          "high": 1.0
+        },
+        "recall@10": {
+          "mean": 1.0,
+          "low": 1.0,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.8121212121212121,
+          "low": 0.6909090909090909,
+          "high": 0.9242424242424242
+        },
+        "ndcg@10": {
+          "mean": 0.8595714464327441,
+          "low": 0.7686623555236533,
+          "high": 0.9437208866883143
+        },
+        "hard_negative_cases": 3,
+        "hard_negative_above_evidence": 0,
+        "security_violations": 0,
+        "scope_cases": 3,
+        "scope_failures": 0
+      },
+      "bm25-reference": {
+        "answerable_cases": 22,
+        "recall@5": {
+          "mean": 0.9090909090909091,
+          "low": 0.7727272727272727,
+          "high": 1.0
+        },
+        "recall@10": {
+          "mean": 0.9545454545454546,
+          "low": 0.8636363636363636,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.6587121212121212,
+          "low": 0.509090909090909,
+          "high": 0.8087121212121212
+        },
+        "ndcg@10": {
+          "mean": 0.731595770215211,
+          "low": 0.606056701708715,
+          "high": 0.8528117957792234
+        },
+        "hard_negative_cases": 3,
+        "hard_negative_above_evidence": 0,
+        "security_violations": 0,
+        "scope_cases": 3,
+        "scope_failures": 0
+      }
+    },
+    "test": {
+      "sparse-only": {
+        "answerable_cases": 65,
+        "recall@5": {
+          "mean": 0.8384615384615385,
+          "low": 0.7461538461538462,
+          "high": 0.9230769230769231
+        },
+        "recall@10": {
+          "mean": 0.9230769230769231,
+          "low": 0.8461538461538461,
+          "high": 0.9846153846153847
+        },
+        "mrr@10": {
+          "mean": 0.6825091575091575,
+          "low": 0.5902014652014652,
+          "high": 0.7705128205128206
+        },
+        "ndcg@10": {
+          "mean": 0.7420813202776839,
+          "low": 0.661532948666494,
+          "high": 0.8171068726992746
+        },
+        "hard_negative_cases": 26,
+        "hard_negative_above_evidence": 8,
+        "security_violations": 0,
+        "scope_cases": 10,
+        "scope_failures": 0
+      },
+      "dense-only": {
+        "answerable_cases": 65,
+        "recall@5": {
+          "mean": 0.9307692307692308,
+          "low": 0.8692307692307693,
+          "high": 0.9846153846153847
+        },
+        "recall@10": {
+          "mean": 0.9692307692307692,
+          "low": 0.9230769230769231,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.8731379731379731,
+          "low": 0.8018315018315019,
+          "high": 0.9358974358974359
+        },
+        "ndcg@10": {
+          "mean": 0.8977155191830833,
+          "low": 0.8370389399823939,
+          "high": 0.9505473618681346
+        },
+        "hard_negative_cases": 26,
+        "hard_negative_above_evidence": 9,
+        "security_violations": 0,
+        "scope_cases": 10,
+        "scope_failures": 0
+      },
+      "hybrid-rrf": {
+        "answerable_cases": 65,
+        "recall@5": {
+          "mean": 0.9538461538461539,
+          "low": 0.8923076923076924,
+          "high": 1.0
+        },
+        "recall@10": {
+          "mean": 0.9692307692307692,
+          "low": 0.9230769230769231,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.8216666666666667,
+          "low": 0.7441025641025641,
+          "high": 0.891025641025641
+        },
+        "ndcg@10": {
+          "mean": 0.8570073575219009,
+          "low": 0.7937250123172325,
+          "high": 0.9141636500314556
+        },
+        "hard_negative_cases": 26,
+        "hard_negative_above_evidence": 8,
+        "security_violations": 0,
+        "scope_cases": 10,
+        "scope_failures": 0
+      },
+      "bm25-reference": {
+        "answerable_cases": 65,
+        "recall@5": {
+          "mean": 0.8692307692307693,
+          "low": 0.7846153846153846,
+          "high": 0.9461538461538461
+        },
+        "recall@10": {
+          "mean": 0.9307692307692308,
+          "low": 0.8692307692307693,
+          "high": 0.9846153846153847
+        },
+        "mrr@10": {
+          "mean": 0.7196153846153845,
+          "low": 0.6330769230769231,
+          "high": 0.8011538461538462
+        },
+        "ndcg@10": {
+          "mean": 0.7696206297219922,
+          "low": 0.6928118666186049,
+          "high": 0.8389839757167898
+        },
+        "hard_negative_cases": 26,
+        "hard_negative_above_evidence": 9,
+        "security_violations": 0,
+        "scope_cases": 10,
+        "scope_failures": 0
+      }
+    }
+  },
+  "comparisons": [
+    {
+      "first": "sparse-only",
+      "second": "dense-only",
+      "cases": 65,
+      "recall@10": {
+        "mean": 0.046153846153846156,
+        "low": -0.015384615384615385,
+        "high": 0.1076923076923077,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": 0.19062881562881562,
+        "low": 0.10811965811965812,
+        "high": 0.27692307692307694,
+        "verdict": "better"
+      },
+      "ndcg@10": {
+        "mean": 0.15563419890539937,
+        "low": 0.08571552060940221,
+        "high": 0.2282036969342817,
+        "verdict": "better"
+      }
+    },
+    {
+      "first": "sparse-only",
+      "second": "hybrid-rrf",
+      "cases": 65,
+      "recall@10": {
+        "mean": 0.046153846153846156,
+        "low": 0.0,
+        "high": 0.1076923076923077,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": 0.13915750915750916,
+        "low": 0.0858058608058608,
+        "high": 0.19796703296703297,
+        "verdict": "better"
+      },
+      "ndcg@10": {
+        "mean": 0.11492603724421699,
+        "low": 0.07147653232482781,
+        "high": 0.16208562764230813,
+        "verdict": "better"
+      }
+    },
+    {
+      "first": "sparse-only",
+      "second": "bm25-reference",
+      "cases": 65,
+      "recall@10": {
+        "mean": 0.007692307692307693,
+        "low": -0.046153846153846156,
+        "high": 0.06153846153846154,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": 0.0371062271062271,
+        "low": -0.022875457875457878,
+        "high": 0.09851648351648351,
+        "verdict": "no detectable difference"
+      },
+      "ndcg@10": {
+        "mean": 0.027539309444308255,
+        "low": -0.020311491424842842,
+        "high": 0.0755645105032915,
+        "verdict": "no detectable difference"
+      }
+    },
+    {
+      "first": "dense-only",
+      "second": "hybrid-rrf",
+      "cases": 65,
+      "recall@10": {
+        "mean": 0.0,
+        "low": -0.046153846153846156,
+        "high": 0.046153846153846156,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": -0.051471306471306474,
+        "low": -0.11158119658119658,
+        "high": 0.008168498168498173,
+        "verdict": "no detectable difference"
+      },
+      "ndcg@10": {
+        "mean": -0.04070816166118237,
+        "low": -0.08606499696566174,
+        "high": 0.005088656619919748,
+        "verdict": "no detectable difference"
+      }
+    },
+    {
+      "first": "dense-only",
+      "second": "bm25-reference",
+      "cases": 65,
+      "recall@10": {
+        "mean": -0.038461538461538464,
+        "low": -0.1,
+        "high": 0.015384615384615385,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": -0.15352258852258854,
+        "low": -0.2382051282051282,
+        "high": -0.06935286935286936,
+        "verdict": "worse"
+      },
+      "ndcg@10": {
+        "mean": -0.12809488946109113,
+        "low": -0.1981077421745276,
+        "high": -0.05882489003723597,
+        "verdict": "worse"
+      }
+    },
+    {
+      "first": "hybrid-rrf",
+      "second": "bm25-reference",
+      "cases": 65,
+      "recall@10": {
+        "mean": -0.038461538461538464,
+        "low": -0.09230769230769231,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": -0.10205128205128206,
+        "low": -0.16461538461538464,
+        "high": -0.04256410256410256,
+        "verdict": "worse"
+      },
+      "ndcg@10": {
+        "mean": -0.08738672779990873,
+        "low": -0.13753564420088552,
+        "high": -0.039615560278690926,
+        "verdict": "worse"
+      }
+    }
+  ],
+  "security_violations": 0,
+  "scope_failures": 0
+}

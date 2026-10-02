@@ -51,7 +51,7 @@
   <text class="lbl-sm" x="56" y="175">visibility.yaml</text>
   <text class="txt" x="56" y="195">人工标注的可见文档</text>
   <text class="txt" x="56" y="213">按身份列出，只认当前版本</text>
-  <text class="mono" x="56" y="231">data/eval/v2</text>
+  <text class="mono" x="56" y="231">data/eval/v3</text>
   <rect class="blue" x="40" y="284" width="300" height="104" rx="12"/>
   <text class="lbl-sm" x="56" y="309">被测系统</text>
   <text class="txt" x="56" y="329">公开 API + demo token</text>
@@ -66,7 +66,7 @@
   <text class="txt" x="434" y="253">覆盖没有被任何查询检索到的文档</text>
   <rect class="violet" x="418" y="290" width="304" height="104" rx="12"/>
   <text class="lbl-sm" x="434" y="315">2 · 逐条结果检查</text>
-  <text class="txt" x="434" y="335">108 条用例 × 每种策略</text>
+  <text class="txt" x="434" y="335">122 条用例 × 每种策略</text>
   <text class="txt" x="434" y="353">每个 chunk：文档可见</text>
   <text class="txt" x="434" y="371">且来自当前版本</text>
   <path class="ln" d="M340 202 L398 222" marker-end="url(#ar)"/>
@@ -86,6 +86,6 @@
   <text class="txt" x="816" y="375">生成报告</text>
   <text class="txt" x="816" y="393">可以发布</text>
   <path class="ln" d="M740 275 L798 372" marker-end="url(#ar)"/>
-  <text class="foot" x="40" y="462">30 条用例专门去够身份无权查看的文档：别的租户、更高的密级、别的项目或部门。</text>
+  <text class="foot" x="40" y="462">31 条用例专门去够身份无权查看的文档：别的租户、更高的密级、别的项目或部门。</text>
   <text class="foot" x="40" y="484">在运行中的环境里把一篇 restricted 文档改标成 public，门禁就会失败——门禁本身就是这样验证的。</text>
 </svg>

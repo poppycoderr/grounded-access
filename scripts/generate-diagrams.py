@@ -136,10 +136,10 @@ def decision(lang, s):
 
 
 RESULTS = [
-    ("sparse-only", 0.640, 0.54, 0.74, 0.930, "bar-s"),
-    ("dense-only", 0.856, 0.78, 0.93, 0.965, "bar-d"),
-    ("hybrid-rrf", 0.797, 0.71, 0.88, 0.965, "bar-h"),
-    ("bm25-reference", 0.689, 0.59, 0.78, 0.921, "bar-r"),
+    ("sparse-only", 0.683, 0.59, 0.77, 0.923, "bar-s"),
+    ("dense-only", 0.873, 0.80, 0.94, 0.969, "bar-d"),
+    ("hybrid-rrf", 0.822, 0.74, 0.89, 0.969, "bar-h"),
+    ("bm25-reference", 0.720, 0.63, 0.80, 0.931, "bar-r"),
 ]
 
 
@@ -283,20 +283,20 @@ EN = {
     },
     "results": {
         "title": "Dense ranks evidence highest; hybrid does not beat it",
-        "sub": "Dataset v2, test split, 57 answerable cases. Bars are MRR@10 with 95% bootstrap intervals, from the committed CI run.",
+        "sub": "Dataset v3, test split, 65 answerable cases. Bars are MRR@10 with 95% bootstrap intervals, from the committed CI run.",
         "axis": "MRR@10",
         "notes": ["PostgreSQL full-text search", "exact pgvector search", "reciprocal rank fusion of the two", "offline reference row"],
         "tiles": [
-            ("0", ("unauthorized results", "across 108 cases and every strategy"), True),
-            ("30", ("authorization negatives", "tenant, clearance, project, department"), False),
-            ("−0.06", ("hybrid vs dense, MRR@10", "no detectable difference"), False),
+            ("0", ("unauthorized results", "across 122 cases and every strategy"), True),
+            ("31", ("authorization negatives", "tenant, clearance, project, department"), False),
+            ("−0.05", ("hybrid vs dense, MRR@10", "no detectable difference"), False),
         ],
-        "foot": "Source: benchmarks/reports/m2-labelled-dataset. A demo benchmark on a small fictional corpus, not a claim about production quality.",
+        "foot": "Source: benchmarks/reports/m2-authorization. A demo benchmark on a small fictional corpus, not a claim about production quality.",
     },
     "gate": {
         "title": "The security gate compares the system with hand-written labels",
         "sub": "The expected visibility is written by a person from the access labels, never produced by the policy compiler it checks.",
-        "labels": ["visibility.yaml", "hand-labelled visible documents", "per principal, current version only", "`data/eval/v2`"],
+        "labels": ["visibility.yaml", "hand-labelled visible documents", "per principal, current version only", "`data/eval/v3`"],
         "system": ["System under test", "public API with demo tokens", "one token per principal", "`/retrieval/chunks · /retrieval/search`"],
         "checks": "ga-eval run",
         "steps": [
@@ -304,7 +304,7 @@ EN = {
                 "1 · Listing check",
                 ["every chunk each principal can list", "must match its visible set exactly", "covers documents no query retrieves"],
             ),
-            ("2 · Per-result check", ["108 cases × every strategy", "each chunk: visible document", "and current version"]),
+            ("2 · Per-result check", ["122 cases × every strategy", "each chunk: visible document", "and current version"]),
         ],
         "outcomes": [
             ("Extra document or old version", ["a violation: exit code 2", "the CI job fails"], "rose"),
@@ -312,7 +312,7 @@ EN = {
             ("0 violations", ["the report is written", "and can be published"], "green"),
         ],
         "foot": [
-            "30 cases try to reach a document the principal may not see: another tenant, a higher classification, another project or department.",
+            "31 cases try to reach a document the principal may not see: another tenant, a higher classification, another project or department.",
             "Relabelling a restricted document as public on a running stack makes the gate fail, which is how the gate itself was checked.",
         ],
     },
@@ -328,7 +328,7 @@ EN = {
                 "ok",
                 "Done · v0.1.0-alpha.1",
             ),
-            ("M2", "Authorization", ["full decision table ✓", "labelled dataset + gate ✓", "scope, audit, threat model ✓"], "now", "In progress"),
+            ("M2", "Authorization", ["decision table, scope filters", "audit, existence-safe reads", "labelled dataset, threat model"], "ok", "Done"),
             ("M3", "Reranking + answers", ["cross-encoder reranker", "cited answers", "abstention"], "next", "Planned"),
             ("M4", "Operations + v0.1", ["OpenTelemetry traces", "failure and load tests", "full benchmark, release"], "next", "Planned"),
         ],
@@ -384,25 +384,25 @@ ZH = {
     },
     "results": {
         "title": "dense 把证据排得最靠前；hybrid 没有超过它",
-        "sub": "数据集 v2，test 划分，57 条可回答用例。柱子是 MRR@10 及 95% bootstrap 区间，来自已提交的 CI 运行。",
+        "sub": "数据集 v3，test 划分，65 条可回答用例。柱子是 MRR@10 及 95% bootstrap 区间，来自已提交的 CI 运行。",
         "axis": "MRR@10",
         "notes": ["PostgreSQL 全文检索", "pgvector 精确检索", "两者的 RRF 融合", "离线参考行"],
         "tiles": [
-            ("0", ("越权结果", "108 条用例、所有策略"), True),
-            ("30", ("授权负例", "租户、密级、项目、部门"), False),
-            ("−0.06", ("hybrid 对 dense，MRR@10", "没有可检测的差异"), False),
+            ("0", ("越权结果", "122 条用例、所有策略"), True),
+            ("31", ("授权负例", "租户、密级、项目、部门"), False),
+            ("−0.05", ("hybrid 对 dense，MRR@10", "没有可检测的差异"), False),
         ],
-        "foot": "数据来源：benchmarks/reports/m2-labelled-dataset。这是小型虚构语料上的 demo benchmark，不代表生产效果。",
+        "foot": "数据来源：benchmarks/reports/m2-authorization。这是小型虚构语料上的 demo benchmark，不代表生产效果。",
     },
     "gate": {
         "title": "安全门禁拿系统和手写标注做比较",
         "sub": "预期的可见范围由人对照访问标签写出，绝不由被检验的 policy compiler 生成。",
-        "labels": ["visibility.yaml", "人工标注的可见文档", "按身份列出，只认当前版本", "`data/eval/v2`"],
+        "labels": ["visibility.yaml", "人工标注的可见文档", "按身份列出，只认当前版本", "`data/eval/v3`"],
         "system": ["被测系统", "公开 API + demo token", "每个身份一个 token", "`/retrieval/chunks · /retrieval/search`"],
         "checks": "ga-eval run",
         "steps": [
             ("1 · 列表检查", ["每个身份能列出的全部 chunk", "必须与它的可见集合完全一致", "覆盖没有被任何查询检索到的文档"]),
-            ("2 · 逐条结果检查", ["108 条用例 × 每种策略", "每个 chunk：文档可见", "且来自当前版本"]),
+            ("2 · 逐条结果检查", ["122 条用例 × 每种策略", "每个 chunk：文档可见", "且来自当前版本"]),
         ],
         "outcomes": [
             ("多出文档或返回旧版本", ["记为越权：退出码 2", "CI 任务失败"], "rose"),
@@ -410,7 +410,7 @@ ZH = {
             ("0 条越权", ["生成报告", "可以发布"], "green"),
         ],
         "foot": [
-            "30 条用例专门去够身份无权查看的文档：别的租户、更高的密级、别的项目或部门。",
+            "31 条用例专门去够身份无权查看的文档：别的租户、更高的密级、别的项目或部门。",
             "在运行中的环境里把一篇 restricted 文档改标成 public，门禁就会失败——门禁本身就是这样验证的。",
         ],
     },
@@ -420,7 +420,7 @@ ZH = {
         "stones": [
             ("M0", "Walking skeleton", ["SQL 内的租户隔离", "sparse + dense 检索", "评测 CLI、CI 安全门禁"], "ok", "已完成"),
             ("M1", "检索基线", ["数据集、BM25 参考行、置信区间", "异步入库、chunker", "RRF hybrid 与结论"], "ok", "已完成 · v0.1.0-alpha.1"),
-            ("M2", "授权", ["完整决策表 ✓", "带标签的数据集与门禁 ✓", "范围过滤、审计、威胁模型 ✓"], "now", "进行中"),
+            ("M2", "授权", ["决策表、适用范围过滤", "审计、不泄漏存在性的读取", "带标签的数据集、威胁模型"], "ok", "已完成"),
             ("M3", "重排与回答", ["cross-encoder 重排", "带引用的回答", "拒答"], "next", "计划中"),
             ("M4", "运维与 v0.1", ["OpenTelemetry trace", "故障与压力测试", "完整 benchmark、发布"], "next", "计划中"),
         ],
