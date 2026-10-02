@@ -16,7 +16,7 @@ These are the properties the design commits to. The table after them says which 
 |---|---|---|---|
 | Security | The full decision table | The evaluation security gate: 30 authorization negatives, every returned chunk checked for document and version against hand-labelled visibility, and each principal's full listing compared with its visible set. A property-based test that compares every query path with a separate reference evaluator over random principals and labels; integration tests per rule on all three strategies; an architecture test that only `AuthorizedChunkQuery` reads chunks | Chunk-level labels (v0.2) |
 | Recall | By construction | No ANN index exists, so every authorized row is a candidate | A measured comparison of exact search against a filtered HNSW index, once an index exists (post-v0.1, ADR-0002) |
-| Existence | Partially | Retrieval returns no filtered counts and no metadata for rows the predicate excluded; ingestion jobs and document changes answer 404 for another tenant's ids and keys, the same as for unknown ones | A document read endpoint returning 404, an answering path with a uniform `no_answer`, and timing side channels (M2–M3, threat model) |
+| Existence | For retrieval and document reads | A test reads a document that is confidential, restricted to another department, disabled, deleted, in another tenant, malformed and nonexistent: every response is the same 404, byte for byte apart from the key. A keyword search that only hidden documents could answer returns the same response as one nothing answers. Retrieval returns no filtered counts | A uniform `no_answer` on the answering path (M3). Timing side channels are not mitigated; see the threat model |
 
 ## 2. Two kinds of filters
 
@@ -82,10 +82,13 @@ A submission that changes only the labels creates a new version that takes over 
 
 ## 5. Existence leakage
 
-- A document that isn't visible returns 404, the same as a document that doesn't exist. Admin `DELETE` follows the same rule when the document is outside the admin's tenant.
-- Responses and traces never include "N results were filtered out".
-- `status: "no_answer"` is identical whether nothing was relevant or everything relevant was unauthorized.
-- **Known residual risk:** a timing side channel, because authorized and unauthorized misses may take different amounts of time. v0.1 does not mitigate it and the threat model states this.
+- `GET /api/v1/documents/{key}` returns a document's key, title and version number if the principal is authorized for it. It is answered from the same join and the same predicate as search, so a document is readable there exactly when its chunks are retrievable.
+- Every other case returns the same 404: a key that does not exist, a document of another tenant, one the principal's attributes do not admit, a disabled or deleted document, and a key that is not well formed. The bodies and headers are identical apart from the key the caller sent.
+- Administrative `PATCH` and `DELETE` follow the same rule for keys outside the admin's tenant, and ingestion jobs and execution records for ids the caller does not own.
+- Search responses never include "N results were filtered out". A keyword search that only hidden documents could answer is identical to one that nothing answers. A vector search always returns the nearest visible chunks, whatever the query, so its results say nothing about hidden content either.
+- Reads are audited as `allow` or `deny`. A `deny` does not record why, so the audit log does not become a list of which hidden documents exist either.
+- `status: "no_answer"` will be identical whether nothing was relevant or everything relevant was unauthorized (M3).
+- **Known residual risk:** a timing side channel, because an authorized hit, an unauthorized document and a missing one may take different amounts of time. v0.1 does not mitigate it and the threat model states this.
 
 ## 6. Caching
 
