@@ -7,7 +7,7 @@ A fictional enterprise knowledge base for two tenants and a set of retrieval cas
 | | Count |
 |---|---|
 | Documents | 32 (28 Northstar Cloud, 4 Orbit Labs); one Northstar document has two versions |
-| Cases | 122: 86 answerable, 36 that must find nothing |
+| Cases | 122: 87 answerable, 35 that must find nothing |
 | Split | 89 `test`, 33 `dev` |
 | Principals | bob-support 38, alice-engineer 38, carol-manager 30, dave-contractor 9, mallory-outsider 7 |
 | Cases with hard negatives | 29 |
@@ -21,7 +21,7 @@ A fictional enterprise knowledge base for two tenants and a set of retrieval cas
 |---|---|---|
 | v1 | 21 unlabelled documents, 70 cases; authorization is tenant isolation only | `m1a-baseline`, `m1b-hybrid` (tag `v0.1.0-alpha.1`) |
 | v2 | v1 plus access labels, 7 restricted look-alike documents, one principal with public clearance and 38 authorization cases | `m2-labelled-dataset` |
-| v3 | v2 plus 4 documents with a region or a validity window, a validity window on the current travel policy, and 14 cases about scope | reports from the M2 report on |
+| v3 | v2 plus 4 documents with a region or a validity window, a validity window on the current travel policy, and 14 cases: 13 about scope and one more authorization negative | reports from the M2 report on |
 
 Cases are never changed or removed between versions. Their numbers can still move, because principals with access to new documents have more candidates to rank. Numbers from reports on different dataset versions are therefore not comparable.
 
