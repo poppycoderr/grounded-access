@@ -26,7 +26,7 @@ The same effect, smaller, appears between hosted x86_64 runners, which do not al
 
 `m1b-hybrid` adds the `hybrid-rrf` strategy to the same cases; [docs/evaluation/m1b-hybrid-analysis.md](../docs/evaluation/m1b-hybrid-analysis.md) reads its result. Its single-channel and BM25 rankings are identical to `m1a-baseline`.
 
-`m0-walking-skeleton`, `m1a-baseline` and `m1b-hybrid` use dataset v1. `m2-labelled-dataset` is the first report on dataset v2, which adds labelled documents and authorization cases; numbers across the two versions are not comparable (see the [dataset card](../data/eval/DATASET_CARD.md)). One v1 finding did not carry over: BM25 was measurably ahead of PostgreSQL FTS on v1 (MRR@10 +0.10 [+0.02, +0.18]) and shows no detectable difference on v2 (+0.05 [−0.02, +0.12]).
+`m0-walking-skeleton`, `m1a-baseline` and `m1b-hybrid` use dataset v1. `m2-labelled-dataset` is the report on dataset v2, which adds labelled documents and authorization cases; numbers across the two versions are not comparable (see the [dataset card](../data/eval/DATASET_CARD.md)). One v1 finding did not carry over: BM25 was measurably ahead of PostgreSQL FTS on v1 (MRR@10 +0.10 [+0.02, +0.18]) and shows no detectable difference on v2 (+0.05 [−0.02, +0.12]).
 
 Runs on the fictional demo corpus are labelled demo benchmarks. They show that the method is reproducible; they say nothing about production retrieval quality.
 
