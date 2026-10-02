@@ -2,7 +2,7 @@ from ga_eval import runner
 
 
 def record(case, strategy, split, recall, violations=(), hard=None):
-    row = {"case": case, "strategy": strategy, "split": split, "tags": ["x"], "violations": list(violations)}
+    row = {"case": case, "strategy": strategy, "split": split, "tags": ["x"], "violations": list(violations), "scoped": False, "scope_failures": []}
     if recall is not None:
         row |= {"recall@5": recall, "recall@10": recall, "mrr@10": recall, "ndcg@10": recall}
     if hard is not None:

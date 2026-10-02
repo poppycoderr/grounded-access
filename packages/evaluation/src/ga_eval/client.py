@@ -48,18 +48,23 @@ class ApiClient:
             raise IngestionFailedError(job)
         return job
 
-    def search(self, token: str, query: str, strategy: str, k: int) -> dict:
-        response = self._http.post("/api/v1/retrieval/search", json={"query": query, "strategy": strategy, "k": k}, headers=_auth(token))
+    def search(self, token: str, query: str, strategy: str, k: int, as_of: str | None = None, region: str | None = None) -> dict:
+        body = {"query": query, "strategy": strategy, "k": k} | _scope(as_of, region, "asOf")
+        response = self._http.post("/api/v1/retrieval/search", json=body, headers=_auth(token))
         response.raise_for_status()
         return response.json()
 
-    def list_chunks(self, token: str, page_size: int = 500) -> tuple[str, list[dict]]:
-        """Every chunk the token's principal may retrieve, and the policy version that admitted them."""
+    def list_chunks(
+        self, token: str, as_of: str | None = None, region: str | None = None, include_out_of_scope: bool = False, page_size: int = 500
+    ) -> tuple[str, list[dict]]:
+        """Every chunk the token's principal may retrieve in the given scope, and the policy version that admitted them. With
+        `include_out_of_scope` the scope is dropped and the result is everything the principal is authorized for."""
+        scope: dict[str, str | int] = {"includeOutOfScope": "true"} if include_out_of_scope else _scope(as_of, region, "asOf")
         chunks: list[dict] = []
         after: str | None = None
         policy_version = ""
         while True:
-            params: dict[str, str | int] = {"limit": page_size} | ({"after": after} if after else {})
+            params: dict[str, str | int] = {"limit": page_size} | scope | ({"after": after} if after else {})
             response = self._http.get("/api/v1/retrieval/chunks", params=params, headers=_auth(token))
             response.raise_for_status()
             page = response.json()
@@ -68,6 +73,10 @@ class ApiClient:
             after = page.get("next")
             if not after:
                 return policy_version, chunks
+
+
+def _scope(as_of: str | None, region: str | None, as_of_name: str) -> dict:
+    return ({as_of_name: as_of} if as_of else {}) | ({"region": region} if region else {})
 
 
 def _auth(token: str) -> dict[str, str]:

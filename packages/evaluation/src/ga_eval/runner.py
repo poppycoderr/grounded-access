@@ -45,28 +45,29 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
     records: list[dict] = []
     policy_versions: set[str] = set()
     tokens_by_principal = {p: tokens.mint(dataset.root, p, dataset.principals[p], scope="query debug") for p in sorted({c.principal for c in cases})}
-    listings = {p: client.list_chunks(token) for p, token in tokens_by_principal.items()}
+    listings = {p: client.list_chunks(token, include_out_of_scope=True) for p, token in tokens_by_principal.items()}
     chunker_versions = sorted({c["chunkerVersion"] for _, chunks in listings.values() for c in chunks})
     if len({chunker_release(v) for v in chunker_versions}) > 1:
         raise MixedChunkerError(f"the corpus mixes chunker versions {', '.join(chunker_versions)}; re-index it with a fresh load before evaluating")
     visibility_check = check_visibility(dataset, listings)
-    references: dict[str, Bm25Index] = {}
+    references: dict[tuple, Bm25Index] = {}
     plans: dict[str, dict[str, dict]] = {}
     for case in cases:
         token = tokens_by_principal[case.principal]
         spans = [dataset.span(e) for e in case.evidence]
+        as_of = case.as_of.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ") if case.as_of else None
         for strategy in strategies:
             if strategy == REFERENCE:
-                if case.principal not in references:
-                    policy_version, chunks = listings[case.principal]
+                # The reference ranks what the system could have returned for this request, so it lists under the same scope.
+                scope = (case.principal, as_of, case.region)
+                if scope not in references:
+                    policy_version, chunks = client.list_chunks(token, as_of, case.region)
                     policy_versions.add(policy_version)
-                    references[case.principal] = Bm25Index(
-                        [Chunk(c["documentKey"], c["versionNo"], c["charStart"], c["charEnd"], c["text"]) for c in chunks]
-                    )
-                ranked = references[case.principal].search(case.query, k)
+                    references[scope] = Bm25Index([Chunk(c["documentKey"], c["versionNo"], c["charStart"], c["charEnd"], c["text"]) for c in chunks])
+                ranked = references[scope].search(case.query, k)
                 results = [Result(c.document, c.version, c.start, c.end, rank) for rank, (c, _) in enumerate(ranked, start=1)]
             else:
-                response = client.search(token, case.query, strategy, k)
+                response = client.search(token, case.query, strategy, k, as_of, case.region)
                 if response["degraded"]:
                     raise DegradedRunError(
                         f"case {case.id} · {strategy} was answered degraded ({', '.join(response['degraded'])}); the run is invalid"
@@ -95,6 +96,7 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
             "summary": {split: summarize([r for r in records if r["split"] == split], strategies) for split in sorted(splits)},
             "comparisons": compare([r for r in records if r["split"] == "test"], strategies),
             "security_violations": sum(len(r["violations"]) for r in records) + sum(len(v["violations"]) for v in visibility_check.values()),
+            "scope_failures": sum(len(r["scope_failures"]) for r in records),
         },
         "cases": records,
     }
@@ -139,7 +141,9 @@ def _record(case, strategy: str, results: list[Result], spans, visible: set[str]
         "strategy": strategy,
         "tags": case.tags,
         "must_abstain": case.must_abstain,
+        "scoped": bool(case.out_of_scope_documents or case.as_of or case.region),
         "violations": metrics.violations(results, visible, current_version),
+        "scope_failures": sorted({r.document for r in results if r.document in case.out_of_scope_documents}),
         "results": [[r.document, r.version, r.start, r.end, r.rank] for r in results],
     }
     if spans:
@@ -169,6 +173,8 @@ def summarize(records: list[dict], strategies: list[str]) -> dict:
             "hard_negative_cases": len(tempted),
             "hard_negative_above_evidence": sum(r["hard_negative_above_evidence"] for r in tempted),
             "security_violations": sum(len(r["violations"]) for r in rows),
+            "scope_cases": sum(1 for r in rows if r["scoped"]),
+            "scope_failures": sum(len(r["scope_failures"]) for r in rows),
         }
     return summary
 
@@ -248,6 +254,18 @@ def render(output: dict) -> str:
             "|---|---|---|",
         ]
         lines += [f"| `{name}` | {s['hard_negative_cases']} | {s['hard_negative_above_evidence']} |" for name, s in test.items()]
+        lines.append("")
+    if any(s.get("scope_cases") for s in test.values()):
+        lines += [
+            "## Scope (test split)",
+            "",
+            "Cases that set a region or a date, or name documents that are readable but do not apply. Returning such a document is a scope "
+            "failure. It is counted here and never as a security violation.",
+            "",
+            "| Strategy | Scope cases | Scope failures |",
+            "|---|---|---|",
+        ]
+        lines += [f"| `{name}` | {s['scope_cases']} | {s['scope_failures']} |" for name, s in test.items()]
         lines.append("")
     lines += ["## Recall@10 by tag (test split)", "", "| Tag | " + " | ".join(f"`{s}`" for s in strategies) + " |"]
     lines.append("|---|" + "---|" * len(strategies))
