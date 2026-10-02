@@ -18,8 +18,8 @@ data/
 ├── manifests/northstar.yaml     # document access labels and version history
 ├── principals.yaml              # demo identities and attributes
 └── eval/
-    ├── v2/cases.jsonl
-    ├── v2/visibility.yaml       # human-labelled visible document set per principal
+    ├── v3/cases.jsonl
+    ├── v3/visibility.yaml       # human-labelled visible document set per principal
     └── DATASET_CARD.md
 ```
 
@@ -53,11 +53,13 @@ Rules:
 - `unauthorized_documents` lists documents the principal may not see and that the query is designed to tempt. These cases feed the security gate.
 - `hard_negative_documents` are visible or out-of-scope documents that look relevant but are wrong. These cases feed the quality metrics.
 - `must_abstain: true` cases have empty `evidence`.
-- **Time and region.** ADR-0005 decided that `asOf` filters the current version by its validity window and never selects an older version. Cases may therefore carry `as_of` and `region`; they are added to the case schema together with the first documents that have a validity window or a region, so that no field exists without data that exercises it.
+- **Time and region.** A case may set `as_of` and `region`, the scope of its request (ADR-0005), and may list `out_of_scope_documents`: documents its principal is authorized for but that do not apply to the request. The validator rejects an out-of-scope document the principal cannot read, because that would be an authorization case.
 - `visibility.yaml` is labelled by hand, separately from the policy compiler. The security gate compares against it; it never compares the compiler with itself.
 - **Gate granularity.** The gate checks every returned chunk twice: its document must be in the principal's visible set, and it must come from the document's current version. A chunk of a replaced version is a violation even when the document is visible, because labels belong to versions.
 - **Listing check.** Before any query runs, the runner lists every chunk each principal can reach and compares the documents with the visible set. Anything extra is a violation, so the gate also covers documents that no query happens to retrieve. Anything missing means the labels and the system disagree, and the run stops.
-- **Not yet in the gate.** Labels apply to whole document versions, so there is nothing to check inside a version; chunk-level labels are deferred to v0.2. Scope failures (region, validity) will be reported separately from authorization failures when scope filters exist (M2.3).
+- **Scope failures are separate.** A returned document that the case lists as out of scope is a scope failure. It is counted per strategy in its own report section and makes the run exit with code 3; a security violation exits with code 2. The two are never added together. `visibility.yaml` is about access only, and the listing check drops the scope to compare it.
+- **Reference under the same scope.** The BM25 reference lists the principal's chunks under the scope of each case, so it ranks what the system could have returned for that request.
+- **Not yet in the gate.** Labels apply to whole document versions, so there is nothing to check inside a version; chunk-level labels are deferred to v0.2.
 
 ### Size and composition (v1 target)
 
