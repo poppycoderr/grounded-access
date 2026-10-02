@@ -218,7 +218,7 @@ All outbound calls have explicit timeouts. Retries are only used for idempotent 
 ```text
 POST   /api/v1/ingestion-jobs                 # 202 + Location; documents travel inline with optional format and access labels
 GET    /api/v1/ingestion-jobs/{jobId}         # status, progress, counts, error_code; 404 across tenants
-GET    /api/v1/documents/{key}                # authorized metadata only; 404 if not visible (M2)
+GET    /api/v1/documents/{key}                # key, title and version of an authorized document; one identical 404 for everything else
 PATCH  /api/v1/documents/{key}                # {"status": "active" | "disabled"}; admin scope
 DELETE /api/v1/documents/{key}                # 204; admin scope; 404 if unknown, deleted or another tenant's
 POST   /api/v1/retrieval/search               # ranked candidates + debug fields; optional scope: asOf, region
