@@ -32,14 +32,14 @@ public class DocumentController {
     @PatchMapping("/{key}")
     public DocumentResponse changeStatus(@AuthenticationPrincipal Jwt token, @PathVariable("key") String key,
             @Valid @RequestBody DocumentStatusRequest request) {
-        return documents.setStatus(Principal.from(token).tenantId(), key, request.toStatus())
+        return documents.setStatus(Principal.from(token), key, request.toStatus())
                 .map(DocumentResponse::from)
                 .orElseThrow(() -> new NotFoundException("No such document"));
     }
 
     @DeleteMapping("/{key}")
     public ResponseEntity<Void> delete(@AuthenticationPrincipal Jwt token, @PathVariable("key") String key) {
-        if (!documents.delete(Principal.from(token).tenantId(), key)) {
+        if (!documents.delete(Principal.from(token), key)) {
             throw new NotFoundException("No such document");
         }
         return ResponseEntity.noContent().build();
