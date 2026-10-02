@@ -100,12 +100,14 @@ ingestion_job(id, tenant_id, submitted_by,
 ingestion_job_document(job_id, ordinal, external_key, title, source_uri, content)
                                            -- deleted when the job finishes
 
-query_execution(id, tenant_id, principal_id, trace_id, pipeline_config jsonb,
-                policy_version, model_config jsonb, status, degraded_reasons text[],
-                latency_ms jsonb, created_at)      -- no query text by default
+query_execution(id, tenant_id, principal_id, trace_id, plan_hash, plan jsonb,
+                policy_version, embedding_model, status,          -- ok | degraded
+                degraded_reasons text[], result_count, latency_ms jsonb, created_at)
+                                                                   -- no query text
 
 audit_event(id, occurred_at, tenant_id, principal_id, action, resource_type,
             resource_id, decision, policy_version, trace_id, attributes jsonb)
+                                                                   -- identifiers and counts only
 ```
 
 Notes:
@@ -204,7 +206,7 @@ Response rules:
 | Reranker timeout/error | Fused RRF order | `degraded: rerank_unavailable` |
 | Chat model timeout/error | Evidence-only response | `degraded: generation_unavailable` |
 | Chat output fails schema or cites unknown IDs | Invalid statements dropped. If none remain, abstention. | `citation_rejected` count |
-| Audit write fails | Query fails closed with 503 | error metric |
+| Audit write fails | The request fails closed with 503 `AUDIT_UNAVAILABLE`: a search returns no results, and an administrative change is rolled back | error log with the trace id |
 | Model service unavailable during ingestion | Job retried, then `failed` | job `error_code` |
 
 Evaluation runs treat any degraded query as invalid for that configuration (see evaluation strategy).
@@ -222,7 +224,7 @@ DELETE /api/v1/documents/{key}                # 204; admin scope; 404 if unknown
 POST   /api/v1/retrieval/search               # ranked candidates + debug fields; optional scope: asOf, region
 GET    /api/v1/retrieval/chunks               # every authorized chunk in scope, keyset-paged; debug scope; includeOutOfScope drops the scope only
 POST   /api/v1/query                          # answer / evidence / abstention
-GET    /api/v1/query-executions/{id}          # own executions only
+GET    /api/v1/query-executions/{id}          # own executions only; versions, counts and timings, never the query
 ```
 
 - Admin endpoints (ingestion, delete) need an `admin` scope in the token. Query endpoints need `query`.
@@ -257,4 +259,22 @@ Allowed span attributes: `pipeline.config_hash`, `policy.version`, `retrieval.k`
 
 Never recorded by default: query text, chunk text, prompts, model output, embeddings, document titles, principal attributes other than an opaque principal ID, and counts of rows removed by authorization.
 
-The audit log is a separate record. Audit events are never sampled and follow a stable, versioned schema.
+The span tree is the target for M4. What exists today:
+
+- **Trace id.** Every request gets one before authentication runs. A valid W3C `traceparent` header supplies it; anything else is discarded and a new id is generated, so a caller cannot inject text into logs or audit rows through the header. The id is returned in `X-Trace-Id`, in search responses, and put into the logging context.
+- **Execution record.** Each search stores a `query_execution` row: plan and hash, policy version, embedding model with revision, degraded reasons, result count and stage timings. Its owner can read it at `GET /api/v1/query-executions/{id}`; for anyone else it does not exist.
+
+### Audit
+
+The audit log is a separate record. Audit events are never sampled, and they are written synchronously and fail closed: a search whose audit write fails returns nothing, and an administrative change is in the same transaction as its event.
+
+| Action | Resource | Attributes |
+|---|---|---|
+| `retrieval.search` | the execution record | strategy, `k`, plan hash, result count, returned documents as `key@version`, degraded reasons, scope |
+| `retrieval.list_chunks` | the tenant's chunk listing | chunk count, whether scope was applied |
+| `ingestion.submit` | the ingestion job | document keys |
+| `document.status_change`, `document.delete` | the document key | resulting status |
+
+Attributes are an allow-list by construction. Each action has its own writer method with typed parameters, and the JSON is assembled in SQL, so there is no free-form map through which query text, chunk text or a document title could reach the table. A test searches with a distinctive query against a distinctively titled document and asserts that neither string appears in either table.
+
+Not audited yet: the versions written by the ingestion worker (they are traceable through the job's submit event) and denied requests, which never reach application code because the resource server rejects them.
