@@ -39,6 +39,18 @@ def test_refuses_to_run_on_a_partially_re_indexed_corpus():
         runner.run(ds.load(DATA), ListingOnlyClient(["markdown/2", "markdown-headings/1"]), ["sparse-only"], 10, {"test"})
 
 
+class ReloadedClient(ListingOnlyClient):
+    def list_chunks(self, token: str, *scope: object, **options: object) -> tuple[str, list[dict]]:
+        return "abac/1", [
+            {"documentKey": "sales-pricing-guide", "versionNo": 4, "charStart": 0, "charEnd": 1, "text": "", "chunkerVersion": "markdown/2"}
+        ]
+
+
+def test_refuses_to_run_on_a_corpus_that_moved_past_the_labelled_versions():
+    with pytest.raises(runner.ReloadedCorpusError, match="sales-pricing-guide is at version 4 but the dataset labels version 2"):
+        runner.run(ds.load(DATA), ReloadedClient([]), ["sparse-only"], 10, {"test"})
+
+
 class DegradedClient(ListingOnlyClient):
     def search(self, *args: object) -> dict:
         return {"policyVersion": "tenant-only/1", "planHash": "abc", "plan": {}, "degraded": ["dense_unavailable"], "results": []}

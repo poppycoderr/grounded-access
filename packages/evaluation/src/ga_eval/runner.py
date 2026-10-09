@@ -32,6 +32,10 @@ class VisibilityMismatchError(RuntimeError):
     """A principal cannot list a document the labels say it may see: the system and the hand-written labels disagree, so no result is valid."""
 
 
+class ReloadedCorpusError(RuntimeError):
+    """A document is at a later version than the dataset labels, so the corpus is not the one the cases were written for."""
+
+
 class MixedChunkerError(RuntimeError):
     """The corpus was chunked by more than one chunker release, so a run would compare results of different chunkings."""
 
@@ -39,6 +43,19 @@ class MixedChunkerError(RuntimeError):
 def chunker_release(version: str) -> str:
     """`markdown/2` and `text/2` are one release applied to two formats; `markdown/1` next to `markdown/2` is a partial re-index."""
     return version.rsplit("/", 1)[-1]
+
+
+def check_versions(dataset: Dataset, listings: dict[str, tuple[str, list[dict]]]) -> None:
+    """A version later than the labelled one means the corpus was changed after it was loaded. An earlier one is left to the security gate:
+    the system is then serving a version that has been replaced."""
+    for _, chunks in listings.values():
+        for chunk in chunks:
+            labelled = dataset.current_version.get(chunk["documentKey"])
+            if labelled is not None and chunk["versionNo"] > labelled:
+                raise ReloadedCorpusError(
+                    f"{chunk['documentKey']} is at version {chunk['versionNo']} but the dataset labels version {labelled}; "
+                    "reset the database (docker compose down -v), start the stack and load the corpus again"
+                )
 
 
 def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, splits: set[str]) -> dict:
@@ -50,6 +67,7 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
     chunker_versions = sorted({c["chunkerVersion"] for _, chunks in listings.values() for c in chunks})
     if len({chunker_release(v) for v in chunker_versions}) > 1:
         raise MixedChunkerError(f"the corpus mixes chunker versions {', '.join(chunker_versions)}; re-index it with a fresh load before evaluating")
+    check_versions(dataset, listings)
     visibility_check = check_visibility(dataset, listings)
     references: dict[tuple, Bm25Index] = {}
     plans: dict[str, dict[str, dict]] = {}
