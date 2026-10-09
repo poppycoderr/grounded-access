@@ -32,7 +32,7 @@ class FastEmbedEmbedder:
         self._info = ModelInfo(
             name=model_name,
             task="embedding",
-            revision=_snapshot_revision(cache_dir, description["sources"]["hf"]),
+            revision=snapshot_revision(cache_dir, description["sources"]["hf"]),
             dimensions=description["dim"],
             query_prefix=self._prefix,
             license=description.get("license", "unknown"),
@@ -47,7 +47,7 @@ class FastEmbedEmbedder:
         return [vector.tolist() for vector in self._model.embed(inputs)]
 
 
-def _snapshot_revision(cache_dir: str, hf_repo: str) -> str:
+def snapshot_revision(cache_dir: str, hf_repo: str) -> str:
     """Hugging Face cache layout: models--<org>--<name>/snapshots/<commit sha>/."""
     snapshots = Path(cache_dir) / f"models--{hf_repo.replace('/', '--')}" / "snapshots"
     revisions = sorted(p.name for p in snapshots.iterdir()) if snapshots.is_dir() else []

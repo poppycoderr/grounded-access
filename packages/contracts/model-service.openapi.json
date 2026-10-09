@@ -96,8 +96,16 @@
       "ModelInfo": {
         "properties": {
           "dimensions": {
-            "title": "Dimensions",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Vector size; embedding models only.",
+            "title": "Dimensions"
           },
           "license": {
             "title": "License",
@@ -108,15 +116,26 @@
             "type": "string"
           },
           "query_prefix": {
-            "title": "Query Prefix",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Instruction prepended to queries; embedding models only.",
+            "title": "Query Prefix"
           },
           "revision": {
             "title": "Revision",
             "type": "string"
           },
           "task": {
-            "const": "embedding",
+            "enum": [
+              "embedding",
+              "rerank"
+            ],
             "title": "Task",
             "type": "string"
           }
@@ -125,8 +144,6 @@
           "name",
           "task",
           "revision",
-          "dimensions",
-          "query_prefix",
           "license"
         ],
         "title": "ModelInfo",
@@ -146,6 +163,111 @@
           "models"
         ],
         "title": "ModelsResponse",
+        "type": "object"
+      },
+      "Passage": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "description": "Opaque to the service; returned with the score so the caller can match it.",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "text": {
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text"
+        ],
+        "title": "Passage",
+        "type": "object"
+      },
+      "PassageScore": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "score": {
+            "description": "Relevance of the passage to the query; higher is more relevant. Only comparable within one response.",
+            "title": "Score",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "score"
+        ],
+        "title": "PassageScore",
+        "type": "object"
+      },
+      "RerankRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Expected model name; the request fails if another model is loaded.",
+            "title": "Model"
+          },
+          "passages": {
+            "items": {
+              "$ref": "#/components/schemas/Passage"
+            },
+            "minItems": 1,
+            "title": "Passages",
+            "type": "array"
+          },
+          "query": {
+            "minLength": 1,
+            "title": "Query",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query",
+          "passages"
+        ],
+        "title": "RerankRequest",
+        "type": "object"
+      },
+      "RerankResponse": {
+        "properties": {
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "string"
+          },
+          "scores": {
+            "description": "One entry per passage, in request order.",
+            "items": {
+              "$ref": "#/components/schemas/PassageScore"
+            },
+            "title": "Scores",
+            "type": "array"
+          }
+        },
+        "required": [
+          "model",
+          "revision",
+          "scores"
+        ],
+        "title": "RerankResponse",
         "type": "object"
       }
     }
@@ -232,6 +354,45 @@
           }
         },
         "summary": "Models"
+      }
+    },
+    "/v1/rerank": {
+      "post": {
+        "description": "Scores each passage against the query. The service does not sort or drop passages: ordering and cut-off belong to the caller,\nwhich also decides what happens when this call fails.",
+        "operationId": "rerank_v1_rerank_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RerankRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RerankResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Rerank"
       }
     }
   }
