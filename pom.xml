@@ -39,6 +39,10 @@
         <errorprone.version>2.50.0</errorprone.version>
         <nullaway.version>0.14.1</nullaway.version>
         <spotless.version>2.44.5</spotless.version>
+        <!-- Spring Boot 4.1.1 manages versions with known vulnerabilities that have fixes (found by the image scan in CI).
+             Remove each override once the Spring Boot version in use manages at least this version. -->
+        <tomcat.version>11.0.25</tomcat.version>
+        <jackson-bom.version>3.1.7</jackson-bom.version>
     </properties>
 
     <modules>
