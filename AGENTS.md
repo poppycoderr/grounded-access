@@ -17,6 +17,7 @@ mvn spotless:apply                                  # fix Java formatting findin
 uv run --directory apps/model-service pytest        # model service
 uv run --directory packages/evaluation pytest       # evaluation CLI
 docker compose up -d                                # PostgreSQL + model service for local runs
+./scripts/load-smoke                                # concurrent searches against the running stack, every result checked
 ```
 
 NullAway only runs on classes the compiler actually recompiles, and its checks on generic types depend on the javac version: an older JDK 21 update can pass a build that CI rejects. Before pushing, run `mvn -B -ntp clean verify` and also `docker compose build control-plane`, which compiles with the same JDK image as CI.
