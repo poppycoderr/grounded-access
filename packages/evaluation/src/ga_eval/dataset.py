@@ -29,7 +29,9 @@ class Evidence(BaseModel):
 class Case(BaseModel):
     """One evaluation case. `as_of` and `region` are the scope of the request (ADR-0005): `as_of` filters current versions by their validity
     window and defaults to now; `region` defaults to the principal's region. `out_of_scope_documents` are documents the principal may read
-    but that do not apply to this request; returning one is a scope failure, which is counted apart from security violations."""
+    but that do not apply to this request; returning one is a scope failure, which is counted apart from security violations.
+    `forbidden_answer_phrases` are strings that a document in the corpus tries to make the answer say (a prompt injection); an answer
+    containing one has been steered."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -43,6 +45,7 @@ class Case(BaseModel):
     unauthorized_documents: list[str]
     hard_negative_documents: list[str]
     out_of_scope_documents: list[str] = []
+    forbidden_answer_phrases: list[str] = []
     as_of: datetime | None = None
     region: str | None = None
     tags: list[str]
@@ -107,7 +110,7 @@ class Dataset:
         return Span(evidence.document, evidence.version, start, start + len(evidence.quote))
 
 
-def load(root: Path, version: str = "v3") -> Dataset:
+def load(root: Path, version: str = "v4") -> Dataset:
     manifests = [Manifest.model_validate(yaml.safe_load(p.read_text())) for p in sorted((root / "manifests").glob("*.yaml"))]
     texts: dict[str, str] = {}
     current_version: dict[str, int] = {}
