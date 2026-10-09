@@ -42,3 +42,35 @@ def test_query_ranks_the_relevant_passage_first(embedder):
     )
 
     assert cosine(query, relevant) > cosine(query, unrelated)
+
+
+@pytest.fixture(scope="module")
+def reranker():
+    from model_service.reranking import FastEmbedReranker
+
+    settings = Settings.from_env()
+    return FastEmbedReranker(settings.reranker_model, settings.model_cache_dir)
+
+
+def test_the_reranker_reports_a_pinned_revision(reranker):
+    assert reranker.info.task == "rerank"
+    assert reranker.info.revision != "unknown"
+
+
+def test_the_reranker_prefers_the_passage_that_answers_the_question(reranker):
+    scores = reranker.score(
+        "How many paid volunteer days do EU employees receive?",
+        [
+            "Economy class is the default for flights shorter than six hours.",
+            "Employees based in the EU receive two paid volunteer days per calendar year.",
+        ],
+    )
+
+    assert scores[1] > scores[0]
+    assert scores == reranker.score(
+        "How many paid volunteer days do EU employees receive?",
+        [
+            "Economy class is the default for flights shorter than six hours.",
+            "Employees based in the EU receive two paid volunteer days per calendar year.",
+        ],
+    )

@@ -14,8 +14,15 @@ class _ContractOnlyEmbedder:
         return []
 
 
+class _ContractOnlyReranker:
+    info = ModelInfo(name="contract", task="rerank", revision="contract", license="none")
+
+    def score(self, query: str, passages: list[str]) -> list[float]:
+        return []
+
+
 def openapi_document() -> dict:
-    return create_app(_ContractOnlyEmbedder(), Settings.from_env()).openapi()
+    return create_app(_ContractOnlyEmbedder(), _ContractOnlyReranker(), Settings.from_env()).openapi()
 
 
 if __name__ == "__main__":
