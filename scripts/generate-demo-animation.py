@@ -3,7 +3,7 @@
 Every output line is copied from a file: the queries from a captured run of ./scripts/demo-queries, the table from a committed benchmark
 report. Only the prompt lines and the `#` comments are written here, and the table cells are padded so that the columns line up.
 
-    python3 scripts/generate-demo-animation.py assets/demo/demo-queries.txt benchmarks/reports/m3-retrieval/report.md assets/demo/terminal.svg
+    python3 scripts/generate-demo-animation.py assets/demo/demo-queries.txt benchmarks/reports/heading-context/report.md assets/demo/terminal.svg
 """
 
 import sys

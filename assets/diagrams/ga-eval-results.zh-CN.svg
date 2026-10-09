@@ -61,34 +61,34 @@
   <text class="txt" x="830.0" y="454" text-anchor="middle">1</text>
   <text class="mono" x="40" y="179">sparse-only</text>
   <text class="txt" x="40" y="197">PostgreSQL 全文检索</text>
-  <rect class="bar-s" x="290" y="162" width="373" height="30" rx="6"/>
-  <path class="whisk" d="M614.0 177 L705.8 177 M614.0 171 v12 M705.8 171 v12"/>
-  <text class="num" x="717.8" y="182">0.690  [0.60, 0.77]</text>
-  <text class="num" x="980" y="182">0.929</text>
+  <rect class="bar-s" x="290" y="162" width="400" height="30" rx="6"/>
+  <path class="whisk" d="M646.4000000000001 177 L732.8 177 M646.4000000000001 171 v12 M732.8 171 v12"/>
+  <text class="num" x="744.8" y="182">0.740  [0.66, 0.82]</text>
+  <text class="num" x="980" y="182">0.943</text>
   <text class="mono" x="40" y="233">dense-only</text>
   <text class="txt" x="40" y="251">pgvector 精确检索</text>
-  <rect class="bar-d" x="290" y="216" width="467" height="30" rx="6"/>
-  <path class="whisk" d="M722.0 231 L792.2 231 M722.0 225 v12 M792.2 225 v12"/>
-  <text class="num" x="804.2" y="236">0.865  [0.80, 0.93]</text>
-  <text class="num" x="980" y="236">0.971</text>
+  <rect class="bar-d" x="290" y="216" width="483" height="30" rx="6"/>
+  <path class="whisk" d="M743.5999999999999 231 L803.0 231 M743.5999999999999 225 v12 M803.0 225 v12"/>
+  <text class="num" x="815.0" y="236">0.895  [0.84, 0.95]</text>
+  <text class="num" x="980" y="236">0.979</text>
   <text class="mono" x="40" y="287">hybrid-rrf</text>
   <text class="txt" x="40" y="305">两者的 RRF 融合</text>
-  <rect class="bar-h" x="290" y="270" width="446" height="30" rx="6"/>
-  <path class="whisk" d="M695.0 285 L770.6 285 M695.0 279 v12 M770.6 279 v12"/>
-  <text class="num" x="782.6" y="290">0.825  [0.75, 0.89]</text>
-  <text class="num" x="980" y="290">0.971</text>
+  <rect class="bar-h" x="290" y="270" width="468" height="30" rx="6"/>
+  <path class="whisk" d="M722.0 285 L792.2 285 M722.0 279 v12 M792.2 279 v12"/>
+  <text class="num" x="804.2" y="290">0.867  [0.80, 0.93]</text>
+  <text class="num" x="980" y="290">0.986</text>
   <text class="mono" x="40" y="341">hybrid-rrf-rerank</text>
   <text class="txt" x="40" y="359">cross-encoder 重排融合后的前 20 个</text>
-  <rect class="bar-x" x="290" y="324" width="517" height="30" rx="6"/>
-  <path class="whisk" d="M781.4000000000001 339 L824.6 339 M781.4000000000001 333 v12 M824.6 333 v12"/>
-  <text class="num" x="836.6" y="344">0.957  [0.91, 0.99]</text>
-  <text class="num" x="980" y="344">0.971</text>
+  <rect class="bar-x" x="290" y="324" width="524" height="30" rx="6"/>
+  <path class="whisk" d="M797.5999999999999 339 L830.0 339 M797.5999999999999 333 v12 M830.0 333 v12"/>
+  <text class="num" x="842.0" y="344">0.971  [0.94, 1.00]</text>
+  <text class="num" x="980" y="344">0.986</text>
   <text class="mono" x="40" y="395">bm25-reference</text>
   <text class="txt" x="40" y="413">离线参考行</text>
-  <rect class="bar-r" x="290" y="378" width="400" height="30" rx="6"/>
-  <path class="whisk" d="M646.4000000000001 393 L732.8 393 M646.4000000000001 387 v12 M732.8 387 v12"/>
-  <text class="num" x="744.8" y="398">0.741  [0.66, 0.82]</text>
-  <text class="num" x="980" y="398">0.921</text>
+  <rect class="bar-r" x="290" y="378" width="417" height="30" rx="6"/>
+  <path class="whisk" d="M662.5999999999999 393 L749.0 393 M662.5999999999999 387 v12 M749.0 387 v12"/>
+  <text class="num" x="761.0" y="398">0.772  [0.69, 0.85]</text>
+  <text class="num" x="980" y="398">0.943</text>
   <rect class="green" x="40" y="476" width="330" height="70" rx="12"/>
   <text class="bigok" x="58" y="522">0</text>
   <text class="lbl-sm" x="89" y="510">越权结果</text>
@@ -98,8 +98,8 @@
   <text class="lbl-sm" x="458" y="510">授权负例</text>
   <text class="txt" x="458" y="529">租户、密级、项目、部门</text>
   <rect class="card" x="740" y="476" width="330" height="70" rx="12"/>
-  <text class="big" x="758" y="522">+0.09</text>
+  <text class="big" x="758" y="522">+0.08</text>
   <text class="lbl-sm" x="865" y="510">重排对 dense，MRR@10</text>
-  <text class="txt" x="865" y="529">[+0.04, +0.15]，延迟约为 10 倍</text>
-  <text class="foot" x="40" y="576">数据来源：benchmarks/reports/m3-retrieval。这是小型虚构语料上的 demo benchmark，不代表生产效果。</text>
+  <text class="txt" x="865" y="529">[+0.03, +0.13]，延迟约为 11 倍</text>
+  <text class="foot" x="40" y="576">数据来源：benchmarks/reports/heading-context。这是小型虚构语料上的 demo benchmark，不代表生产效果。</text>
 </svg>

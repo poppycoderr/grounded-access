@@ -19,9 +19,9 @@ Grounded Access v0.1 is a reference system: it shows one way to put authorizatio
 ## Retrieval
 
 - **Small-scale only.** Vector search is exact and linear in the number of passages the caller may read. There is no approximate index, because filtered recall of an approximate index has to be measured first (ADR-0002).
-- **Passages are indexed without their title or heading.** A passage that depends on its surroundings cannot be found by a question that uses the surrounding words. One of 70 test cases fails for this reason in every strategy ([v0.1 report](../../benchmarks/reports/v0.1.md), case 2).
+- **A passage is indexed with its heading path and nothing else from its document.** This is new after v0.1. On the test split it shows no detectable gain, and the case that motivated it is still missed by every strategy, because the phrase the question uses is in the document's introduction and not in a heading. Adding a document title to every chunk also lifts unrelated passages of a document whose title matches the question ([analysis](../evaluation/heading-context-analysis.md)).
 - **Plain hybrid search does not beat dense search on this dataset.** On paraphrased questions the keyword channel returns confident wrong passages and fusion demotes correct results (cases 1 and 6).
-- **Reranking helps ranking, not recall,** and costs about twelve times the request latency. It still ranks a labelled look-alike above the evidence in 8 of 29 cases.
+- **Reranking helps ranking, not recall,** and costs about eleven times the request latency. It still ranks a labelled look-alike above the evidence in 8 of 29 cases.
 - English only: the full-text configuration, the embedding model and the reranker are English.
 - Only Markdown and plain text are ingested. There is no PDF, HTML or office-document parsing, no tables, no images.
 - With 70 answerable test cases the confidence intervals are wide. No difference in Recall@10 between strategies is detectable.

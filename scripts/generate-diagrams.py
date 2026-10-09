@@ -136,11 +136,11 @@ def decision(lang, s):
 
 
 RESULTS = [
-    ("sparse-only", 0.690, 0.60, 0.77, 0.929, "bar-s"),
-    ("dense-only", 0.865, 0.80, 0.93, 0.971, "bar-d"),
-    ("hybrid-rrf", 0.825, 0.75, 0.89, 0.971, "bar-h"),
-    ("hybrid-rrf-rerank", 0.957, 0.91, 0.99, 0.971, "bar-x"),
-    ("bm25-reference", 0.741, 0.66, 0.82, 0.921, "bar-r"),
+    ("sparse-only", 0.740, 0.66, 0.82, 0.943, "bar-s"),
+    ("dense-only", 0.895, 0.84, 0.95, 0.979, "bar-d"),
+    ("hybrid-rrf", 0.867, 0.80, 0.93, 0.986, "bar-h"),
+    ("hybrid-rrf-rerank", 0.971, 0.94, 1.00, 0.986, "bar-x"),
+    ("bm25-reference", 0.772, 0.69, 0.85, 0.943, "bar-r"),
 ]
 
 
@@ -296,9 +296,9 @@ EN = {
         "tiles": [
             ("0", ("unauthorized results", "across 128 cases and every strategy"), True),
             ("31", ("authorization negatives", "tenant, clearance, project, department"), False),
-            ("+0.09", ("rerank vs dense, MRR@10", "[+0.04, +0.15], at 10× the latency"), False),
+            ("+0.08", ("rerank vs dense, MRR@10", "[+0.03, +0.13], at 11× the latency"), False),
         ],
-        "foot": "Source: benchmarks/reports/m3-retrieval. A demo benchmark on a small fictional corpus, not a claim about production quality.",
+        "foot": "Source: benchmarks/reports/heading-context. A demo benchmark on a small fictional corpus, not a claim about production quality.",
     },
     "gate": {
         "title": "The security gate compares the system with hand-written labels",
@@ -403,9 +403,9 @@ ZH = {
         "tiles": [
             ("0", ("越权结果", "128 条用例、所有策略"), True),
             ("31", ("授权负例", "租户、密级、项目、部门"), False),
-            ("+0.09", ("重排对 dense，MRR@10", "[+0.04, +0.15]，延迟约为 10 倍"), False),
+            ("+0.08", ("重排对 dense，MRR@10", "[+0.03, +0.13]，延迟约为 11 倍"), False),
         ],
-        "foot": "数据来源：benchmarks/reports/m3-retrieval。这是小型虚构语料上的 demo benchmark，不代表生产效果。",
+        "foot": "数据来源：benchmarks/reports/heading-context。这是小型虚构语料上的 demo benchmark，不代表生产效果。",
     },
     "gate": {
         "title": "安全门禁拿系统和手写标注做比较",

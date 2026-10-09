@@ -2,6 +2,19 @@
 
 Notable changes per release. Versions before `v0.1.0` are pre-releases. Before `v1.0`, APIs, the schema and the evaluation dataset may still change without a migration path.
 
+## Unreleased
+
+### Retrieval
+
+- **Changed:** each chunk is embedded and keyword-indexed together with its heading path. The chunker version is `markdown/3` / `text/3`; the stored chunks and their offsets are the same as in release 2. An index built with v0.1.0 has to be rebuilt in a fresh database to get the new embeddings; migration V9 re-indexes keyword search in place.
+- On the test split the change shows **no detectable difference** in any strategy (for example `hybrid-rrf` MRR@10 +0.04 [−0.01, +0.10]). It was chosen on the `dev` split and is kept as the default because the test split shows no harm. The case that motivated it is still not retrieved ([analysis](./docs/evaluation/heading-context-analysis.md)).
+- New configuration: `GA_EMBEDDING_CONTEXT`, `GA_SPARSE_CONTEXT`, `GA_RERANK_CONTEXT`.
+
+### Evaluation
+
+- `ga-eval compare <before> <after>` pairs two runs case by case and lists the cases whose rank changed.
+- The BM25 reference row indexes heading paths when the keyword channel does.
+
 ## v0.1.0
 
 Milestone M4: operations and release. The first release that is not a pre-release. It is a reference system and has not been hardened for production; read the [known limitations](./docs/project/known-limitations.md) first.

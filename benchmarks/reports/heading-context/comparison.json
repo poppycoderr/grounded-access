@@ -1,0 +1,299 @@
+{
+  "split": "test",
+  "dataset_version": "v4",
+  "before": {
+    "directory": "v0.1",
+    "git_sha": "ea137fb",
+    "chunker_versions": [
+      "markdown/2"
+    ],
+    "plans": {
+      "sparse-only": [
+        "e09e5b51cd5c36ac"
+      ],
+      "dense-only": [
+        "d489d865e16bcda9"
+      ],
+      "hybrid-rrf": [
+        "bd71e8ef3c45267b"
+      ],
+      "hybrid-rrf-rerank": [
+        "7cb6787822a73cc9"
+      ]
+    },
+    "cpu": "INTEL(R) XEON(R) PLATINUM 8573C",
+    "security_violations": 0
+  },
+  "after": {
+    "directory": "heading-context",
+    "git_sha": "29b5bab",
+    "chunker_versions": [
+      "markdown/3"
+    ],
+    "plans": {
+      "sparse-only": [
+        "d7967398b8117b5f"
+      ],
+      "dense-only": [
+        "d489d865e16bcda9"
+      ],
+      "hybrid-rrf": [
+        "2598002ea9c41e8d"
+      ],
+      "hybrid-rrf-rerank": [
+        "748ba4f7e675effe"
+      ]
+    },
+    "cpu": "AMD EPYC 7763 64-Core Processor",
+    "security_violations": 0
+  },
+  "strategies": [
+    {
+      "strategy": "sparse-only",
+      "cases": 70,
+      "recall@10": {
+        "before": 0.9285714285714286,
+        "after": 0.9428571428571428,
+        "difference": {
+          "mean": 0.014285714285714285,
+          "low": -0.04285714285714286,
+          "high": 0.07142857142857142
+        },
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "before": 0.689733560090703,
+        "after": 0.7397789115646258,
+        "difference": {
+          "mean": 0.0500453514739229,
+          "low": -0.007913832199546488,
+          "high": 0.11018140589569161
+        },
+        "verdict": "no detectable difference"
+      },
+      "ndcg@10": {
+        "before": 0.7488716890954882,
+        "after": 0.7849097650760066,
+        "difference": {
+          "mean": 0.036038075980518475,
+          "low": -0.012765088112793727,
+          "high": 0.08764439832431843
+        },
+        "verdict": "no detectable difference"
+      },
+      "changed_cases": [
+        "authz-goodwill-077",
+        "backup-rpo-037",
+        "backup-rto-038",
+        "credit-overcharge-050",
+        "eng-failover-before-003",
+        "eng-failover-before-after-004",
+        "hr-travel-meal-010",
+        "hr-volunteer-us-paraphrase-002",
+        "login-escalate-061",
+        "multi-remote-056",
+        "multi-sev1-billing-055",
+        "oncall-pay-034",
+        "oncall-rotation-035",
+        "pl-return-022",
+        "product-sso-059",
+        "refund-monthly-047",
+        "rw-abroad-019",
+        "rw-stipend-017",
+        "search-channel-029",
+        "sec-keys-043",
+        "sec-offboard-044",
+        "sla-claim-052"
+      ]
+    },
+    {
+      "strategy": "dense-only",
+      "cases": 70,
+      "recall@10": {
+        "before": 0.9714285714285714,
+        "after": 0.9785714285714285,
+        "difference": {
+          "mean": 0.007142857142857143,
+          "low": -0.02142857142857143,
+          "high": 0.04285714285714286
+        },
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "before": 0.8652777777777777,
+        "after": 0.8952380952380952,
+        "difference": {
+          "mean": 0.02996031746031746,
+          "low": -0.027976190476190477,
+          "high": 0.0873015873015873
+        },
+        "verdict": "no detectable difference"
+      },
+      "ndcg@10": {
+        "before": 0.8923510006274895,
+        "after": 0.9146948359395901,
+        "difference": {
+          "mean": 0.022343835312100577,
+          "low": -0.02243486011258364,
+          "high": 0.06725516121055741
+        },
+        "verdict": "no detectable difference"
+      },
+      "changed_cases": [
+        "authz-staff-oncall-072",
+        "backup-rpo-037",
+        "eng-failover-before-after-004",
+        "inject-refund-paraphrase-128",
+        "login-escalate-061",
+        "multi-sev1-billing-055",
+        "oncall-pay-034",
+        "pl-primary-020",
+        "pl-return-022",
+        "product-sso-059",
+        "rel-housing-023",
+        "rel-resign-025",
+        "rw-days-016",
+        "search-channel-029"
+      ]
+    },
+    {
+      "strategy": "hybrid-rrf",
+      "cases": 70,
+      "recall@10": {
+        "before": 0.9714285714285714,
+        "after": 0.9857142857142858,
+        "difference": {
+          "mean": 0.014285714285714285,
+          "low": 0.0,
+          "high": 0.04285714285714286
+        },
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "before": 0.8251587301587302,
+        "after": 0.8666666666666666,
+        "difference": {
+          "mean": 0.041507936507936515,
+          "low": -0.013888888888888886,
+          "high": 0.10031746031746032
+        },
+        "verdict": "no detectable difference"
+      },
+      "ndcg@10": {
+        "before": 0.8601260845515402,
+        "after": 0.8924225564457023,
+        "difference": {
+          "mean": 0.03229647189416213,
+          "low": -0.011524267857501002,
+          "high": 0.08116452022553174
+        },
+        "verdict": "no detectable difference"
+      },
+      "changed_cases": [
+        "authz-staff-oncall-072",
+        "backup-rpo-037",
+        "eng-failover-before-after-004",
+        "hr-travel-meal-010",
+        "hr-volunteer-us-paraphrase-002",
+        "login-escalate-061",
+        "oncall-rotation-035",
+        "pl-return-022",
+        "product-sso-059",
+        "refund-monthly-047",
+        "rel-resign-025",
+        "search-channel-029",
+        "sec-keys-043"
+      ]
+    },
+    {
+      "strategy": "hybrid-rrf-rerank",
+      "cases": 70,
+      "recall@10": {
+        "before": 0.9714285714285714,
+        "after": 0.9857142857142858,
+        "difference": {
+          "mean": 0.014285714285714285,
+          "low": 0.0,
+          "high": 0.04285714285714286
+        },
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "before": 0.9571428571428572,
+        "after": 0.9714285714285714,
+        "difference": {
+          "mean": 0.014285714285714285,
+          "low": 0.0,
+          "high": 0.04285714285714286
+        },
+        "verdict": "no detectable difference"
+      },
+      "ndcg@10": {
+        "before": 0.9553572385701196,
+        "after": 0.9697994670554227,
+        "difference": {
+          "mean": 0.014442228485303073,
+          "low": 0.0,
+          "high": 0.04317017125632043
+        },
+        "verdict": "no detectable difference"
+      },
+      "changed_cases": [
+        "pl-return-022"
+      ]
+    },
+    {
+      "strategy": "bm25-reference",
+      "cases": 70,
+      "recall@10": {
+        "before": 0.9214285714285714,
+        "after": 0.9428571428571428,
+        "difference": {
+          "mean": 0.02142857142857143,
+          "low": -0.02857142857142857,
+          "high": 0.07142857142857142
+        },
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "before": 0.7413095238095238,
+        "after": 0.7716666666666666,
+        "difference": {
+          "mean": 0.030357142857142857,
+          "low": -0.018452380952380956,
+          "high": 0.08392857142857142
+        },
+        "verdict": "no detectable difference"
+      },
+      "ndcg@10": {
+        "before": 0.7835798203931312,
+        "after": 0.8124312635063635,
+        "difference": {
+          "mean": 0.02885144311323229,
+          "low": -0.013939561952040934,
+          "high": 0.07757653890143369
+        },
+        "verdict": "no detectable difference"
+      },
+      "changed_cases": [
+        "backup-rpo-037",
+        "backup-rto-038",
+        "eng-failover-before-003",
+        "eng-failover-before-after-004",
+        "hr-travel-meal-010",
+        "hr-volunteer-us-paraphrase-002",
+        "login-escalate-061",
+        "oncall-escalate-031",
+        "oncall-rotation-035",
+        "pl-return-022",
+        "product-sso-059",
+        "refund-monthly-047",
+        "scope-meal-2025-us-117",
+        "sec-keys-043",
+        "sec-mfa-042",
+        "sec-offboard-044",
+        "security-restricted-012"
+      ]
+    }
+  ]
+}
