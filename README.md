@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-    <b>English</b> · <a href="./README.zh-CN.md">简体中文</a> · <a href="./docs/architecture/overview.md">Architecture</a> · <a href="./docs/evaluation/strategy.md">Evaluation</a> · <a href="./benchmarks/reports/m3-rerank/report.md">Benchmark</a> · <a href="./docs/project/milestones.md">Milestones</a>
+    <b>English</b> · <a href="./README.zh-CN.md">简体中文</a> · <a href="./docs/architecture/overview.md">Architecture</a> · <a href="./docs/evaluation/strategy.md">Evaluation</a> · <a href="./benchmarks/reports/m3-retrieval/report.md">Benchmark</a> · <a href="./docs/project/milestones.md">Milestones</a>
 </p>
 
 ---
@@ -29,9 +29,9 @@
 
 - 🛡️ **Authorization inside the query**: tenant, clearance, department and project rules are compiled into the SQL of every retrieval path, so unauthorized rows never leave PostgreSQL
 - 🔎 **Four retrieval strategies on one database**: PostgreSQL full-text search, exact pgvector search, reciprocal rank fusion and cross-encoder reranking, each response tagged with the hash of its retrieval plan
-- 📊 **Evaluation with confidence intervals**: 122 hand-checked cases, bootstrap intervals, paired comparisons and a BM25 reference row; a difference counts only if its interval excludes zero
+- 📊 **Evaluation with confidence intervals**: 128 hand-checked cases, bootstrap intervals, paired comparisons and a BM25 reference row; a difference counts only if its interval excludes zero
 - 🚨 **A security gate in CI**: 31 cases try to reach forbidden documents, and every returned chunk is checked against hand-written visibility; one unauthorized result fails the build
-- 🧪 **Results are published as measured**: plain hybrid does not beat dense on this dataset, reranking does (MRR@10 +0.08 [+0.03, +0.14]) at ten times the latency, and one earlier claim was withdrawn when a larger dataset stopped supporting it
+- 🧪 **Results are published as measured**: plain hybrid does not beat dense on this dataset, reranking does (MRR@10 +0.09 [+0.04, +0.15]) at ten times the latency, and one earlier claim was withdrawn when a larger dataset stopped supporting it
 - ⚙️ **Real ingestion**: asynchronous jobs with retry and resume, versioned documents, label changes that apply to the next query without re-embedding
 - 🚀 **Runs on a laptop**: one `docker compose up`, a CPU embedding model baked into the image, no API key and no GPU
 
@@ -137,31 +137,31 @@ The [threat model](./docs/security/threat-model.md) lists every control with the
     <img src="./assets/diagrams/ga-eval-results.en.svg" alt="MRR@10 with confidence intervals for each retrieval strategy" />
 </p>
 
-[`benchmarks/reports/m3-rerank/`](./benchmarks/reports/m3-rerank/) holds the committed run: `run.json` (dataset version, commit, retrieval plans, policy and chunker versions, bootstrap seed, platform and CPU), `cases.jsonl` (per-case rankings) and the rendered `report.md`. Regenerate it with `./scripts/benchmark --out benchmarks/reports/<name>`.
+[`benchmarks/reports/m3-retrieval/`](./benchmarks/reports/m3-retrieval/) holds the committed run: `run.json` (dataset version, commit, retrieval plans, policy and chunker versions, bootstrap seed, platform and CPU), `cases.jsonl` (per-case rankings) and the rendered `report.md`. Regenerate it with `./scripts/benchmark --out benchmarks/reports/<name>`.
 
-Dataset v3, `test` split, 65 answerable cases, 95% bootstrap intervals, produced by the CI runner (Linux x86_64):
+Dataset v4, `test` split, 70 answerable cases, 95% bootstrap intervals, produced by the CI runner (Linux x86_64):
 
 | Strategy | Recall@10 | MRR@10 | nDCG@10 | Security violations | Scope failures |
 |---|---|---|---|---|---|
-| `sparse-only` (PostgreSQL FTS) | 0.923 [0.85, 0.98] | 0.683 [0.59, 0.77] | 0.742 [0.66, 0.82] | **0** | **0** |
-| `dense-only` (pgvector, exact) | 0.969 [0.92, 1.00] | 0.873 [0.80, 0.94] | 0.898 [0.84, 0.95] | **0** | **0** |
-| `hybrid-rrf` (reciprocal rank fusion of the two) | 0.969 [0.92, 1.00] | 0.822 [0.74, 0.89] | 0.857 [0.79, 0.91] | **0** | **0** |
-| `hybrid-rrf-rerank` (cross-encoder over the fused top 20) | 0.969 [0.92, 1.00] | **0.954 [0.90, 0.99]** | **0.952 [0.90, 0.99]** | **0** | **0** |
-| `bm25-reference` (offline, same authorized chunks) | 0.931 [0.87, 0.98] | 0.720 [0.63, 0.80] | 0.770 [0.69, 0.84] | **0** | **0** |
+| `sparse-only` (PostgreSQL FTS) | 0.929 [0.86, 0.99] | 0.690 [0.60, 0.77] | 0.749 [0.67, 0.82] | **0** | **0** |
+| `dense-only` (pgvector, exact) | 0.971 [0.93, 1.00] | 0.865 [0.80, 0.93] | 0.892 [0.83, 0.94] | **0** | **0** |
+| `hybrid-rrf` (reciprocal rank fusion of the two) | 0.971 [0.93, 1.00] | 0.825 [0.75, 0.89] | 0.860 [0.80, 0.91] | **0** | **0** |
+| `hybrid-rrf-rerank` (cross-encoder over the fused top 20) | 0.971 [0.93, 1.00] | **0.957 [0.91, 0.99]** | **0.955 [0.91, 0.99]** | **0** | **0** |
+| `bm25-reference` (offline, same authorized chunks) | 0.921 [0.86, 0.98] | 0.741 [0.66, 0.82] | 0.784 [0.71, 0.86] | **0** | **0** |
 
-**Security.** Zero violations across 122 cases, 31 of which try to reach a document the principal may not see: in another tenant, above its clearance, in a project it is not on, or in another department. Every returned chunk is checked for document and version, and before any query runs each principal's full chunk listing is compared with its hand-labelled visible set.
+**Security.** Zero violations across 128 cases, 31 of which try to reach a document the principal may not see: in another tenant, above its clearance, in a project it is not on, or in another department. Every returned chunk is checked for document and version, and before any query runs each principal's full chunk listing is compared with its hand-labelled visible set.
 
 **Scope.** 13 cases ask about a region or a date, or name documents that are readable but do not apply: the other region's holiday calendar, last year's travel policy, a benefit that has not started. No strategy returned one. Scope failures are counted apart from security violations and never added to them.
 
 What the paired comparisons support, and what they do not:
 
-- **Reranking beats the best single channel.** `hybrid-rrf-rerank` against dense: MRR@10 +0.08 [+0.03, +0.14]. It puts the right evidence first in 61 of 65 cases, where dense manages 53. Recall@10 does not move, because reranking only reorders what fusion already found. The cost is latency: 204 ms at the median against 22 ms for dense on the CI runner, and about 1 s inside Docker on a laptop.
-- **Dense ranks the right evidence higher than FTS:** MRR@10 +0.19 [+0.11, +0.28]. Whether the evidence appears in the top 10 at all shows **no detectable difference** (Recall@10 +0.05 [−0.02, +0.11]).
-- **Plain hybrid does not beat dense.** MRR@10 −0.05 [−0.11, +0.01] against dense: no detectable difference, with the point estimate in favour of dense. The [analysis](./docs/evaluation/m1b-hybrid-analysis.md) of the first hybrid run explains why: equal-weight fusion gives the weaker FTS channel the same vote.
-- **FTS against BM25: a finding that did not hold.** On dataset v1, BM25 was measurably ahead of FTS (MRR@10 +0.10 [+0.02, +0.18]). On v2 and v3 the difference is no longer detectable (v3: +0.04 [−0.02, +0.10]). The earlier reports stay in the repository; the claim is withdrawn until a larger dataset supports it.
-- **Dense beats BM25** on MRR@10 (+0.15 [+0.07, +0.24]).
+- **Reranking beats the best single channel.** `hybrid-rrf-rerank` against dense: MRR@10 +0.09 [+0.04, +0.15]. It puts the right evidence first in 66 of 70 cases, where dense manages 56. Recall@10 does not move, because reranking only reorders what fusion already found. The cost is latency: 480 ms at the median against 41 ms for dense on the CI runner of this run, about ten times, and about 1 s inside Docker on a laptop.
+- **Dense ranks the right evidence higher than FTS:** MRR@10 +0.18 [+0.10, +0.26]. Whether the evidence appears in the top 10 at all shows **no detectable difference** (Recall@10 +0.04 [−0.01, +0.10]).
+- **Plain hybrid does not beat dense.** MRR@10 −0.04 [−0.10, +0.02] against dense: no detectable difference, with the point estimate in favour of dense. The [analysis](./docs/evaluation/m1b-hybrid-analysis.md) of the first hybrid run explains why: equal-weight fusion gives the weaker FTS channel the same vote.
+- **FTS against BM25: a finding that did not hold.** On dataset v1, BM25 was measurably ahead of FTS (MRR@10 +0.10 [+0.02, +0.18]). On every later dataset version the difference is not detectable (v4: +0.05 [−0.01, +0.12]). The earlier reports stay in the repository; the claim is withdrawn until a larger dataset supports it.
+- **Dense beats BM25** on MRR@10 (+0.12 [+0.04, +0.21]).
 
-Nothing was tuned on the test split. The dataset is 32 fictional documents and 122 hand-checked cases, with 36 of the 87 answerable ones deliberately worded so they share almost no words with their evidence. It is a demo benchmark: it shows the method and the direction of the differences, not production quality. Reports on earlier dataset versions are not comparable with this one. Published numbers are reproducible to the reported precision; dense result lists can differ in the order of near-tied candidates between CPUs (see [benchmarks/README.md](./benchmarks/README.md)). See the [dataset card](./data/eval/DATASET_CARD.md) for what it covers and what it does not.
+Nothing was tuned on the test split. The dataset is 35 fictional documents and 128 hand-checked cases, with 36 of the 93 answerable ones deliberately worded so they share almost no words with their evidence. It is a demo benchmark: it shows the method and the direction of the differences, not production quality. Reports on earlier dataset versions are not comparable with this one. Published numbers are reproducible to the reported precision; dense result lists can differ in the order of near-tied candidates between CPUs (see [benchmarks/README.md](./benchmarks/README.md)). See the [dataset card](./data/eval/DATASET_CARD.md) for what it covers and what it does not.
 
 Evidence is labelled as a **document version plus a quote**, not a chunk id, so chunking strategies can be compared on the same labels. Read the method in [docs/evaluation/strategy.md](./docs/evaluation/strategy.md).
 
@@ -172,7 +172,7 @@ Evidence is labelled as a **document version plus a quote**, not a chunk id, so 
 | Authorization in the retrieval query | Tenant, clearance, department and project rules compiled once per request into the SQL of every channel; region and validity scope compiled separately; both property-tested against a reference evaluator | A uniform "no answer" on the answering path (M3) |
 | Retrieval | `sparse-only` (PostgreSQL FTS), `dense-only` (exact pgvector), `hybrid-rrf` (reciprocal rank fusion with overlap deduplication) and `hybrid-rrf-rerank` (a cross-encoder over the top fused candidates, falling back to the fused order); every response carries a plan hash | – |
 | Ingestion | Asynchronous jobs (`202` + poll) with a `SKIP LOCKED` worker, bounded retry and resume; content-hash versioning; Markdown and plain-text chunking with sentence-level splitting and overlap; disable and delete apply to the next query, with background cleanup | – |
-| Evaluation | 122 cases over 32 labelled documents: paraphrases, hard negatives, 31 authorization negatives and 13 scope cases; a BM25 reference row, bootstrap intervals and paired comparisons; a security gate in CI that checks every returned chunk and every principal's full listing | Answer metrics: citation validity, abstention (M3) |
+| Evaluation | 128 cases over 35 labelled documents: paraphrases, hard negatives, 31 authorization negatives, 13 scope cases and 6 prompt-injection cases; a BM25 reference row, bootstrap intervals and paired comparisons; a security gate in CI that checks every returned chunk and every principal's full listing | Answer metrics: citation validity, abstention (M3) |
 | Answers | `/api/v1/query`: statements that cite authorized evidence, a refusal when the evidence does not answer, or evidence alone when no chat model is configured. Generation is optional and uses any OpenAI-compatible endpoint. Answer metrics come from local runs that name their model | A check that each statement is supported by the passage it cites (after v0.1) |
 | Operations | Docker Compose, CI on every PR; a trace id per request, audit events and execution records written synchronously and failing closed | OpenTelemetry traces, dashboards (M4) |
 

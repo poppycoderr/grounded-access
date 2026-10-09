@@ -78,6 +78,8 @@ Deferred on purpose: the precomputed-embeddings cache. CI currently embeds the d
 
 ## M3 — Reranking and answers (≈ 7 days, 3–4 weeks)
 
+**M3 delivered** (retrieval report: `benchmarks/reports/m3-retrieval/`; answer report: `benchmarks/reports/m3-answers-llama3-8b/`; the tag is the remaining step). Reranking beats dense on MRR@10. Generated answers leak nothing and cite real evidence, but with an 8B model they refuse too rarely and can be steered by a planted instruction; see `docs/evaluation/m3-answers-analysis.md`. Notes:
+
 **M3 progress:** 3.1 delivered: `/v1/rerank` in the model service with the reranker baked into the image. The model was chosen on the `dev` split (open question Q5b). 3.2 delivered: the `hybrid-rrf-rerank` strategy with its own timeout, a fallback to the fused order marked `rerank_unavailable`, and per-strategy latency in the evaluation report. Result (`benchmarks/reports/m3-rerank/`): reranking beats dense on MRR@10 by +0.08 [+0.03, +0.14] at about ten times the request latency. 3.3, 3.4 and 3.5 delivered: `POST /api/v1/query` with a context builder, an optional OpenAI-compatible chat client, validated citations and refusal. CI tests the deterministic parts with a scripted model. 3.6 and 3.7 delivered: three documents that carry an instruction for a language model, a heuristic risk label, dataset v4, and `ga-eval answers`. The first local answer report is `benchmarks/reports/m3-answers-llama3-8b/`, read in `docs/evaluation/m3-answers-analysis.md`.
 
 **Exit:** `hybrid-rrf-rerank` appears in the report with its quality delta and p50/p95 latency cost. `/query` returns cited answers or abstentions. Every citation resolves to a chunk that was in the prompt.

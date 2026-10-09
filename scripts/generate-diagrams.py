@@ -136,11 +136,11 @@ def decision(lang, s):
 
 
 RESULTS = [
-    ("sparse-only", 0.683, 0.59, 0.77, 0.923, "bar-s"),
-    ("dense-only", 0.873, 0.80, 0.94, 0.969, "bar-d"),
-    ("hybrid-rrf", 0.822, 0.74, 0.89, 0.969, "bar-h"),
-    ("hybrid-rrf-rerank", 0.954, 0.90, 0.99, 0.969, "bar-x"),
-    ("bm25-reference", 0.720, 0.63, 0.80, 0.931, "bar-r"),
+    ("sparse-only", 0.690, 0.60, 0.77, 0.929, "bar-s"),
+    ("dense-only", 0.865, 0.80, 0.93, 0.971, "bar-d"),
+    ("hybrid-rrf", 0.825, 0.75, 0.89, 0.971, "bar-h"),
+    ("hybrid-rrf-rerank", 0.957, 0.91, 0.99, 0.971, "bar-x"),
+    ("bm25-reference", 0.741, 0.66, 0.82, 0.921, "bar-r"),
 ]
 
 
@@ -284,7 +284,7 @@ EN = {
     },
     "results": {
         "title": "Reranking puts the evidence first; plain hybrid does not beat dense",
-        "sub": "Dataset v3, test split, 65 answerable cases. Bars are MRR@10 with 95% bootstrap intervals, from the committed CI run.",
+        "sub": "Dataset v4, test split, 70 answerable cases. Bars are MRR@10 with 95% bootstrap intervals, from the committed CI run.",
         "axis": "MRR@10",
         "notes": [
             "PostgreSQL full-text search",
@@ -294,16 +294,16 @@ EN = {
             "offline reference row",
         ],
         "tiles": [
-            ("0", ("unauthorized results", "across 122 cases and every strategy"), True),
+            ("0", ("unauthorized results", "across 128 cases and every strategy"), True),
             ("31", ("authorization negatives", "tenant, clearance, project, department"), False),
-            ("+0.08", ("rerank vs dense, MRR@10", "[+0.03, +0.14], at 10× the latency"), False),
+            ("+0.09", ("rerank vs dense, MRR@10", "[+0.04, +0.15], at 10× the latency"), False),
         ],
-        "foot": "Source: benchmarks/reports/m3-rerank. A demo benchmark on a small fictional corpus, not a claim about production quality.",
+        "foot": "Source: benchmarks/reports/m3-retrieval. A demo benchmark on a small fictional corpus, not a claim about production quality.",
     },
     "gate": {
         "title": "The security gate compares the system with hand-written labels",
         "sub": "The expected visibility is written by a person from the access labels, never produced by the policy compiler it checks.",
-        "labels": ["visibility.yaml", "hand-labelled visible documents", "per principal, current version only", "`data/eval/v3`"],
+        "labels": ["visibility.yaml", "hand-labelled visible documents", "per principal, current version only", "`data/eval/v4`"],
         "system": ["System under test", "public API with demo tokens", "one token per principal", "`/retrieval/chunks · /retrieval/search`"],
         "checks": "ga-eval run",
         "steps": [
@@ -311,7 +311,7 @@ EN = {
                 "1 · Listing check",
                 ["every chunk each principal can list", "must match its visible set exactly", "covers documents no query retrieves"],
             ),
-            ("2 · Per-result check", ["122 cases × every strategy", "each chunk: visible document", "and current version"]),
+            ("2 · Per-result check", ["128 cases × every strategy", "each chunk: visible document", "and current version"]),
         ],
         "outcomes": [
             ("Extra document or old version", ["a violation: exit code 2", "the CI job fails"], "rose"),
@@ -397,25 +397,25 @@ ZH = {
     },
     "results": {
         "title": "重排把证据排到最前；不带重排的 hybrid 没有超过 dense",
-        "sub": "数据集 v3，test 划分，65 条可回答用例。柱子是 MRR@10 及 95% bootstrap 区间，来自已提交的 CI 运行。",
+        "sub": "数据集 v4，test 划分，70 条可回答用例。柱子是 MRR@10 及 95% bootstrap 区间，来自已提交的 CI 运行。",
         "axis": "MRR@10",
         "notes": ["PostgreSQL 全文检索", "pgvector 精确检索", "两者的 RRF 融合", "cross-encoder 重排融合后的前 20 个", "离线参考行"],
         "tiles": [
-            ("0", ("越权结果", "122 条用例、所有策略"), True),
+            ("0", ("越权结果", "128 条用例、所有策略"), True),
             ("31", ("授权负例", "租户、密级、项目、部门"), False),
-            ("+0.08", ("重排对 dense，MRR@10", "[+0.03, +0.14]，延迟约为 10 倍"), False),
+            ("+0.09", ("重排对 dense，MRR@10", "[+0.04, +0.15]，延迟约为 10 倍"), False),
         ],
-        "foot": "数据来源：benchmarks/reports/m3-rerank。这是小型虚构语料上的 demo benchmark，不代表生产效果。",
+        "foot": "数据来源：benchmarks/reports/m3-retrieval。这是小型虚构语料上的 demo benchmark，不代表生产效果。",
     },
     "gate": {
         "title": "安全门禁拿系统和手写标注做比较",
         "sub": "预期的可见范围由人对照访问标签写出，绝不由被检验的 policy compiler 生成。",
-        "labels": ["visibility.yaml", "人工标注的可见文档", "按身份列出，只认当前版本", "`data/eval/v3`"],
+        "labels": ["visibility.yaml", "人工标注的可见文档", "按身份列出，只认当前版本", "`data/eval/v4`"],
         "system": ["被测系统", "公开 API + demo token", "每个身份一个 token", "`/retrieval/chunks · /retrieval/search`"],
         "checks": "ga-eval run",
         "steps": [
             ("1 · 列表检查", ["每个身份能列出的全部 chunk", "必须与它的可见集合完全一致", "覆盖没有被任何查询检索到的文档"]),
-            ("2 · 逐条结果检查", ["122 条用例 × 每种策略", "每个 chunk：文档可见", "且来自当前版本"]),
+            ("2 · 逐条结果检查", ["128 条用例 × 每种策略", "每个 chunk：文档可见", "且来自当前版本"]),
         ],
         "outcomes": [
             ("多出文档或返回旧版本", ["记为越权：退出码 2", "CI 任务失败"], "rose"),
