@@ -29,6 +29,11 @@ services:
     environment:
       GA_DB_URL: jdbc:postgresql://postgres:5432/grounded_access
       GA_MODEL_SERVICE_URL: http://model-service:8000
+      # Optional answer generation through any OpenAI-compatible endpoint, for example a local Ollama server:
+      # GA_CHAT_BASE_URL=http://host.docker.internal:11434/v1 GA_CHAT_MODEL=llama3:8b docker compose up -d
+      GA_CHAT_BASE_URL: ${GA_CHAT_BASE_URL:-}
+      GA_CHAT_MODEL: ${GA_CHAT_MODEL:-}
+      GA_CHAT_API_KEY: ${GA_CHAT_API_KEY:-}
     ports:
       - "8080:8080"
     healthcheck:

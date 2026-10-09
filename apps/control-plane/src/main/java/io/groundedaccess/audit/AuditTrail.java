@@ -4,6 +4,7 @@ import io.groundedaccess.authorization.TextArrays;
 import io.groundedaccess.identity.Principal;
 
 import java.time.ZoneOffset;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -124,6 +125,25 @@ public class AuditTrail {
     }
 
     /**
+     * The outcome of answering a query, linked to the execution record of its retrieval. It stores counts and versions only: neither the
+     * question nor any generated text.
+     */
+    public void recordAnswer(Principal principal, String traceId, UUID executionId, String policyVersion, String status, int evidenceCount,
+            int statementCount, int rejectedStatements, @Nullable String chatModel, String promptVersion) {
+        Map<String, @Nullable Object> values = new HashMap<>();
+        values.put("status", status);
+        values.put("evidence", evidenceCount);
+        values.put("statements", statementCount);
+        values.put("rejected", rejectedStatements);
+        values.put("chatModel", chatModel);
+        values.put("promptVersion", promptVersion);
+        event(principal, traceId, "query.answer", "query_execution", executionId.toString(), "allow", policyVersion, """
+                jsonb_build_object('status', cast(:status as text), 'evidenceCount', cast(:evidence as int), 'statementCount', cast(:statements as int),
+                    'rejectedStatements', cast(:rejected as int), 'chatModel', cast(:chatModel as text), 'promptVersion', cast(:promptVersion as text))""",
+                values);
+    }
+
+    /**
      * An execution record is visible to the principal that made the request and to nobody else; anything else looks like a missing record.
      */
     public Optional<QueryExecution> findExecution(Principal principal, UUID id) {
@@ -143,7 +163,7 @@ public class AuditTrail {
 
     private void event(Principal principal, String traceId, String action, String resourceType, String resourceId, String decision,
             @Nullable String policyVersion,
-            String attributes, Map<String, Object> values) {
+            String attributes, Map<String, ? extends @Nullable Object> values) {
         guarded(() -> jdbc.sql(EVENT.formatted(attributes))
                 .param("id", UUID.randomUUID())
                 .param("tenant", principal.tenantId())
