@@ -74,7 +74,7 @@
   <path class="ln-v" d="M520 305 L520 315" marker-end="url(#ar-v)"/>
   <rect class="teal" x="318" y="316" width="404" height="62" rx="12"/>
   <text class="lbl-sm" x="334" y="341">retrieval</text>
-  <text class="txt" x="334" y="361">PostgreSQL FTS · pgvector · RRF 融合 · 配置哈希</text>
+  <text class="txt" x="334" y="361">PostgreSQL FTS · pgvector · RRF · 重排 · 配置哈希</text>
   <rect class="amber" x="318" y="389" width="404" height="62" rx="12"/>
   <text class="lbl-sm" x="334" y="414">corpus + ingestion</text>
   <text class="txt" x="334" y="434">任务队列 · 切分 · 版本 · 访问标签</text>
@@ -88,7 +88,7 @@
   <rect class="card" x="800" y="290" width="280" height="84" rx="12"/>
   <text class="lbl-sm" x="816" y="315">model-service · Python</text>
   <text class="txt" x="816" y="335">只接收已授权的文本</text>
-  <text class="txt" x="816" y="353">CPU 上计算向量 · M3 加入重排</text>
+  <text class="txt" x="816" y="353">在 CPU 上计算向量与重排</text>
   <path class="ln" d="M740 332 L798 332" marker-end="url(#ar)"/>
   <rect class="dash" x="800" y="410" width="280" height="84" rx="12"/>
   <text class="lbl-sm" x="816" y="435">本地对话模型 · M3</text>

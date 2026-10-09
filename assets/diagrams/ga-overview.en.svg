@@ -74,7 +74,7 @@
   <path class="ln-v" d="M520 305 L520 315" marker-end="url(#ar-v)"/>
   <rect class="teal" x="318" y="316" width="404" height="62" rx="12"/>
   <text class="lbl-sm" x="334" y="341">retrieval</text>
-  <text class="txt" x="334" y="361">PostgreSQL FTS · pgvector · RRF fusion · plan hash</text>
+  <text class="txt" x="334" y="361">PostgreSQL FTS · pgvector · RRF · rerank · plan hash</text>
   <rect class="amber" x="318" y="389" width="404" height="62" rx="12"/>
   <text class="lbl-sm" x="334" y="414">corpus + ingestion</text>
   <text class="txt" x="334" y="434">job queue · chunking · versions · access labels</text>
@@ -89,7 +89,7 @@
   <rect class="card" x="800" y="290" width="280" height="84" rx="12"/>
   <text class="lbl-sm" x="816" y="315">model-service · Python</text>
   <text class="txt" x="816" y="335">receives authorized text only</text>
-  <text class="txt" x="816" y="353">embeddings on CPU · rerank in M3</text>
+  <text class="txt" x="816" y="353">embeddings and reranking on CPU</text>
   <path class="ln" d="M740 332 L798 332" marker-end="url(#ar)"/>
   <rect class="dash" x="800" y="410" width="280" height="84" rx="12"/>
   <text class="lbl-sm" x="816" y="435">local chat model · M3</text>

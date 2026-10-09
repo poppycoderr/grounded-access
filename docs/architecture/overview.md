@@ -203,7 +203,7 @@ Response rules:
 | Failure | Behaviour | Marked as |
 |---|---|---|
 | Model service unavailable at query time (embed) | Sparse-only retrieval | `degraded: dense_unavailable` |
-| Reranker timeout/error | Fused RRF order | `degraded: rerank_unavailable` |
+| Reranker timeout or error | Fused RRF order after at most the rerank timeout | `degraded: rerank_unavailable`; the execution record has no reranker model |
 | Chat model timeout/error | Evidence-only response | `degraded: generation_unavailable` |
 | Chat output fails schema or cites unknown IDs | Invalid statements dropped. If none remain, abstention. | `citation_rejected` count |
 | Audit write fails | The request fails closed with 503 `AUDIT_UNAVAILABLE`: a search returns no results, and an administrative change is rolled back | error log with the trace id |
@@ -228,9 +228,10 @@ GET    /api/v1/query-executions/{id}          # own executions only; versions, c
 ```
 
 - Admin endpoints (ingestion, delete) need an `admin` scope in the token. Query endpoints need `query`.
-- `/retrieval/search` takes a strategy (`sparse-only`, `dense-only` or `hybrid-rrf`) and `k`. Every response carries `planHash` and `degraded`. Per-candidate channel ranks and scores and the `RetrievalPlan` itself are debug fields that need the `debug` scope. The eval tokens carry it and ordinary demo users do not.
+- `/retrieval/search` takes a strategy (`sparse-only`, `dense-only`, `hybrid-rrf` or `hybrid-rrf-rerank`) and `k`. Every response carries `planHash` and `degraded`. Per-candidate channel ranks and scores and the `RetrievalPlan` itself are debug fields that need the `debug` scope. The eval tokens carry it and ordinary demo users do not.
 - **`RetrievalPlan`** is everything that decides how candidates are fetched and ordered: strategy, `k`, candidates per channel (50), the RRF constant (60, hybrid only) and overlap deduplication. Its hash is taken over a fixed serialization, for example `{"strategy":"hybrid-rrf","k":10,"candidates":50,"rrfK":60,"dedupeOverlaps":true}`. Candidate count and RRF constant are server settings (`ga.retrieval.*`), not request parameters, and the defaults are the common ones from ADR-0002, not tuned on this dataset.
 - **Fusion and deduplication.** Each channel returns its top candidates under the same compiled predicate. RRF scores a chunk `Σ 1 / (rrfK + rank)` over the channels that returned it, so only ranks are combined and score scales never meet. Ties are broken by document key, version and offset. A chunk whose span overlaps a higher-ranked chunk of the same document version is then dropped, so chunk overlap never spends two result slots on one passage. Fusion and deduplication only reorder and trim rows the SQL predicate already admitted.
+- **Reranking.** `hybrid-rrf-rerank` fuses and deduplicates as above, then sends the top 20 candidates to the cross-encoder in the model service and orders them by its score; candidates it did not see stay behind them in fused order. The plan names the candidate count and the reranker, so its hash differs from the plain hybrid plan, and plans that existed before keep their hashes. The cross-encoder receives only rows the SQL predicate admitted. The call has its own timeout (3 s). If it fails or times out, the fused order is returned with `degraded: ["rerank_unavailable"]`.
 - **Degraded hybrid.** If the query cannot be embedded, `hybrid-rrf` answers from the sparse channel and reports `degraded: ["dense_unavailable"]`. `dense-only` has nothing to fall back to and returns 503. The evaluation rejects any degraded response.
 - The two channels run one after the other in v0.1. Running them in parallel is a latency optimization that does not change results.
 - Documents are addressed by the key they were ingested under, unique per tenant. Clients know keys from their manifests and from search results; internal ids never appear in the API.
