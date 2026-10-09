@@ -198,14 +198,33 @@ Response rules:
 - A query about content the principal is not allowed to see gets the **same response shape** as a query the corpus cannot answer: `status: "no_answer"`. No filtered counts and no document titles go in the response. See [authorization.md](authorization.md#existence-leakage).
 - Without a configured chat model, `/query` returns ranked evidence (`status: "evidence_only"`).
 
+How `/query` decides, in order:
+
+| Condition | Status | Evidence in the response |
+|---|---|---|
+| Retrieval returned nothing | `no_answer`; the chat model is not called | none |
+| No chat model is configured | `evidence_only` | the context, `S1..Sn` |
+| The chat call fails or times out | `evidence_only`, `degraded: generation_unavailable` | the context |
+| The reply is not the expected JSON object | `evidence_only`, `degraded: generation_invalid` | the context |
+| The model says the evidence does not answer the question, or no statement survives validation | `no_answer` | none |
+| Otherwise | `answered` | only the passages that are cited |
+
+- **Context.** The answering step asks retrieval for the top 8 chunks with the configured strategy (`hybrid-rrf-rerank` by default), takes them whole and in rank order up to 1,200 words, and names them `S1..Sn`. Everything in the context was returned by retrieval for this principal, so the chat model never sees anything the principal could not read.
+- **Prompt** (`answer-prompt/1`). Evidence is passed as quoted data between markers, and the instructions say that text inside a passage is never an instruction. The model must reply with one JSON object: `{"answerable": bool, "statements": [{"text", "citations": ["S1"]}]}`.
+- **Validation.** The reply is untrusted input. A statement is kept only if it has text and at least one citation and every id it cites was in the prompt; anything else is dropped and counted. A citation can therefore only point at evidence the principal was authorized for.
+- **What validation does not check.** It proves that a statement points at real evidence, not that the evidence supports it. A model can over-generalise from a passage it cites correctly. Faithfulness is not judged in v0.1.
+- **Chat model.** Any server with the OpenAI chat-completions API, configured with `GA_CHAT_BASE_URL` and `GA_CHAT_MODEL` (for example a local Ollama). Requests use temperature 0 and ask for a JSON object. Generation is off while the base URL is unset.
+- **Audit.** A `query.answer` event links to the execution record of the retrieval and stores the status, counts, the chat model and the prompt version. The question and the generated text are stored nowhere.
+
 ## 7. Failure behaviour
 
 | Failure | Behaviour | Marked as |
 |---|---|---|
 | Model service unavailable at query time (embed) | Sparse-only retrieval | `degraded: dense_unavailable` |
 | Reranker timeout or error | Fused RRF order after at most the rerank timeout | `degraded: rerank_unavailable`; the execution record has no reranker model |
-| Chat model timeout/error | Evidence-only response | `degraded: generation_unavailable` |
-| Chat output fails schema or cites unknown IDs | Invalid statements dropped. If none remain, abstention. | `citation_rejected` count |
+| Chat model timeout or error | Evidence-only response | `degraded: generation_unavailable` |
+| Chat output is not the expected JSON | Evidence-only response | `degraded: generation_invalid` |
+| Chat output cites unknown ids, or a statement has no citation | Those statements are dropped. If none remain, `no_answer` | `rejectedStatements` in the audit event |
 | Audit write fails | The request fails closed with 503 `AUDIT_UNAVAILABLE`: a search returns no results, and an administrative change is rolled back | error log with the trace id |
 | Model service unavailable during ingestion | Job retried, then `failed` | job `error_code` |
 
@@ -223,7 +242,7 @@ PATCH  /api/v1/documents/{key}                # {"status": "active" | "disabled"
 DELETE /api/v1/documents/{key}                # 204; admin scope; 404 if unknown, deleted or another tenant's
 POST   /api/v1/retrieval/search               # ranked candidates + debug fields; optional scope: asOf, region
 GET    /api/v1/retrieval/chunks               # every authorized chunk in scope, keyset-paged; debug scope; includeOutOfScope drops the scope only
-POST   /api/v1/query                          # answer / evidence / abstention
+POST   /api/v1/query                          # answered | no_answer | evidence_only; statements cite evidence ids
 GET    /api/v1/query-executions/{id}          # own executions only; versions, counts and timings, never the query
 ```
 
