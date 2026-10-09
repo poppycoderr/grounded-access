@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-    <a href="./README.md">English</a> · <b>简体中文</b> · <a href="./docs/architecture/overview.md">架构</a> · <a href="./docs/evaluation/strategy.md">评测</a> · <a href="./benchmarks/reports/m3-retrieval/report.md">基准报告</a> · <a href="./docs/project/milestones.md">里程碑</a>
+    <a href="./README.md">English</a> · <b>简体中文</b> · <a href="./docs/architecture/overview.md">架构</a> · <a href="./docs/evaluation/strategy.md">评测</a> · <a href="./benchmarks/reports/v0.1.md">基准报告</a> · <a href="./docs/project/milestones.md">里程碑</a>
 </p>
 
 ---

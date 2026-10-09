@@ -28,6 +28,10 @@ The same effect, smaller, appears between hosted x86_64 runners, which do not al
 
 `m0-walking-skeleton`, `m1a-baseline` and `m1b-hybrid` use dataset v1. `m2-labelled-dataset` is the report on dataset v2; `m2-authorization` and `m3-rerank` are reports on dataset v3, the second adding the `hybrid-rrf-rerank` strategy and per-strategy latency; `m3-retrieval` is the retrieval report on dataset v4, which adds documents that carry an instruction for a language model; v2 adds labelled documents and authorization cases, and v3 adds documents with regions and validity windows and scope cases; numbers across the two versions are not comparable (see the [dataset card](../data/eval/DATASET_CARD.md)). One v1 finding did not carry over: BM25 was measurably ahead of PostgreSQL FTS on v1 (MRR@10 +0.10 [+0.02, +0.18]) and shows no detectable difference on v2 (+0.05 [−0.02, +0.12]).
 
+### v0.1
+
+[`v0.1.md`](./reports/v0.1.md) is the report for the release: authorization, retrieval, behaviour under concurrency, generated answers, and ten annotated failure cases. Its retrieval numbers come from `v0.1/`, a CI run on `main` on dataset v4; the other sections cite the directories they read.
+
 ### Answer reports
 
 A directory whose name starts with `m3-answers-` holds a run of `ga-eval answers`: `answers.json`, `answers.jsonl` and `answers-report.md`. These are local runs. CI has no chat model, and an answer report depends on the model, so its directory name and its header name the model. `m3-answers-llama3-8b` was produced on a laptop with Ollama on dataset v4.
