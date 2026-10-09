@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Render the animated terminal at the top of the READMEs.
 
 Every output line is copied from a file: the queries from a captured run of ./scripts/demo-queries, the table from a committed benchmark
@@ -28,7 +27,7 @@ def kind(line: str) -> str:
         return "note"
     if line.startswith("=="):
         return "head"
-    if line.startswith("|") or line.startswith("##"):
+    if line.startswith(("|", "##")):
         return "row"
     if line.startswith("     "):
         return "text"
