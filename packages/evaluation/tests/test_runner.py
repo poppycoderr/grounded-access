@@ -62,6 +62,30 @@ def test_refuses_results_the_system_produced_without_its_full_plan(monkeypatch):
         runner.run(ds.load(DATA), DegradedClient(["markdown/2"]), ["hybrid-rrf"], 10, {"test"})
 
 
+class FlakyClient(ListingOnlyClient):
+    """Answers the first request degraded and every later one completely."""
+
+    def __init__(self) -> None:
+        super().__init__(["markdown/2"])
+        self.searches = 0
+
+    def search(self, *args: object) -> dict:
+        self.searches += 1
+        degraded = ["rerank_unavailable"] if self.searches == 1 else []
+        return {"policyVersion": "abac/1", "planHash": "abc", "plan": {}, "degraded": degraded, "results": []}
+
+
+def test_a_degraded_answer_is_asked_again_and_the_report_says_so(monkeypatch):
+    monkeypatch.setattr(runner, "check_visibility", lambda dataset, listings: {})
+    client = FlakyClient()
+
+    output = runner.run(ds.load(DATA), client, ["hybrid-rrf-rerank"], 10, {"dev"})
+
+    assert output["run"]["repeated_degraded_requests"] == 1
+    assert client.searches == len(output["cases"]) + 1
+    assert "1 request(s) were answered degraded and sent again" in runner.render(output)
+
+
 class Listing:
     """Returns a fixed chunk listing to every principal."""
 

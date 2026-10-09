@@ -24,6 +24,11 @@ QUALITY_METRICS = ["recall@5", "recall@10", "mrr@10", "ndcg@10"]
 COMPARED_METRICS = ["recall@10", "mrr@10", "ndcg@10"]
 
 
+# A degraded answer does not measure the strategy, so it is never scored. On a busy machine a single rerank call can exceed its timeout, so
+# the request is repeated before the run is given up; the report says how often that happened.
+ATTEMPTS = 3
+
+
 class DegradedRunError(RuntimeError):
     """The system answered without part of its plan (for example without the dense channel), so the result does not measure the strategy."""
 
@@ -70,6 +75,7 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
     check_versions(dataset, listings)
     visibility_check = check_visibility(dataset, listings)
     references: dict[tuple, Bm25Index] = {}
+    repeated = 0
     plans: dict[str, dict[str, dict]] = {}
     for case in cases:
         token = tokens_by_principal[case.principal]
@@ -86,13 +92,18 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
                 ranked = references[scope].search(case.query, k)
                 results = [Result(c.document, c.version, c.start, c.end, rank) for rank, (c, _) in enumerate(ranked, start=1)]
             else:
-                started = time.perf_counter()
-                response = client.search(token, case.query, strategy, k, as_of, case.region)
-                latency_ms = (time.perf_counter() - started) * 1000
-                if response["degraded"]:
-                    raise DegradedRunError(
-                        f"case {case.id} · {strategy} was answered degraded ({', '.join(response['degraded'])}); the run is invalid"
-                    )
+                for attempt in range(1, ATTEMPTS + 1):
+                    started = time.perf_counter()
+                    response = client.search(token, case.query, strategy, k, as_of, case.region)
+                    latency_ms = (time.perf_counter() - started) * 1000
+                    if not response["degraded"]:
+                        break
+                    if attempt == ATTEMPTS:
+                        raise DegradedRunError(
+                            f"case {case.id} · {strategy} was answered degraded ({', '.join(response['degraded'])}) "
+                            f"{ATTEMPTS} times in a row; the run is invalid"
+                        )
+                    repeated += 1
                 policy_versions.add(response["policyVersion"])
                 plans.setdefault(strategy, {})[response["planHash"]] = response["plan"]
                 results = [Result(r["documentKey"], r["versionNo"], r["charStart"], r["charEnd"], r["rank"]) for r in response["results"]]
@@ -113,6 +124,7 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
             "policy_versions": sorted(policy_versions),
             "chunker_versions": chunker_versions,
             "plans": plans,
+            "repeated_degraded_requests": repeated,
             "visibility_check": visibility_check,
             "platform": platform.platform(),
             "cpu": cpu_model(),
@@ -249,6 +261,13 @@ def render(output: dict) -> str:
     plans = run_info.get("plans", {})
     if plans:
         lines += ["Retrieval plans: " + "; ".join(f"`{s}` `{', '.join(sorted(hashes))}`" for s, hashes in plans.items()) + ".", ""]
+    repeated = run_info.get("repeated_degraded_requests", 0)
+    if repeated:
+        lines += [
+            f"{repeated} request(s) were answered degraded and sent again; only complete answers are scored. "
+            "This happens when a model call exceeds its timeout on a busy machine.",
+            "",
+        ]
     if REFERENCE in strategies:
         lines += [
             f"`{REFERENCE}` is not a system configuration: it is Okapi BM25 computed offline over the same authorized chunks, "
