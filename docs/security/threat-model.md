@@ -85,10 +85,11 @@ flowchart LR
 | # | Threat | Control | Verified by |
 |---|---|---|---|
 | S1 | Query text, chunk text or titles end up in audit rows | Audit attributes are an allow-list of typed parameters assembled in SQL | Integration test that reads every audit and execution row |
-| S2 | A caller injects text into logs or audit rows through the trace header | Only a well-formed W3C trace id is accepted; anything else is replaced | Unit test |
+| S2 | A caller injects text into logs or audit rows through the trace header | Only a well-formed W3C trace id is accepted; anything else is replaced | Unit test and integration test |
 | S3 | The debug listing is used to copy everything a principal may read | It needs the `debug` scope, runs under the predicate and is audited per page | Integration tests. Bulk reading of what one is authorized for is not prevented |
 | S4 | The model service leaks or retains text | It holds no identities and has no database access; it is part of the trusted deployment | Architecture test for the client boundary. Otherwise **R4** |
 | S5 | Sensitive text appears in application logs | Log statements written by the project carry ids, codes and counts. Exception messages from dependencies are logged as they are, and no automated check covers every log line | **Residual risk R5** |
+| S6 | Query text, document text, titles or model output leave the process in a trace | Spans carry only the attributes on an allow-list. Every span exporter is wrapped so that other attributes, span events and status descriptions are dropped before export, including those added by HTTP instrumentation and recorded exceptions | Integration test with marker words in the question, title, text and reply; unit test of the exporter |
 
 ### Evading accountability and availability
 

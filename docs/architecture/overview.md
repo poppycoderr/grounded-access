@@ -261,28 +261,46 @@ GET    /api/v1/query-executions/{id}          # own executions only; versions, c
 
 ## 9. Observability
 
-Span tree per query:
+Every request is one trace. The spans of a query:
 
 ```text
-query.request
-├── auth.verify
-├── policy.compile
-├── retrieval.sparse
-├── retrieval.dense         (includes model.embed child span)
-├── retrieval.fusion
-├── rerank                  (model.rerank child span)
-├── context.build
-├── generation
-└── citation.validate
+http post /api/v1/query       (the request; its trace id is the one in X-Trace-Id)
+└── query.answer
+    ├── retrieval.search
+    │   ├── policy.compile
+    │   ├── retrieval.sparse
+    │   ├── retrieval.dense
+    │   │   └── model.embed
+    │   ├── retrieval.fusion
+    │   └── rerank
+    │       └── model.rerank
+    ├── context.build
+    ├── generation
+    └── citation.validate
 ```
 
-Allowed span attributes: `pipeline.config_hash`, `policy.version`, `retrieval.k`, candidate counts per channel *after* authorization, `model.name`, `model.revision`, token counts, `degraded` reasons, error codes.
+`POST /api/v1/retrieval/search` produces the `retrieval.search` subtree alone. A stage that a strategy does not use has no span. Token verification runs inside the request span and has no span of its own. Health probes, the security filter chain and the polling of background jobs are not traced.
 
-Never recorded by default: query text, chunk text, prompts, model output, embeddings, document titles, principal attributes other than an opaque principal ID, and counts of rows removed by authorization.
+**The allow-list.** A span may carry only the attributes listed in `SpanAttribute`:
 
-The span tree is the target for M4. What exists today:
+| Attribute | On | Value |
+|---|---|---|
+| `retrieval.strategy`, `retrieval.k`, `pipeline.config_hash`, `policy.version`, `retrieval.results` | `retrieval.search` | the request's strategy and `k`, the plan hash, the policy version, the number of results |
+| `retrieval.candidates` | each channel, fusion, `rerank` | rows the stage returned or received. The authorization predicate is part of each channel's SQL, so this never counts a row it removed |
+| `model.name` | `model.embed`, `model.rerank`, `generation` | model name and revision |
+| `answer.status`, `prompt.version` | `query.answer` | `answered`, `no_answer` or `evidence_only`; the prompt version |
+| `context.evidence`, `answer.statements`, `answer.rejected_statements` | `context.build`, `citation.validate` | counts |
+| `degraded` | `retrieval.search`, `query.answer` | the reasons, for example `rerank_unavailable` |
+| `error.type` | a stage that failed | the exception's class name |
+| `method`, `uri`, `status`, `outcome`, `exception`, `client.name` | HTTP spans | request method, route template, response status, exception class name |
 
-- **Trace id.** Every request gets one before authentication runs. A valid W3C `traceparent` header supplies it; anything else is discarded and a new id is generated, so a caller cannot inject text into logs or audit rows through the header. The id is returned in `X-Trace-Id`, in search responses, and put into the logging context.
+The list is enforced where spans leave the process, not where they are created. Every span exporter is wrapped in `RedactingSpanExporter`, which drops any attribute that is not on the list, all span events and the status description. This matters for spans the application does not create: HTTP instrumentation attaches the request path, which contains document keys, and a recorded exception carries its message, which for a rejected model-service call quotes the text that was sent. An integration test runs searches, answers, document reads and failing calls with marker words in the question, the document title, the document text and the model's reply, and fails if any exported span contains one of them or an attribute outside the list.
+
+Never recorded: query text, chunk text, prompts, model output, embeddings, document titles, document keys, principal attributes, exception messages, and counts of rows removed by authorization.
+
+Spans are exported over OTLP when `MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT` is set (for example `http://localhost:4318/v1/traces`); without it they are created and discarded. `GA_TRACE_SAMPLING` sets the sampled share of requests and defaults to `1.0`.
+
+- **Trace id.** Every request gets one before authentication runs. It is the trace id of the request's span. A valid W3C `traceparent` header supplies it; anything else is discarded and a new id is generated, so a caller cannot inject text into logs or audit rows through the header. The id is returned in `X-Trace-Id`, in search responses, stored in the audit rows and the execution record, and put into the logging context.
 - **Execution record.** Each search stores a `query_execution` row: plan and hash, policy version, embedding model with revision, degraded reasons, result count and stage timings. Its owner can read it at `GET /api/v1/query-executions/{id}`; for anyone else it does not exist.
 
 ### Audit
