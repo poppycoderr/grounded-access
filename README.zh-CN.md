@@ -168,7 +168,7 @@ curl -s localhost:8080/api/v1/retrieval/search -H "Authorization: Bearer $TOKEN"
 | 能力 | 当前可用 | 计划中 |
 |---|---|---|
 | 检索查询内的授权 | 租户、密级、部门、项目四条规则，每次请求编译一次，写进每条通道的 SQL；region 与有效期作为适用范围单独编译；两者都用基于属性的测试对照参考实现验证 | 回答链路上一致的「无法回答」（M3） |
-| 检索 | `sparse-only`（PostgreSQL FTS）、`dense-only`（pgvector 精确检索）与 `hybrid-rrf`（RRF 融合并去除重叠 chunk）；每个响应带检索配置哈希 | cross-encoder 重排（M3） |
+| 检索 | `sparse-only`（PostgreSQL FTS）、`dense-only`（pgvector 精确检索）、`hybrid-rrf`（RRF 融合并去除重叠 chunk）与 `hybrid-rrf-rerank`（用 cross-encoder 重排融合后的前若干候选，失败时退回融合顺序）；每个响应带检索配置哈希 | – |
 | 入库 | 异步任务（`202` + 轮询），`SKIP LOCKED` worker、有限重试与断点续跑；内容哈希版本管理；Markdown 与纯文本切分，按句拆分长段落并带重叠；停用与删除对下一次查询生效，后台清理 | – |
 | 评测 | 32 篇带标签的文档、122 条用例：改写、hard negatives、31 条授权负例与 13 条适用范围用例；BM25 参考行、bootstrap 置信区间与配对比较；CI 安全门禁逐个检查返回的 chunk 和每个身份的完整可见列表 | 回答指标：引用有效性、拒答（M3） |
 | 回答 | `/api/v1/retrieval/search` 返回排序后的证据 | 带引用与拒答的 `/api/v1/query`（M3） |

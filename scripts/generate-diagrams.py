@@ -222,13 +222,13 @@ EN = {
         "modules": [
             ("identity", "verify JWT · requires sub + tenant_id", "blue"),
             ("authorization", "PolicyCompiler → one SQL predicate · policy abac/1", "violet"),
-            ("retrieval", "PostgreSQL FTS · pgvector · RRF fusion · plan hash", "teal"),
+            ("retrieval", "PostgreSQL FTS · pgvector · RRF · rerank · plan hash", "teal"),
             ("corpus + ingestion", "job queue · chunking · versions · access labels", "amber"),
             ("answering · M3", "citations · abstention", "dash"),
         ],
         "deps": [
             ("PostgreSQL 17 + pgvector", ["authorization runs inside", "the retrieval query"], "card"),
-            ("model-service · Python", ["receives authorized text only", "embeddings on CPU · rerank in M3"], "card"),
+            ("model-service · Python", ["receives authorized text only", "embeddings and reranking on CPU"], "card"),
             ("local chat model · M3", ["optional, no API key needed"], "dash"),
         ],
         "foot": "Unauthorized rows never leave PostgreSQL  ·  label changes apply to the next query  ·  every evaluation run is reproducible",
@@ -348,13 +348,13 @@ ZH = {
         "modules": [
             ("identity", "验签 JWT · 必须带 sub 与 tenant_id", "blue"),
             ("authorization", "PolicyCompiler → 一个 SQL 谓词 · policy abac/1", "violet"),
-            ("retrieval", "PostgreSQL FTS · pgvector · RRF 融合 · 配置哈希", "teal"),
+            ("retrieval", "PostgreSQL FTS · pgvector · RRF · 重排 · 配置哈希", "teal"),
             ("corpus + ingestion", "任务队列 · 切分 · 版本 · 访问标签", "amber"),
             ("answering · M3", "引用 · 拒答", "dash"),
         ],
         "deps": [
             ("PostgreSQL 17 + pgvector", ["授权在检索查询内部执行"], "card"),
-            ("model-service · Python", ["只接收已授权的文本", "CPU 上计算向量 · M3 加入重排"], "card"),
+            ("model-service · Python", ["只接收已授权的文本", "在 CPU 上计算向量与重排"], "card"),
             ("本地对话模型 · M3", ["可选，不需要 API key"], "dash"),
         ],
         "foot": "未授权的行不会离开 PostgreSQL  ·  标签变更对下一次查询生效  ·  每次评测都可复现",

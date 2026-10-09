@@ -97,7 +97,7 @@ Every configuration is a serialized `RetrievalPlan`. `run.json` stores each stra
 | Security | unauthorized candidates, unauthorized citations, cross-tenant candidates | **yes, must be 0** |
 | Retrieval | Recall@5, Recall@10, MRR@10, nDCG@10 | yes, no regression beyond threshold on the CI subset |
 | Hard negatives | rank of the first tempting wrong document; how often it ranks above the first correct evidence | reported |
-| Rerank | metric delta vs `hybrid-rrf`, p50/p95 latency delta | reported |
+| Rerank | paired metric difference against `hybrid-rrf` and `dense-only`; p50 and p95 request latency per strategy, measured by the evaluation client on the machine named in the report | reported |
 | Context | gold evidence coverage, duplicate ratio, context tokens | reported |
 | Answer (when generation is on) | citation validity, abstention accuracy (precision/recall on `must_abstain`), fact recall by exact or normalized match | reported |
 | Operations | p50/p95 stage latency, degraded-query rate | degraded rate must be 0 for a valid run |
