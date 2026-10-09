@@ -54,7 +54,7 @@ class ModelServiceEmbeddingClientTest {
     @Test
     void sendsTheContractRequestOverPlainHttp11AndBatchesLargeInputs() {
         var properties = new ModelServiceProperties(URI.create("http://127.0.0.1:" + server.getAddress().getPort()), "m", 2, Duration.ofSeconds(1),
-                Duration.ofSeconds(2), "reranker", Duration.ofSeconds(1));
+                Duration.ofSeconds(2), "reranker", Duration.ofSeconds(1), 1);
         var client = new ModelServiceEmbeddingClient(RestClient.builder(), properties);
 
         Embeddings embeddings = client.embed(List.of("a", "b", "c"), InputType.PASSAGE);

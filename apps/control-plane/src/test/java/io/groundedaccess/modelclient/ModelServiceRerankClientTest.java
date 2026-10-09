@@ -10,7 +10,12 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -81,6 +86,31 @@ class ModelServiceRerankClientTest {
     }
 
     @Test
+    void aCallThatFindsNoFreeSlotWithinTheTimeoutIsNotSent() throws Exception {
+        response.set("{\"model\":\"m\",\"revision\":\"r7\",\"scores\":[{\"id\":\"0\",\"score\":1.0}]}");
+        delayMillis = 700;
+        ModelServiceRerankClient client = client(Duration.ofMillis(1000));
+
+        List<Future<String>> outcomes;
+        try (ExecutorService pool = Executors.newFixedThreadPool(3)) {
+            outcomes = pool.invokeAll(Collections.nCopies(3, () -> {
+                try {
+                    return client.score("q", List.of("p")).modelId();
+                } catch (RestClientException e) {
+                    return e.getClass().getSimpleName();
+                }
+            }));
+        }
+
+        List<String> results = new ArrayList<>();
+        for (Future<String> outcome : outcomes) {
+            results.add(outcome.get());
+        }
+        assertThat(results).containsExactlyInAnyOrder("m@r7", "m@r7", "RerankBusyException");
+        assertThat(requests).as("the third call waited for a slot and was dropped without reaching the model service").hasSize(2);
+    }
+
+    @Test
     void rejectsAResponseThatDoesNotScoreEveryPassage() {
         response.set("{\"model\":\"m\",\"revision\":\"r7\",\"scores\":[{\"id\":\"0\",\"score\":1.0}]}");
 
@@ -90,7 +120,7 @@ class ModelServiceRerankClientTest {
 
     private ModelServiceRerankClient client(Duration rerankTimeout) {
         var properties = new ModelServiceProperties(URI.create("http://127.0.0.1:" + server.getAddress().getPort()), "embedder", 2, Duration.ofSeconds(1),
-                Duration.ofSeconds(30), "m", rerankTimeout);
+                Duration.ofSeconds(30), "m", rerankTimeout, 1);
         return new ModelServiceRerankClient(RestClient.builder(), properties);
     }
 }

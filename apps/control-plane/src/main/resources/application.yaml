@@ -28,6 +28,7 @@ ga:
     read-timeout: 30s
     reranker-model: ${GA_RERANKER_MODEL:Xenova/ms-marco-MiniLM-L-12-v2}
     rerank-timeout: 3s
+    rerank-max-concurrent: ${GA_RERANK_MAX_CONCURRENT:1}
   retrieval:
     candidates: 50
     rrf-k: 60
