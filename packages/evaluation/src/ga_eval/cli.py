@@ -7,8 +7,8 @@ from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
+from ga_eval import answers, runner, tokens
 from ga_eval import dataset as ds
-from ga_eval import runner, tokens
 from ga_eval.client import ApiClient, IngestionFailedError
 
 
@@ -19,6 +19,9 @@ def main(argv: list[str] | None = None) -> int:
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("validate", help="check cases, quotes and visibility labels against the corpus")
     commands.add_parser("load", help="ingest every manifest into its tenant")
+    answers_parser = commands.add_parser("answers", help="evaluate generated answers; needs a chat model configured in the control plane")
+    answers_parser.add_argument("--out", type=Path, help="output directory (default: results/answers-<timestamp>)")
+    answers_parser.add_argument("--split", action="append", choices=["dev", "test"], help="repeatable; default: both")
     run_parser = commands.add_parser("run", help="evaluate retrieval strategies and enforce the security gate")
     run_parser.add_argument("--strategy", action="append", choices=[*runner.SYSTEM_STRATEGIES, runner.REFERENCE], help="repeatable; default: all")
     run_parser.add_argument("--split", action="append", choices=["dev", "test"], help="repeatable; default: all")
@@ -42,6 +45,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     client = ApiClient(args.base_url)
     client.wait_until_ready()
+    if args.command == "answers":
+        return _answers(dataset, client, args)
     if args.command == "load":
         return _load(dataset, client)
     if args.command == "search":
@@ -102,6 +107,21 @@ def _load(dataset: ds.Dataset, client: ApiClient) -> int:
                 return 1
             counts = ", ".join(f"{job[field]} {field}" for field in ("created", "updated", "unchanged", "chunks"))
             print(f"{manifest.tenant}: job {job['jobId']} succeeded after {job['attempts']} attempt(s): {counts}")
+    return 0
+
+
+def _answers(dataset: ds.Dataset, client: ApiClient, args: argparse.Namespace) -> int:
+    try:
+        output = answers.run(dataset, client, set(args.split or ["dev", "test"]))
+    except answers.NoChatModelError as missing:
+        print(f"error: {missing}", file=sys.stderr)
+        return 1
+    out_dir = args.out or Path("results") / ("answers-" + datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ"))
+    answers.write(output, out_dir)
+    print((out_dir / "answers-report.md").read_text())
+    if output["run"]["security_violations"]:
+        print(f"SECURITY GATE FAILED: {output['run']['security_violations']} unauthorized evidence items", file=sys.stderr)
+        return 2
     return 0
 
 

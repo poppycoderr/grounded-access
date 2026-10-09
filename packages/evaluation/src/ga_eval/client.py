@@ -54,6 +54,12 @@ class ApiClient:
         response.raise_for_status()
         return response.json()
 
+    def query(self, token: str, question: str, as_of: str | None = None, region: str | None = None) -> dict:
+        # Generation on a laptop CPU can take much longer than retrieval, so this call gets its own timeout.
+        response = self._http.post("/api/v1/query", json={"query": question} | _scope(as_of, region, "asOf"), headers=_auth(token), timeout=300.0)
+        response.raise_for_status()
+        return response.json()
+
     def list_chunks(
         self, token: str, as_of: str | None = None, region: str | None = None, include_out_of_scope: bool = False, page_size: int = 500
     ) -> tuple[str, list[dict]]:
