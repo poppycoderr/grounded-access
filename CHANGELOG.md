@@ -2,6 +2,41 @@
 
 Notable changes per release. Versions before `v0.1.0` are pre-releases: APIs, the schema and the evaluation dataset may change without a migration path.
 
+## Unreleased
+
+Milestone M4: operations and release. This section becomes `v0.1.0`.
+
+### Observability
+
+- Every request is one OpenTelemetry trace with a span per pipeline stage. Its trace id is the `X-Trace-Id` of the response and the `trace_id` of its audit rows and execution record.
+- Spans carry only attributes from an allow-list, enforced where spans are exported: other attributes, span events and status descriptions are dropped, including those added by HTTP instrumentation.
+- Logs in the compose stack are JSON with trace ids. Log lines never contain exception messages, which can quote request text; they name the exception class, HTTP status and SQL state.
+- `COMPOSE_PROFILES=observability docker compose up -d` starts a collector with Grafana and a dashboard. Without it nothing is exported.
+
+### Behaviour under failure and load
+
+- Failure behaviour is tested over the real HTTP clients against a model service that hangs, fails or answers nonsense.
+- `./scripts/load-smoke` sends the evaluation cases concurrently and checks every result against its principal's visible set. CI runs it.
+- **Changed:** one rerank call is in flight at a time (`GA_RERANK_MAX_CONCURRENT`, default 1). A query that finds no free slot within the rerank timeout is answered in the fused order and marked `rerank_unavailable`. Before, overlapping rerank calls all timed out and slowed every other query ([report](./benchmarks/reports/m4-load-smoke/report.md)).
+
+### Evaluation
+
+- [v0.1 benchmark report](./benchmarks/reports/v0.1.md) with ten annotated failure cases. The retrieval results are those of alpha.3, measured again on the release code.
+- **Changed:** the benchmark sends a degraded request again, up to three times, before it declares the run invalid, and reports how often that happened.
+- **Fixed:** loading the demo corpus a second time added versions to documents with a history, and the next benchmark reported them as a security failure. Loading is now repeatable.
+
+### Release engineering
+
+- CI runs the README quick start as printed, checks relative links, scans the history for secrets and both images for fixable high and critical vulnerabilities, checks dependency licenses and publishes an SBOM per image.
+- **Security:** Tomcat is raised to 11.0.25 and Jackson to 3.1.7. The versions managed by Spring Boot 4.1.1 have known critical and high vulnerabilities.
+- [Known limitations](./docs/project/known-limitations.md) and a [release checklist](./docs/project/release-checklist.md).
+
+### Changed since alpha.3
+
+- New dependency: the Spring Boot OpenTelemetry starter.
+- New configuration: `GA_TRACE_SAMPLING`, `GA_OTLP_ENDPOINT`, `GA_OTLP_METRICS_ENABLED`, `GA_RERANK_MAX_CONCURRENT`.
+- `./scripts/demo-queries` prints two results per identity in the tenant comparison.
+
 ## v0.1.0-alpha.3
 
 Milestone M3: reranking and answers.
