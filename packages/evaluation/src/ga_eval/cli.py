@@ -57,7 +57,7 @@ def main(argv: list[str] | None = None) -> int:
         output = runner.run(
             dataset, client, args.strategy or [*runner.SYSTEM_STRATEGIES, runner.REFERENCE], args.k, set(args.split or ["dev", "test"])
         )
-    except (runner.MixedChunkerError, runner.DegradedRunError, runner.VisibilityMismatchError) as invalid:
+    except (runner.MixedChunkerError, runner.ReloadedCorpusError, runner.DegradedRunError, runner.VisibilityMismatchError) as invalid:
         print(f"error: {invalid}", file=sys.stderr)
         return 1
     out_dir = args.out or Path("results") / datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
@@ -92,13 +92,16 @@ def _load(dataset: ds.Dataset, client: ApiClient) -> int:
     for manifest in dataset.manifests:
         admin = f"{manifest.tenant}-admin"
         token = tokens.mint(dataset.root, admin, dataset.principals[admin])
-        rounds = max(len(d.versions()) for d in manifest.documents)
+        # Documents with a history are ingested oldest version first, so their version numbers match the labels in the dataset. A document
+        # that is already loaded gets only its current version: replaying its history would add versions on every load.
+        loaded = _loaded_documents(dataset, client, manifest.tenant)
+        pending = {d.key: [d] if d.key in loaded else d.versions() for d in manifest.documents}
+        rounds = max(len(versions) for versions in pending.values())
         for number in range(rounds):
-            # Documents with a history are ingested oldest version first, so their version numbers match the labels in the dataset.
             documents = [
-                _document(dataset, d, d.versions()[number - (rounds - len(d.versions()))])
+                _document(dataset, d, pending[d.key][number - (rounds - len(pending[d.key]))])
                 for d in manifest.documents
-                if number >= rounds - len(d.versions())
+                if number >= rounds - len(pending[d.key])
             ]
             try:
                 job = client.ingest(token, documents)
@@ -108,6 +111,16 @@ def _load(dataset: ds.Dataset, client: ApiClient) -> int:
             counts = ", ".join(f"{job[field]} {field}" for field in ("created", "updated", "unchanged", "chunks"))
             print(f"{manifest.tenant}: job {job['jobId']} succeeded after {job['attempts']} attempt(s): {counts}")
     return 0
+
+
+def _loaded_documents(dataset: ds.Dataset, client: ApiClient, tenant: str) -> set[str]:
+    """The documents of a tenant that some demo principal can already list."""
+    loaded: set[str] = set()
+    for name, claims in dataset.principals.items():
+        if claims.get("tenant_id") == tenant and claims.get("scope") != "admin":
+            _, chunks = client.list_chunks(tokens.mint(dataset.root, name, claims, scope="query debug"), include_out_of_scope=True)
+            loaded |= {chunk["documentKey"] for chunk in chunks}
+    return loaded
 
 
 def _answers(dataset: ds.Dataset, client: ApiClient, args: argparse.Namespace) -> int:
