@@ -25,6 +25,14 @@
 
 ---
 
+<p align="center">
+    <img src="./assets/demo/terminal.svg" alt="Terminal recording: the same question answered for different identities, then the benchmark with its security gate" width="900" />
+</p>
+
+<p align="center">
+    <sub>Recorded from <code>./scripts/demo-queries</code> and <code>./scripts/benchmark</code>: the query output is a local run, the table is the <a href="./benchmarks/reports/m3-retrieval/report.md">published report</a>. The lines starting with <code>#</code> are comments.</sub>
+</p>
+
 ## Highlights
 
 - 🛡️ **Authorization inside the query**: tenant, clearance, department and project rules are compiled into the SQL of every retrieval path, so unauthorized rows never leave PostgreSQL
@@ -42,13 +50,15 @@ Nothing about the request changes except the token. This is real output from `./
 ```text
 alice-engineer (tenant northstar) · dense-only · policy abac/1
   1. hr-volunteer-policy › Volunteer Time Off Policy > European Union
-     Employees based in the EU receive two paid volunteer days per calendar year.
+     Employees based in the EU receive two paid volunteer days per calendar year. ...
   2. hr-volunteer-policy › Volunteer Time Off Policy > United States
-     Employees based in the US receive one paid volunteer day per calendar year.
+     Employees based in the US receive one paid volunteer day per calendar year. ...
 
 mallory-outsider (tenant external) · dense-only · policy abac/1
   1. volunteer-handbook › Community Volunteering Handbook > Volunteer days
      Orbit Labs employees receive three volunteer days per year, which can be taken as half days.
+  2. volunteer-handbook › Community Volunteering Handbook > Approval
+     Team leads approve volunteer days in the Orbit Labs people system.
 ```
 
 The outsider gets no "permission denied", no hit count and no Northstar document title. The tenant condition is part of the SQL that selects candidates, so the Northstar policy is never a row in their result set.

@@ -5,8 +5,8 @@ cd "$(dirname "$0")/.."
 ga() { uv run -q --project packages/evaluation ga-eval "$@"; }
 
 echo "== Same question, two tenants =="
-ga search alice-engineer "How many paid volunteer days do EU employees receive?"
-ga search mallory-outsider "How many paid volunteer days do EU employees receive?"
+ga search alice-engineer "How many paid volunteer days do EU employees receive?" --k 2
+ga search mallory-outsider "How many paid volunteer days do EU employees receive?" --k 2
 
 echo
 echo "== Same tenant, different clearance =="

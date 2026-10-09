@@ -25,6 +25,14 @@
 
 ---
 
+<p align="center">
+    <img src="./assets/demo/terminal.svg" alt="终端录屏：同一个问题对不同身份的回答，以及带安全门禁的评测" width="900" />
+</p>
+
+<p align="center">
+    <sub>录自 <code>./scripts/demo-queries</code> 和 <code>./scripts/benchmark</code>：查询输出来自一次本地运行，表格来自<a href="./benchmarks/reports/m3-retrieval/report.md">已发布的报告</a>。以 <code>#</code> 开头的行是注释。</sub>
+</p>
+
 ## 亮点
 
 - 🛡️ **授权写在查询里**：租户、密级、部门、项目四条规则被编译进每条检索路径的 SQL，未授权的行不会离开 PostgreSQL
@@ -42,13 +50,15 @@
 ```text
 alice-engineer (tenant northstar) · dense-only · policy abac/1
   1. hr-volunteer-policy › Volunteer Time Off Policy > European Union
-     Employees based in the EU receive two paid volunteer days per calendar year.
+     Employees based in the EU receive two paid volunteer days per calendar year. ...
   2. hr-volunteer-policy › Volunteer Time Off Policy > United States
-     Employees based in the US receive one paid volunteer day per calendar year.
+     Employees based in the US receive one paid volunteer day per calendar year. ...
 
 mallory-outsider (tenant external) · dense-only · policy abac/1
   1. volunteer-handbook › Community Volunteering Handbook > Volunteer days
      Orbit Labs employees receive three volunteer days per year, which can be taken as half days.
+  2. volunteer-handbook › Community Volunteering Handbook > Approval
+     Team leads approve volunteer days in the Orbit Labs people system.
 ```
 
 外部身份拿到的不是「权限不足」，没有命中数量，也看不到任何 Northstar 文档的标题。租户条件是筛选候选的那条 SQL 的一部分，因此 Northstar 的政策从来没有成为他结果集里的一行。

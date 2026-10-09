@@ -1,0 +1,39 @@
+== Same question, two tenants ==
+alice-engineer (tenant northstar) · dense-only · policy abac/1
+  1. hr-volunteer-policy › Volunteer Time Off Policy > European Union
+     Employees based in the EU receive two paid volunteer days per calendar year. Unused volunteer days do not carr
+  2. hr-volunteer-policy › Volunteer Time Off Policy > United States
+     Employees based in the US receive one paid volunteer day per calendar year. Managers may approve one additiona
+mallory-outsider (tenant external) · dense-only · policy abac/1
+  1. volunteer-handbook › Community Volunteering Handbook > Volunteer days
+     Orbit Labs employees receive three volunteer days per year, which can be taken as half days.
+  2. volunteer-handbook › Community Volunteering Handbook > Approval
+     Team leads approve volunteer days in the Orbit Labs people system.
+
+== Same tenant, different clearance ==
+alice-engineer (tenant northstar) · dense-only · policy abac/1
+  1. eng-oncall-handbook › On-call Handbook > Compensation
+     Engineers receive an on-call allowance of 250 EUR per week of primary on-call, plus time off in lieu for any p
+  2. eng-oncall-handbook › On-call Handbook > Acknowledging pages
+     The on-call engineer must acknowledge a page within 5 minutes. If a page is not acknowledged within 15 minutes
+carol-manager (tenant northstar) · dense-only · policy abac/1
+  1. hr-compensation-bands › Compensation Bands > On-call pay
+     Engineers at staff level and above receive an on-call allowance of 400 EUR per week of primary on-call instead
+  2. eng-oncall-handbook › On-call Handbook > Compensation
+     Engineers receive an on-call allowance of 250 EUR per week of primary on-call, plus time off in lieu for any p
+
+== A paraphrase with no shared keywords ==
+alice-engineer (tenant northstar) · sparse-only · policy abac/1
+  1. eng-backup-and-restore › Backup and Restore Standard > Retention
+     Daily snapshots are kept for 35 days and monthly snapshots for 13 months. Snapshots are encrypted and copied t
+  2. eng-billing-db-failover › Runbook: Billing Database Failover > After failing over
+     1. Verify that invoices are being written by checking the billing write-rate dashboard.
+  3. hr-travel-policy › Business Travel and Expenses > Submitting expenses
+     Submit receipts within 30 days of returning from the trip. Claims submitted later than 90 days are rejected.
+alice-engineer (tenant northstar) · dense-only · policy abac/1
+  1. hr-travel-policy › Business Travel and Expenses > Daily allowance
+     The meal allowance is 60 EUR per day for travel inside the EU and 75 USD per day for travel inside the US. Alc
+  2. hr-travel-policy › Business Travel and Expenses > Booking
+     Book flights and hotels through the company travel tool. Economy class is the default for flights shorter than
+  3. eng-api-rate-limits › Public API Rate Limits > Default limits
+     The Standard plan allows 600 requests per minute. The Enterprise plan allows 3,000 requests per minute and bur
