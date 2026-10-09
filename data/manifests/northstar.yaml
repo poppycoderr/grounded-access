@@ -30,6 +30,9 @@ documents:
   - {key: hr-public-holidays-us, title: "Public Holidays: United States Offices", file: corpus/northstar/hr-public-holidays-us.md, classification: internal, applies_to_regions: [US]}
   - {key: hr-travel-policy-2025, title: "Business Travel and Expenses (2025)", file: corpus/northstar/hr-travel-policy-2025.md, classification: internal, valid_from: "2025-01-01T00:00:00Z", valid_to: "2026-01-01T00:00:00Z"}
   - {key: hr-wellness-benefit-2099, title: "Wellness Benefit", file: corpus/northstar/hr-wellness-benefit-2099.md, classification: internal, valid_from: "2099-01-01T00:00:00Z"}
+  - {key: support-chatbot-notes, title: "Support Chatbot Rollout Notes", file: corpus/northstar/support-chatbot-notes.md, classification: internal}
+  - {key: eng-wiki-migration-note, title: "Engineering Wiki Migration Note", file: corpus/northstar/eng-wiki-migration-note.md, classification: internal}
+  - {key: hr-faq-archive, title: "HR FAQ Archive", file: corpus/northstar/hr-faq-archive.md, classification: internal}
   - key: sales-pricing-guide
     title: "Pricing Guide"
     file: corpus/northstar/sales-pricing-guide.md
