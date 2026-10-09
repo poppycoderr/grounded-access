@@ -9,7 +9,9 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Everything that decides how candidates are fetched and ordered for one request. Two results are comparable only if their plans are equal, so
- * the plan's hash is returned with every response and stored with every evaluation run. {@code rrfK} is present only when the strategy fuses.
+ * the plan's hash is returned with every response and stored with every evaluation run. {@code rrfK} is present only when the strategy fuses;
+ * {@code rerankCandidates} and {@code reranker} only when it reranks. The reranker is named without its revision, which the execution
+ * record carries.
  */
 public record RetrievalPlan(
         RetrievalStrategy strategy,
@@ -20,20 +22,27 @@ public record RetrievalPlan(
 
         @Nullable Integer rrfK,
 
-        boolean dedupeOverlaps) {
+        boolean dedupeOverlaps,
 
-    static RetrievalPlan of(RetrievalStrategy strategy, int k, RetrievalProperties properties) {
+        @Nullable Integer rerankCandidates,
+
+        @Nullable String reranker) {
+
+    static RetrievalPlan of(RetrievalStrategy strategy, int k, RetrievalProperties properties, String rerankerModel) {
         boolean fuses = strategy.usesSparse() && strategy.usesDense();
-        return new RetrievalPlan(strategy, k, Math.max(properties.candidates(), k), fuses ? properties.rrfK() : null, true);
+        boolean reranks = strategy.usesRerank();
+        return new RetrievalPlan(strategy, k, Math.max(properties.candidates(), k), fuses ? properties.rrfK() : null, true,
+                reranks ? Math.max(properties.rerankCandidates(), k) : null, reranks ? rerankerModel : null);
     }
 
     /**
      * The serialized form the hash is taken over. Field order and formatting are fixed here, not left to a JSON library, so the hash cannot change
-     * with a library upgrade.
+     * with a library upgrade. The rerank fields are appended only when present, so plans that existed before reranking keep their hashes.
      */
     public String canonical() {
-        return "{\"strategy\":\"%s\",\"k\":%d,\"candidates\":%d,\"rrfK\":%s,\"dedupeOverlaps\":%s}".formatted(strategy.wireName(), k, candidates, rrfK,
-                dedupeOverlaps);
+        String rerank = rerankCandidates == null ? "" : ",\"rerankCandidates\":%d,\"reranker\":\"%s\"".formatted(rerankCandidates, reranker);
+        return "{\"strategy\":\"%s\",\"k\":%d,\"candidates\":%d,\"rrfK\":%s,\"dedupeOverlaps\":%s%s}".formatted(strategy.wireName(), k, candidates, rrfK,
+                dedupeOverlaps, rerank);
     }
 
     public String hash() {

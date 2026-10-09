@@ -38,11 +38,16 @@ public record SearchResultResponse(
 
         @Nullable Integer denseRank,
 
-        @Nullable Double denseScore) {
+        @Nullable Double denseScore,
+
+        @Nullable Integer fusedRank,
+
+        @Nullable Double rerankScore) {
 
     static SearchResultResponse from(RetrievedChunk chunk, boolean debug) {
         return new SearchResultResponse(chunk.chunkId(), chunk.documentKey(), chunk.versionNo(), chunk.title(), chunk.sectionPath(), chunk.charStart(),
                 chunk.charEnd(), chunk.content(), chunk.chunkerVersion(), chunk.rank(), debug ? chunk.score() : null, debug ? chunk.sparseRank() : null,
-                debug ? chunk.sparseScore() : null, debug ? chunk.denseRank() : null, debug ? chunk.denseScore() : null);
+                debug ? chunk.sparseScore() : null, debug ? chunk.denseRank() : null, debug ? chunk.denseScore() : null,
+                debug ? chunk.fusedRank() : null, debug ? chunk.rerankScore() : null);
     }
 }

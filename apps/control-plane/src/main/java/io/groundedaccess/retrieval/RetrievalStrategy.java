@@ -6,9 +6,10 @@ import com.fasterxml.jackson.annotation.JsonValue;
  * Retrieval configurations compared by the evaluation; names match docs/evaluation/strategy.md.
  */
 public enum RetrievalStrategy {
-    SPARSE_ONLY("sparse-only", true, false),
-    DENSE_ONLY("dense-only", false, true),
-    HYBRID_RRF("hybrid-rrf", true, true);
+    SPARSE_ONLY("sparse-only", true, false, false),
+    DENSE_ONLY("dense-only", false, true, false),
+    HYBRID_RRF("hybrid-rrf", true, true, false),
+    HYBRID_RRF_RERANK("hybrid-rrf-rerank", true, true, true);
 
     private final String wireName;
 
@@ -16,10 +17,13 @@ public enum RetrievalStrategy {
 
     private final boolean dense;
 
-    RetrievalStrategy(String wireName, boolean sparse, boolean dense) {
+    private final boolean rerank;
+
+    RetrievalStrategy(String wireName, boolean sparse, boolean dense, boolean rerank) {
         this.wireName = wireName;
         this.sparse = sparse;
         this.dense = dense;
+        this.rerank = rerank;
     }
 
     @JsonValue
@@ -33,5 +37,9 @@ public enum RetrievalStrategy {
 
     boolean usesDense() {
         return dense;
+    }
+
+    boolean usesRerank() {
+        return rerank;
     }
 }

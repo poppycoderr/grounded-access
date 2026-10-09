@@ -11,8 +11,10 @@ import com.jayway.jsonpath.JsonPath;
 import io.groundedaccess.DemoTokens;
 import io.groundedaccess.HashingEmbeddingClient;
 import io.groundedaccess.TestcontainersConfiguration;
+import io.groundedaccess.WordOverlapRerankClient;
 import io.groundedaccess.ingestion.IngestionWorker;
 import io.groundedaccess.modelclient.EmbeddingClient;
+import io.groundedaccess.modelclient.RerankClient;
 import io.groundedaccess.modelclient.Embeddings;
 import io.groundedaccess.modelclient.InputType;
 
@@ -48,6 +50,12 @@ class LabelAuthorizationIT {
 
     @TestConfiguration
     static class FakeModels {
+
+        @Bean
+        @Primary
+        RerankClient wordOverlapRerankClient() {
+            return new WordOverlapRerankClient();
+        }
 
         @Bean
         @Primary
@@ -156,7 +164,7 @@ class LabelAuthorizationIT {
         String token = DemoTokens.sign(claims, "grounded-access-demo");
         String listing = mvc.perform(get("/api/v1/retrieval/chunks").header("Authorization", "Bearer " + token)).andReturn().getResponse().getContentAsString();
         List<String> listed = JsonPath.<List<String>>read(listing, "$.chunks[*].documentKey").stream().sorted().toList();
-        for (String strategy : List.of("sparse-only", "dense-only", "hybrid-rrf")) {
+        for (String strategy : List.of("sparse-only", "dense-only", "hybrid-rrf", "hybrid-rrf-rerank")) {
             String body = search(claims, strategy).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
             List<String> found = JsonPath.<List<String>>read(body, "$.results[*].documentKey").stream().sorted().toList();
             assertThat(found).as(strategy).isEqualTo(listed);

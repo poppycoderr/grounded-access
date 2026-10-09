@@ -46,6 +46,21 @@ final class RankFusion {
     }
 
     /**
+     * Reorders the first {@code scores.size()} chunks by cross-encoder score and leaves the rest in their fused order behind them. Chunks the
+     * cross-encoder did not see are never placed above ones it did, and equal scores keep the stable tie-break.
+     */
+    static List<RetrievedChunk> rerank(List<RetrievedChunk> ordered, List<Double> scores) {
+        List<RetrievedChunk> head = new ArrayList<>();
+        for (int i = 0; i < scores.size(); i++) {
+            head.add(ordered.get(i).reranked(scores.get(i)));
+        }
+        head.sort(ORDER);
+        List<RetrievedChunk> result = new ArrayList<>(head);
+        result.addAll(ordered.subList(scores.size(), ordered.size()));
+        return result;
+    }
+
+    /**
      * Keeps the first {@code k} chunks of an ordered list and numbers them from 1. With {@code dedupeOverlaps}, a chunk whose span overlaps a
      * higher-ranked chunk of the same document version is dropped first: chunk overlap would otherwise spend two result slots on one passage.
      */
