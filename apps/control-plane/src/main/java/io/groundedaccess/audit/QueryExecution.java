@@ -28,5 +28,7 @@ public record QueryExecution(
 
         long totalMs,
 
-        Instant createdAt) {
+        Instant createdAt,
+
+        @Nullable String rerankerModel) {
 }

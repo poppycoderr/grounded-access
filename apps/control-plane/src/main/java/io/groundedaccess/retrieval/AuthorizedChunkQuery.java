@@ -117,6 +117,6 @@ public class AuthorizedChunkQuery {
         double score = rs.getDouble(9);
         return new RetrievedChunk(rs.getObject(1, UUID.class), rs.getString(2), rs.getInt(3), rs.getString(4), rs.getString(5), rs.getInt(6),
                 rs.getInt(7), rs.getString(8), rs.getString(10), rank, score, sparse ? rank : null, sparse ? score : null, sparse ? null : rank,
-                sparse ? null : score);
+                sparse ? null : score, null, null);
     }
 }

@@ -6,7 +6,8 @@ import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Connection settings for the Python model service. {@code embeddingModel} pins the model so a silently swapped model fails fast.
+ * Connection settings for the Python model service. {@code embeddingModel} and {@code rerankerModel} pin the models so a silently swapped
+ * model fails fast. {@code rerankTimeout} bounds what reranking may add to a query.
  */
 @ConfigurationProperties("ga.model-service")
 public record ModelServiceProperties(
@@ -18,5 +19,9 @@ public record ModelServiceProperties(
 
         Duration connectTimeout,
 
-        Duration readTimeout) {
+        Duration readTimeout,
+
+        String rerankerModel,
+
+        Duration rerankTimeout) {
 }

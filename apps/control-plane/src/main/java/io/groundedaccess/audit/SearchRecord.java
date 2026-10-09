@@ -28,6 +28,8 @@ public record SearchRecord(
 
         @Nullable String embeddingModel,
 
+        @Nullable String rerankerModel,
+
         List<String> degradedReasons,
 
         List<String> documents,
@@ -42,5 +44,7 @@ public record SearchRecord(
 
         long sparseMs,
 
-        long denseMs) {
+        long denseMs,
+
+        long rerankMs) {
 }

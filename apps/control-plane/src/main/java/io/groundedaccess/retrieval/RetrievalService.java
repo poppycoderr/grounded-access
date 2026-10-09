@@ -8,6 +8,8 @@ import io.groundedaccess.identity.Principal;
 import io.groundedaccess.modelclient.EmbeddingClient;
 import io.groundedaccess.modelclient.Embeddings;
 import io.groundedaccess.modelclient.InputType;
+import io.groundedaccess.modelclient.RerankClient;
+import io.groundedaccess.modelclient.RerankScores;
 import io.groundedaccess.telemetry.TraceContext;
 
 import java.time.Clock;
@@ -35,6 +37,8 @@ public class RetrievalService {
 
     public static final String DENSE_UNAVAILABLE = "dense_unavailable";
 
+    public static final String RERANK_UNAVAILABLE = "rerank_unavailable";
+
     private static final Logger log = LoggerFactory.getLogger(RetrievalService.class);
 
     private final PolicyCompiler policyCompiler;
@@ -43,17 +47,20 @@ public class RetrievalService {
 
     private final EmbeddingClient embeddings;
 
+    private final RerankClient reranker;
+
     private final RetrievalProperties properties;
 
     private final AuditTrail audit;
 
     private final Clock clock = Clock.systemUTC();
 
-    public RetrievalService(PolicyCompiler policyCompiler, AuthorizedChunkQuery chunks, EmbeddingClient embeddings, RetrievalProperties properties,
-            AuditTrail audit) {
+    public RetrievalService(PolicyCompiler policyCompiler, AuthorizedChunkQuery chunks, EmbeddingClient embeddings, RerankClient reranker,
+            RetrievalProperties properties, AuditTrail audit) {
         this.policyCompiler = policyCompiler;
         this.chunks = chunks;
         this.embeddings = embeddings;
+        this.reranker = reranker;
         this.properties = properties;
         this.audit = audit;
     }
@@ -88,18 +95,21 @@ public class RetrievalService {
 
     /**
      * Both channels run with the same compiled predicate. A hybrid search whose query cannot be embedded falls back to the sparse channel and says
-     * so in {@code degraded}; a dense-only search has nothing to fall back to and fails. The execution record and audit event are written before
+     * so in {@code degraded}; a dense-only search has nothing to fall back to and fails. A reranking strategy sends the top fused candidates,
+     * all of them already authorized, to the cross-encoder; if that call fails or times out the fused order is returned and {@code degraded}
+     * says so. The execution record and audit event are written before
      * the result is returned: if that write fails, the search fails and nothing is disclosed.
      */
     public RetrievalResult search(Principal principal, String query, RetrievalStrategy strategy, int k, Scope scope) {
         AuthorizationPredicate predicate = policyCompiler.compile(principal);
-        RetrievalPlan plan = RetrievalPlan.of(strategy, k, properties);
+        RetrievalPlan plan = RetrievalPlan.of(strategy, k, properties, reranker.modelName());
         List<String> degraded = new ArrayList<>();
         long started = System.nanoTime();
         List<RetrievedChunk> sparse = strategy.usesSparse() ? chunks.sparse(query, predicate, scope, plan.candidates()) : List.of();
         long sparseDone = System.nanoTime();
         List<RetrievedChunk> dense = List.of();
         String embeddingModel = null;
+        boolean denseAvailable = strategy.usesDense();
         if (strategy.usesDense()) {
             try {
                 Embeddings embedded = embeddings.embed(List.of(query), InputType.QUERY);
@@ -111,17 +121,37 @@ public class RetrievalService {
                 }
                 log.warn("Embedding the query failed, answering from the sparse channel only: {}", e.toString());
                 degraded.add(DENSE_UNAVAILABLE);
+                denseAvailable = false;
             }
         }
+        long denseDone = System.nanoTime();
         Integer rrfK = plan.rrfK();
-        List<RetrievedChunk> ordered = rrfK == null || !degraded.isEmpty() ? (strategy.usesSparse() ? sparse : dense) : RankFusion.reciprocalRank(sparse, dense, rrfK);
-        List<RetrievedChunk> results = RankFusion.top(ordered, plan.k(), plan.dedupeOverlaps());
+        List<RetrievedChunk> ordered = rrfK != null && denseAvailable ? RankFusion.reciprocalRank(sparse, dense, rrfK) : (strategy.usesSparse() ? sparse : dense);
+        List<RetrievedChunk> results;
+        String rerankerModel = null;
+        Integer rerankCandidates = plan.rerankCandidates();
+        if (rerankCandidates != null) {
+            List<RetrievedChunk> pool = RankFusion.top(ordered, rerankCandidates, plan.dedupeOverlaps());
+            if (!pool.isEmpty()) {
+                try {
+                    RerankScores scores = reranker.score(query, pool.stream().map(RetrievedChunk::content).toList());
+                    rerankerModel = scores.modelId();
+                    pool = RankFusion.rerank(pool, scores.scores());
+                } catch (RestClientException e) {
+                    log.warn("Reranking failed, answering in the fused order: {}", e.toString());
+                    degraded.add(RERANK_UNAVAILABLE);
+                }
+            }
+            results = RankFusion.top(pool, plan.k(), false);
+        } else {
+            results = RankFusion.top(ordered, plan.k(), plan.dedupeOverlaps());
+        }
         long finished = System.nanoTime();
         String traceId = TraceContext.current();
         List<String> documents = results.stream().map(chunk -> chunk.documentKey() + "@v" + chunk.versionNo()).distinct().toList();
         UUID executionId = audit.recordSearch(new SearchRecord(principal.tenantId(), principal.subject(), traceId, strategy.wireName(), k, plan.hash(),
-                plan.canonical(), predicate.policyVersion(), embeddingModel, degraded, documents, results.size(), scope.asOf(), scope.region(),
-                millis(finished - started), millis(sparseDone - started), millis(finished - sparseDone)));
+                plan.canonical(), predicate.policyVersion(), embeddingModel, rerankerModel, degraded, documents, results.size(), scope.asOf(),
+                scope.region(), millis(finished - started), millis(sparseDone - started), millis(denseDone - sparseDone), millis(finished - denseDone)));
         return new RetrievalResult(plan, predicate.policyVersion(), results, List.copyOf(degraded), scope, executionId, traceId);
     }
 

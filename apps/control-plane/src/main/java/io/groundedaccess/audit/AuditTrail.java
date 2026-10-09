@@ -44,11 +44,12 @@ public class AuditTrail {
         UUID executionId = UUID.randomUUID();
         guarded(() -> transactions.executeWithoutResult(status -> {
             jdbc.sql("""
-                            insert into query_execution (id, tenant_id, principal_id, trace_id, plan_hash, plan, policy_version, embedding_model, status,
-                                degraded_reasons, result_count, latency_ms)
-                            values (:id, :tenant, :principal, :trace, :planHash, cast(:plan as jsonb), :policyVersion, :model, :status,
+                            insert into query_execution (id, tenant_id, principal_id, trace_id, plan_hash, plan, policy_version, embedding_model,
+                                reranker_model, status, degraded_reasons, result_count, latency_ms)
+                            values (:id, :tenant, :principal, :trace, :planHash, cast(:plan as jsonb), :policyVersion, :model, :reranker, :status,
                                 cast(:degraded as text[]), :count,
-                                jsonb_build_object('total', cast(:totalMs as bigint), 'sparse', cast(:sparseMs as bigint), 'dense', cast(:denseMs as bigint)))
+                                jsonb_build_object('total', cast(:totalMs as bigint), 'sparse', cast(:sparseMs as bigint), 'dense', cast(:denseMs as bigint),
+                                    'rerank', cast(:rerankMs as bigint)))
                             """)
                     .param("id", executionId)
                     .param("tenant", search.tenantId())
@@ -58,6 +59,8 @@ public class AuditTrail {
                     .param("plan", search.planJson())
                     .param("policyVersion", search.policyVersion())
                     .param("model", search.embeddingModel())
+                    .param("reranker", search.rerankerModel())
+                    .param("rerankMs", search.rerankMs())
                     .param("status", search.degradedReasons().isEmpty() ? "ok" : "degraded")
                     .param("degraded", TextArrays.literal(search.degradedReasons()))
                     .param("count", search.resultCount())
@@ -126,14 +129,15 @@ public class AuditTrail {
     public Optional<QueryExecution> findExecution(Principal principal, UUID id) {
         return jdbc.sql("""
                         select id, trace_id, plan_hash, policy_version, embedding_model, status, degraded_reasons, result_count,
-                            (latency_ms ->> 'total')::bigint, created_at
+                            (latency_ms ->> 'total')::bigint, created_at, reranker_model
                         from query_execution where id = :id and tenant_id = :tenant and principal_id = :principal
                         """)
                 .param("id", id)
                 .param("tenant", principal.tenantId())
                 .param("principal", principal.subject())
                 .query((rs, i) -> new QueryExecution(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5),
-                        rs.getString(6), List.of((String[]) rs.getArray(7).getArray()), rs.getInt(8), rs.getLong(9), rs.getTimestamp(10).toInstant()))
+                        rs.getString(6), List.of((String[]) rs.getArray(7).getArray()), rs.getInt(8), rs.getLong(9), rs.getTimestamp(10).toInstant(),
+                        rs.getString(11)))
                 .optional();
     }
 

@@ -62,15 +62,34 @@ class RankFusionTest {
         assertThat(RankFusion.top(ordered, 10, false)).hasSize(5);
     }
 
+    @Test
+    void rerankingReordersOnlyTheScoredChunksAndRemembersTheirFusedRank() {
+        List<RetrievedChunk> fused = RankFusion.top(List.of(sparse(A, "a", 1), sparse(B, "b", 2), sparse(C, "c", 3)), 3, false);
+
+        List<RetrievedChunk> reranked = RankFusion.rerank(fused, List.of(0.1, 0.9));
+
+        assertThat(reranked).extracting(RetrievedChunk::chunkId).containsExactly(B, A, C);
+        assertThat(reranked).extracting(RetrievedChunk::fusedRank).containsExactly(2, 1, null);
+        assertThat(reranked).extracting(RetrievedChunk::rerankScore).containsExactly(0.9, 0.1, null);
+        assertThat(RankFusion.top(reranked, 3, false)).extracting(RetrievedChunk::rank).containsExactly(1, 2, 3);
+    }
+
+    @Test
+    void equalRerankScoresFallBackToTheStableTieBreak() {
+        List<RetrievedChunk> fused = RankFusion.top(List.of(sparse(B, "b", 1), sparse(A, "a", 2)), 2, false);
+
+        assertThat(RankFusion.rerank(fused, List.of(0.5, 0.5))).extracting(RetrievedChunk::documentKey).containsExactly("a", "b");
+    }
+
     private static RetrievedChunk sparse(UUID id, String key, int rank) {
-        return new RetrievedChunk(id, key, 1, key, "", 0, 10, key, "markdown/2", rank, 0.5, rank, 0.5, null, null);
+        return new RetrievedChunk(id, key, 1, key, "", 0, 10, key, "markdown/2", rank, 0.5, rank, 0.5, null, null, null, null);
     }
 
     private static RetrievedChunk dense(UUID id, String key, int rank) {
-        return new RetrievedChunk(id, key, 1, key, "", 0, 10, key, "markdown/2", rank, 0.9, null, null, rank, 0.9);
+        return new RetrievedChunk(id, key, 1, key, "", 0, 10, key, "markdown/2", rank, 0.9, null, null, rank, 0.9, null, null);
     }
 
     private static RetrievedChunk chunk(UUID id, String key, int version, int start, int end, int rank) {
-        return new RetrievedChunk(id, key, version, key, "", start, end, key, "markdown/2", rank, 1.0 / rank, rank, 1.0 / rank, null, null);
+        return new RetrievedChunk(id, key, version, key, "", start, end, key, "markdown/2", rank, 1.0 / rank, rank, 1.0 / rank, null, null, null, null);
     }
 }

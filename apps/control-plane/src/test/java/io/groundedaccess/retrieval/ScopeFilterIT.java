@@ -11,8 +11,10 @@ import com.jayway.jsonpath.JsonPath;
 import io.groundedaccess.DemoTokens;
 import io.groundedaccess.HashingEmbeddingClient;
 import io.groundedaccess.TestcontainersConfiguration;
+import io.groundedaccess.WordOverlapRerankClient;
 import io.groundedaccess.ingestion.IngestionWorker;
 import io.groundedaccess.modelclient.EmbeddingClient;
+import io.groundedaccess.modelclient.RerankClient;
 
 import java.util.HashMap;
 import java.util.List;
@@ -41,6 +43,12 @@ class ScopeFilterIT {
 
     @TestConfiguration
     static class FakeModels {
+
+        @Bean
+        @Primary
+        RerankClient wordOverlapRerankClient() {
+            return new WordOverlapRerankClient();
+        }
 
         @Bean
         @Primary
@@ -131,7 +139,7 @@ class ScopeFilterIT {
      */
     private List<String> found(Map<String, Object> claims, String scope) throws Exception {
         List<String> expected = null;
-        for (String strategy : List.of("sparse-only", "dense-only", "hybrid-rrf")) {
+        for (String strategy : List.of("sparse-only", "dense-only", "hybrid-rrf", "hybrid-rrf-rerank")) {
             String body = search(claims, strategy, scope).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
             List<String> keys = JsonPath.<List<String>>read(body, "$.results[*].documentKey").stream().sorted().toList();
             assertThat(expected == null || expected.equals(keys)).as(strategy).isTrue();

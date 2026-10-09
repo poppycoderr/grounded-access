@@ -26,9 +26,12 @@ ga:
     batch-size: 64
     connect-timeout: 2s
     read-timeout: 30s
+    reranker-model: ${GA_RERANKER_MODEL:Xenova/ms-marco-MiniLM-L-12-v2}
+    rerank-timeout: 3s
   retrieval:
     candidates: 50
     rrf-k: 60
+    rerank-candidates: 20
   corpus:
     chunk-max-words: 180
     chunk-overlap-words: 30
