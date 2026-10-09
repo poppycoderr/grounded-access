@@ -18,6 +18,7 @@ uv run --directory apps/model-service pytest        # model service
 uv run --directory packages/evaluation pytest       # evaluation CLI
 docker compose up -d                                # PostgreSQL + model service for local runs
 ./scripts/load-smoke                                # concurrent searches against the running stack, every result checked
+./scripts/demo                                      # guided tour of the running stack; fails if a claim it makes does not hold
 python3 scripts/check-links.py                      # relative links and heading anchors in every tracked Markdown file
 ```
 

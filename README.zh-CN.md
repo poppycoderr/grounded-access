@@ -92,6 +92,7 @@ cd grounded-access
 docker compose up -d --build --wait   # PostgreSQL + pgvector、控制面、CPU 模型服务
 ./scripts/load-demo                   # 导入 Northstar 与 Orbit Labs 两套虚构语料
 ./scripts/demo-queries                # 上面那组对照
+./scripts/demo                        # 分步演示：身份切换、隐藏文档、回答、trace
 ./scripts/benchmark                   # 评测所有策略并执行安全门禁
 ```
 

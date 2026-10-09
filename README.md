@@ -92,6 +92,7 @@ cd grounded-access
 docker compose up -d --build --wait   # PostgreSQL + pgvector, control plane, CPU model service
 ./scripts/load-demo                   # ingest the fictional Northstar and Orbit Labs corpora
 ./scripts/demo-queries                # the comparison above
+./scripts/demo                        # a guided tour: identities, hidden documents, answers, traces
 ./scripts/benchmark                   # evaluate every strategy and enforce the security gate
 ```
 

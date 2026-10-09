@@ -36,6 +36,7 @@ Milestone M4: operations and release. This section becomes `v0.1.0`.
 - New dependency: the Spring Boot OpenTelemetry starter.
 - New configuration: `GA_TRACE_SAMPLING`, `GA_OTLP_ENDPOINT`, `GA_OTLP_METRICS_ENABLED`, `GA_RERANK_MAX_CONCURRENT`.
 - `./scripts/demo-queries` prints two results per identity in the tenant comparison.
+- `./scripts/demo` is a guided tour of the running stack that checks each claim it makes; `--pause` steps through it.
 
 ## v0.1.0-alpha.3
 

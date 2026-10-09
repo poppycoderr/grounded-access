@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# A guided tour of the running stack: identities, hidden documents, answers, traces. Add --pause to step through it.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+exec uv run -q --project packages/evaluation ga-eval demo "$@"

@@ -7,7 +7,7 @@ from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
-from ga_eval import answers, load, runner, tokens
+from ga_eval import answers, demo, load, runner, tokens
 from ga_eval import dataset as ds
 from ga_eval.client import ApiClient, IngestionFailedError
 
@@ -34,6 +34,8 @@ def main(argv: list[str] | None = None) -> int:
     load_parser.add_argument("--k", type=int, default=10)
     load_parser.add_argument("--allow-degraded", action="store_true", help="report degraded results instead of failing on them")
     load_parser.add_argument("--out", type=Path, help="output directory (default: results/load-<timestamp>)")
+    demo_parser = commands.add_parser("demo", help="a guided tour: identities, hidden documents, answers, traces")
+    demo_parser.add_argument("--pause", action="store_true", help="wait for Enter between the steps")
     search_parser = commands.add_parser("search", help="search as a demo principal and print the ranked results")
     search_parser.add_argument("principal")
     search_parser.add_argument("query")
@@ -56,6 +58,13 @@ def main(argv: list[str] | None = None) -> int:
         return _answers(dataset, client, args)
     if args.command == "load":
         return _load(dataset, client)
+    if args.command == "demo":
+        try:
+            demo.Tour(dataset, client, (lambda: input("\n[Enter] ")) if args.pause else (lambda: None)).run()
+        except demo.DemoFailedError as failed:
+            print(f"error: {failed}", file=sys.stderr)
+            return 1
+        return 0
     if args.command == "load-test":
         return _load_test(dataset, client, args)
     if args.command == "search":
