@@ -76,6 +76,7 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
     visibility_check = check_visibility(dataset, listings)
     references: dict[tuple, Bm25Index] = {}
     repeated = 0
+    reference_headings: set[bool] = set()
     plans: dict[str, dict[str, dict]] = {}
     for case in cases:
         token = tokens_by_principal[case.principal]
@@ -88,7 +89,21 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
                 if scope not in references:
                     policy_version, chunks = client.list_chunks(token, as_of, case.region)
                     policy_versions.add(policy_version)
-                    references[scope] = Bm25Index([Chunk(c["documentKey"], c["versionNo"], c["charStart"], c["charEnd"], c["text"]) for c in chunks])
+                    # The reference indexes what the system's keyword channel indexes, so the row keeps measuring ranking and not input.
+                    headings = any(plan.get("sparseContext") for hashes in plans.values() for plan in hashes.values())
+                    reference_headings.add(headings)
+                    references[scope] = Bm25Index(
+                        [
+                            Chunk(
+                                c["documentKey"],
+                                c["versionNo"],
+                                c["charStart"],
+                                c["charEnd"],
+                                f"{c.get('sectionPath', '')} {c['text']}" if headings else c["text"],
+                            )
+                            for c in chunks
+                        ]
+                    )
                 ranked = references[scope].search(case.query, k)
                 results = [Result(c.document, c.version, c.start, c.end, rank) for rank, (c, _) in enumerate(ranked, start=1)]
             else:
@@ -125,6 +140,7 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
             "chunker_versions": chunker_versions,
             "plans": plans,
             "repeated_degraded_requests": repeated,
+            "reference_indexes_headings": sorted(reference_headings),
             "visibility_check": visibility_check,
             "platform": platform.platform(),
             "cpu": cpu_model(),
@@ -270,8 +286,9 @@ def render(output: dict) -> str:
         ]
     if REFERENCE in strategies:
         lines += [
-            f"`{REFERENCE}` is not a system configuration: it is Okapi BM25 computed offline over the same authorized chunks, "
-            "to show how much of any gap comes from PostgreSQL FTS having no corpus statistics.",
+            f"`{REFERENCE}` is not a system configuration: it is Okapi BM25 computed offline over the same authorized chunks"
+            + (" with their heading paths, as the keyword channel indexes them, " if True in run_info.get("reference_indexes_headings", []) else ", ")
+            + "to show how much of any gap comes from PostgreSQL FTS having no corpus statistics.",
             "",
         ]
     for split in run_info["splits"]:
