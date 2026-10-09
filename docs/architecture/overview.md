@@ -195,7 +195,7 @@ sequenceDiagram
 
 Response rules:
 
-- A query about content the principal is not allowed to see gets the **same response shape** as a query the corpus cannot answer: `status: "no_answer"`. No filtered counts and no document titles go in the response. See [authorization.md](authorization.md#existence-leakage).
+- A query about content the principal is not allowed to see gets the **same response shape** as a query the corpus cannot answer: `status: "no_answer"`. No filtered counts and no document titles go in the response. See [authorization.md](authorization.md#5-existence-leakage).
 - Without a configured chat model, `/query` returns ranked evidence (`status: "evidence_only"`).
 
 How `/query` decides, in order:

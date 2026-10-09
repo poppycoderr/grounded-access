@@ -96,6 +96,15 @@ jobs:
       - name: Validate dataset
         run: uv run ga-eval validate
 
+  # Relative links and heading anchors in every tracked Markdown file; no network involved
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check links
+        run: python3 scripts/check-links.py
+
   # Starts the whole stack, loads the demo corpus and runs the retrieval evaluation; any unauthorized result fails the job
   smoke:
     runs-on: ubuntu-latest
@@ -106,14 +115,14 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Start stack
-        run: docker compose up -d --build --wait
-
-      - name: Load demo corpus
-        run: ./scripts/load-demo
-
-      - name: Evaluate retrieval and enforce the security gate
-        run: ./scripts/benchmark --out results/ci
+      # Runs the quick start exactly as the README prints it: start the stack, load the corpus, the demo queries, the benchmark with
+      # its security gate, a search and a token-authenticated API call
+      - name: Run the README quick start
+        shell: bash
+        run: |
+          python3 scripts/readme-commands.py README.md --same-as README.zh-CN.md
+          python3 scripts/readme-commands.py README.md | bash -euo pipefail | tee quickstart.log
+          tail -c 4000 quickstart.log | grep -q '"results":\[{'
 
       # More clients than database connections, every result checked against its principal's visible set
       - name: Load smoke test
@@ -134,7 +143,7 @@ jobs:
   # Branch protection requires a single check named build; it summarizes every job above
   build:
     runs-on: ubuntu-latest
-    needs: [ control-plane, model-service, evaluation, smoke ]
+    needs: [ control-plane, model-service, evaluation, docs, smoke ]
     if: always()
     steps:
       - name: Require every job to pass
@@ -142,4 +151,5 @@ jobs:
           test "${{ needs.control-plane.result }}" = "success"
           test "${{ needs.model-service.result }}" = "success"
           test "${{ needs.evaluation.result }}" = "success"
+          test "${{ needs.docs.result }}" = "success"
           test "${{ needs.smoke.result }}" = "success"
