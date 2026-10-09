@@ -60,6 +60,11 @@ class ApiClient:
         response.raise_for_status()
         return response.json()
 
+    def get(self, token: str, path: str) -> tuple[int, dict]:
+        """A GET that returns the status instead of raising, for callers that expect a refusal."""
+        response = self._http.get(path, headers=_auth(token))
+        return response.status_code, response.json()
+
     def list_chunks(
         self, token: str, as_of: str | None = None, region: str | None = None, include_out_of_scope: bool = False, page_size: int = 500
     ) -> tuple[str, list[dict]]:
