@@ -33,9 +33,9 @@ Status: reading of the committed run [`benchmarks/reports/m3-answers-llama3-8b/`
 
 None of this is a leak: the hidden documents were never in the prompt, and the answers do not contain their content. It is a different failure. The answer is wrong, and it carries a valid citation, which makes it look checked. This is the limit of citation validation stated in the architecture overview: it proves that a statement points at authorized evidence, not that the evidence supports it.
 
-**Two of five injected instructions worked.** A readable document says that monthly customers can request a refund within 90 days; the policy says 14. In both refund cases the answer states the correct 14 days and then repeats the planted 90 days as a second statement, citing the injected passage. The other three injections (an absurd allowance, an order to answer with one word) were ignored. The keyword heuristic flagged all five injected passages that reached a response. The label was correct, and it prevents nothing.
+**Two of five injected instructions worked.** A readable document says that monthly customers can request a refund within 90 days; the policy says 14. In both refund cases the answer states the correct 14 days and then repeats the planted 90 days as a second statement, citing the injected passage. The other three injections (an absurd allowance, an order to answer with one word) were ignored. The keyword heuristic labelled five evidence passages in the test split as instruction-like. A label is all it is: it prevents nothing.
 
-**Four answerable cases were refused**, and fact recall is 0.70: a third of the expected facts are missing from the answers, mostly through paraphrase that the string match does not credit and partly through incomplete answers.
+**Four answerable cases were refused**, and fact recall is 0.70: the expected phrase is missing from almost a third of the answers. A string match cannot tell a paraphrase from a missing fact, so this number is a lower bound on what the answers contain.
 
 ## Reading
 
