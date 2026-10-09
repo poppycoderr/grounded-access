@@ -185,7 +185,7 @@ curl -s localhost:8080/api/v1/retrieval/search -H "Authorization: Bearer $TOKEN"
 | 组件 | 技术栈 | 职责 |
 |---|---|---|
 | `apps/control-plane` | Java 21（CI 跑 21 与 25）、Spring Boot 4.1 | 验签、编译授权谓词、入库、检索、API |
-| `apps/model-service` | Python 3.12、FastAPI、ONNX Runtime | 当前提供 embedding，M3 加入重排；不持有身份，不访问数据库 |
+| `apps/model-service` | Python 3.12、FastAPI、ONNX Runtime | 提供 embedding 与 cross-encoder 打分；不持有身份，不访问数据库 |
 | `packages/contracts` | OpenAPI | 两者之间的契约，双侧都有漂移检测 |
 | `packages/evaluation` | Python 3.12 | `ga-eval`：数据集校验、检索指标、安全门禁、报告 |
 | 存储 | PostgreSQL 17 + pgvector | 文档、版本、chunk、全文与向量检索 |

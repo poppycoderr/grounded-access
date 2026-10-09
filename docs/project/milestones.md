@@ -78,6 +78,8 @@ Deferred on purpose: the precomputed-embeddings cache. CI currently embeds the d
 
 ## M3 — Reranking and answers (≈ 7 days, 3–4 weeks)
 
+**M3 progress:** 3.1 delivered: `/v1/rerank` in the model service with the reranker baked into the image. The model was chosen on the `dev` split (open question Q5b).
+
 **Exit:** `hybrid-rrf-rerank` appears in the report with its quality delta and p50/p95 latency cost. `/query` returns cited answers or abstentions. Every citation resolves to a chunk that was in the prompt.
 
 | # | Issue | Size |

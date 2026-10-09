@@ -185,7 +185,7 @@ Design goals that are **not** yet verified end to end, and the milestone that wi
 | Component | Stack | Role |
 |---|---|---|
 | `apps/control-plane` | Java 21 (CI on 21 and 25), Spring Boot 4.1 | Token verification, policy compilation, ingestion, retrieval, API |
-| `apps/model-service` | Python 3.12, FastAPI, ONNX Runtime | Embeddings today, reranking in M3; no identities, no database access |
+| `apps/model-service` | Python 3.12, FastAPI, ONNX Runtime | Embeddings and cross-encoder scores; no identities, no database access |
 | `packages/contracts` | OpenAPI | The contract between them, with a drift test on both sides |
 | `packages/evaluation` | Python 3.12 | `ga-eval`: dataset validation, retrieval metrics, security gate, reports |
 | Storage | PostgreSQL 17 + pgvector | Documents, versions, chunks, full-text and vector search |
