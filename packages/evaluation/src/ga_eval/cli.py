@@ -1,13 +1,14 @@
 """`ga-eval` command line: validate the dataset, load the demo corpus, run retrieval evaluation, mint demo tokens."""
 
 import argparse
+import json
 import os
 import sys
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
-from ga_eval import answers, demo, load, runner, tokens
+from ga_eval import answers, between, demo, load, runner, tokens
 from ga_eval import dataset as ds
 from ga_eval.client import ApiClient, IngestionFailedError
 
@@ -34,6 +35,11 @@ def main(argv: list[str] | None = None) -> int:
     load_parser.add_argument("--k", type=int, default=10)
     load_parser.add_argument("--allow-degraded", action="store_true", help="report degraded results instead of failing on them")
     load_parser.add_argument("--out", type=Path, help="output directory (default: results/load-<timestamp>)")
+    compare_parser = commands.add_parser("compare", help="paired comparison of two runs of the same cases, strategy by strategy")
+    compare_parser.add_argument("before", type=Path)
+    compare_parser.add_argument("after", type=Path)
+    compare_parser.add_argument("--split", choices=["dev", "test"], default="test")
+    compare_parser.add_argument("--out", type=Path, help="write comparison.json and comparison.md into this directory")
     demo_parser = commands.add_parser("demo", help="a guided tour: identities, hidden documents, answers, traces")
     demo_parser.add_argument("--pause", action="store_true", help="wait for Enter between the steps")
     search_parser = commands.add_parser("search", help="search as a demo principal and print the ranked results")
@@ -46,6 +52,18 @@ def main(argv: list[str] | None = None) -> int:
     mint_parser.add_argument("--scope")
     args = parser.parse_args(argv)
 
+    if args.command == "compare":
+        try:
+            comparison = between.compare(args.before, args.after, args.split)
+        except between.IncomparableRunsError as incomparable:
+            print(f"error: {incomparable}", file=sys.stderr)
+            return 1
+        print(between.render(comparison))
+        if args.out:
+            args.out.mkdir(parents=True, exist_ok=True)
+            (args.out / "comparison.json").write_text(json.dumps(comparison, indent=2) + "\n")
+            (args.out / "comparison.md").write_text(between.render(comparison))
+        return 0
     dataset = ds.load(args.data)
     if args.command == "validate":
         return _validate(dataset)
