@@ -65,3 +65,7 @@ management:
   tracing:
     sampling:
       probability: ${GA_TRACE_SAMPLING:1.0}
+  otlp:
+    metrics:
+      export:
+        enabled: ${GA_OTLP_METRICS_ENABLED:false}
