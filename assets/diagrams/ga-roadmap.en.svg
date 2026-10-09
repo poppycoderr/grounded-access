@@ -82,8 +82,8 @@
   <text class="txt" x="686" y="250">cross-encoder reranker</text>
   <text class="txt" x="686" y="269">cited answers, refusal</text>
   <text class="txt" x="686" y="288">answer metrics, injection</text>
-  <rect class="pill-ok" x="686" y="334" width="40" height="20" rx="10"/>
-  <text class="pill-ok-t" x="706.0" y="348" text-anchor="middle">Done</text>
+  <rect class="pill-ok" x="686" y="334" width="153" height="20" rx="10"/>
+  <text class="pill-ok-t" x="762.5" y="348" text-anchor="middle">Done · v0.1.0-alpha.3</text>
   <circle cx="900" cy="150" r="7" fill="#CBD5E1" stroke="#FBFCFE" stroke-width="3"/>
   <rect class="dash" x="880" y="176" width="200" height="190" rx="12"/>
   <text class="kicker" x="896" y="202">M4</text>

@@ -82,8 +82,8 @@
   <text class="txt" x="686" y="250">cross-encoder 重排</text>
   <text class="txt" x="686" y="269">带引用的回答、拒答</text>
   <text class="txt" x="686" y="288">回答指标、提示注入</text>
-  <rect class="pill-ok" x="686" y="334" width="47" height="20" rx="10"/>
-  <text class="pill-ok-t" x="709.5" y="348" text-anchor="middle">已完成</text>
+  <rect class="pill-ok" x="686" y="334" width="234" height="20" rx="10"/>
+  <text class="pill-ok-t" x="803.0" y="348" text-anchor="middle">已完成 · v0.1.0-alpha.3</text>
   <circle cx="900" cy="150" r="7" fill="#CBD5E1" stroke="#FBFCFE" stroke-width="3"/>
   <rect class="dash" x="880" y="176" width="200" height="190" rx="12"/>
   <text class="kicker" x="896" y="202">M4</text>
