@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-    <a href="./README.md">English</a> · <b>简体中文</b> · <a href="./docs/architecture/overview.md">架构</a> · <a href="./docs/evaluation/strategy.md">评测</a> · <a href="./benchmarks/reports/m2-authorization/report.md">基准报告</a> · <a href="./docs/project/milestones.md">里程碑</a>
+    <a href="./README.md">English</a> · <b>简体中文</b> · <a href="./docs/architecture/overview.md">架构</a> · <a href="./docs/evaluation/strategy.md">评测</a> · <a href="./benchmarks/reports/m3-rerank/report.md">基准报告</a> · <a href="./docs/project/milestones.md">里程碑</a>
 </p>
 
 ---
@@ -28,10 +28,10 @@
 ## 亮点
 
 - 🛡️ **授权写在查询里**：租户、密级、部门、项目四条规则被编译进每条检索路径的 SQL，未授权的行不会离开 PostgreSQL
-- 🔎 **一个数据库上的三种检索策略**：PostgreSQL 全文检索、pgvector 精确检索和 RRF 融合，每个响应都带检索配置的哈希
+- 🔎 **一个数据库上的四种检索策略**：PostgreSQL 全文检索、pgvector 精确检索、RRF 融合和 cross-encoder 重排，每个响应都带检索配置的哈希
 - 📊 **带置信区间的评测**：122 条人工核对的用例、bootstrap 区间、配对比较和 BM25 参考行；区间不跨零才算有差异
 - 🚨 **CI 里的安全门禁**：31 条用例专门去够无权查看的文档，每个返回的 chunk 都对照手写的可见性标注检查；出现一条越权结果，构建就失败
-- 🧪 **负面结果照样公布**：在这份数据集上 hybrid 没有超过 dense；还有一条早先的结论，在更大的数据集不再支持它之后被撤回
+- 🧪 **结果怎么测的就怎么公布**：在这份数据集上，不带重排的 hybrid 没有超过 dense；重排超过了（MRR@10 +0.08 [+0.03, +0.14]），代价是十倍的延迟；还有一条早先的结论，在更大的数据集不再支持它之后被撤回
 - ⚙️ **真实的入库流程**：带重试和断点续跑的异步任务、带版本的文档、标签变更对下一次查询生效且不需要重新计算向量
 - 🚀 **笔记本上就能跑**：一条 `docker compose up`，CPU embedding 模型已打进镜像，不需要 API key，也不需要 GPU
 
@@ -137,7 +137,7 @@ curl -s localhost:8080/api/v1/retrieval/search -H "Authorization: Bearer $TOKEN"
     <img src="./assets/diagrams/ga-eval-results.zh-CN.svg" alt="各检索策略的 MRR@10 与置信区间" />
 </p>
 
-[`benchmarks/reports/m2-authorization/`](./benchmarks/reports/m2-authorization/) 保存了提交在仓库中的运行结果：`run.json`（数据集版本、commit、检索配置、policy 与 chunker 版本、bootstrap 种子、平台与 CPU）、`cases.jsonl`（逐条排名）和渲染出的 `report.md`。用 `./scripts/benchmark --out benchmarks/reports/<name>` 可以重新生成。
+[`benchmarks/reports/m3-rerank/`](./benchmarks/reports/m3-rerank/) 保存了提交在仓库中的运行结果：`run.json`（数据集版本、commit、检索配置、policy 与 chunker 版本、bootstrap 种子、平台与 CPU）、`cases.jsonl`（逐条排名）和渲染出的 `report.md`。用 `./scripts/benchmark --out benchmarks/reports/<name>` 可以重新生成。
 
 数据集 v3，`test` 划分，65 条可回答用例，95% bootstrap 区间，由 CI runner（Linux x86_64）生成：
 
@@ -146,6 +146,7 @@ curl -s localhost:8080/api/v1/retrieval/search -H "Authorization: Bearer $TOKEN"
 | `sparse-only`（PostgreSQL FTS） | 0.923 [0.85, 0.98] | 0.683 [0.59, 0.77] | 0.742 [0.66, 0.82] | **0** | **0** |
 | `dense-only`（pgvector 精确检索） | 0.969 [0.92, 1.00] | 0.873 [0.80, 0.94] | 0.898 [0.84, 0.95] | **0** | **0** |
 | `hybrid-rrf`（两者的 RRF 融合） | 0.969 [0.92, 1.00] | 0.822 [0.74, 0.89] | 0.857 [0.79, 0.91] | **0** | **0** |
+| `hybrid-rrf-rerank`（cross-encoder 重排融合后的前 20 个） | 0.969 [0.92, 1.00] | **0.954 [0.90, 0.99]** | **0.952 [0.90, 0.99]** | **0** | **0** |
 | `bm25-reference`（离线，同一批已授权 chunk） | 0.931 [0.87, 0.98] | 0.720 [0.63, 0.80] | 0.770 [0.69, 0.84] | **0** | **0** |
 
 **安全。** 122 条用例的越权结果为 0，其中 31 条专门去够身份无权查看的文档：在别的租户、高于自己的密级、不在自己参与的项目里，或者属于别的部门。每个返回的 chunk 都按文档和版本检查；在任何查询运行之前，每个身份能列出的全部 chunk 还会和人工标注的可见集合比较。
@@ -154,8 +155,9 @@ curl -s localhost:8080/api/v1/retrieval/search -H "Authorization: Bearer $TOKEN"
 
 配对比较能支持什么、不能支持什么：
 
+- **重排超过了最好的单通道。** `hybrid-rrf-rerank` 相对 dense：MRR@10 +0.08 [+0.03, +0.14]。65 条用例里它有 61 条把正确证据排在第一，dense 是 53 条。Recall@10 没有变化，因为重排只是给融合已经找到的候选重新排序。代价是延迟：在 CI runner 上中位数 204 毫秒，dense 是 22 毫秒；在笔记本的 Docker 里约 1 秒。
 - **dense 把正确证据排得比 FTS 更靠前**：MRR@10 +0.19 [+0.11, +0.28]。但证据是否出现在前 10 条，**看不出可检测的差异**（Recall@10 +0.05 [−0.02, +0.11]）。
-- **hybrid 没有超过 dense。** 相对 dense，MRR@10 为 −0.05 [−0.11, +0.01]：没有可检测的差异，点估计偏向 dense。对第一次 hybrid 运行的[分析](./docs/evaluation/m1b-hybrid-analysis.md)解释了原因：等权融合让较弱的 FTS 通道拥有同样的投票权。
+- **不带重排的 hybrid 没有超过 dense。** 相对 dense，MRR@10 为 −0.05 [−0.11, +0.01]：没有可检测的差异，点估计偏向 dense。对第一次 hybrid 运行的[分析](./docs/evaluation/m1b-hybrid-analysis.md)解释了原因：等权融合让较弱的 FTS 通道拥有同样的投票权。
 - **FTS 与 BM25：一个没能站住的结论。** 在数据集 v1 上，BM25 明显领先 FTS（MRR@10 +0.10 [+0.02, +0.18]）。在 v2 和 v3 上这个差异不再可检测（v3：+0.04 [−0.02, +0.10]）。旧报告仍保留在仓库里；在更大的数据集支持它之前，这个结论撤回。
 - **dense 优于 BM25**：MRR@10 +0.15 [+0.07, +0.24]。
 
@@ -212,7 +214,7 @@ io.groundedaccess
 | **M0** Walking skeleton | demo 身份、Markdown 入库、sparse 与 dense 检索、租户隔离、评测 CLI、CI 安全门禁 | ✅ 已完成 |
 | **M1** 检索基线 | 带 hard negatives 的数据集、BM25 参考行、置信区间；异步入库、停用与删除、chunker v1；RRF hybrid 及公开结论 | ✅ 已完成 · `v0.1.0-alpha.1` |
 | **M2** 授权 | 完整决策表、基于属性的测试、带标签的数据集 v2 和更严格的门禁、带 `asOf` 的适用范围过滤、审计事件、不泄漏存在性的文档读取、威胁模型、带适用范围用例的数据集 v3、已发布的报告 | ✅ 已完成 · `v0.1.0-alpha.2` |
-| **M3** 重排与回答 | 带降级的 cross-encoder 重排、上下文构建、结构化引用、拒答 | 计划中 |
+| **M3** 重排与回答 | 已完成：带降级的 cross-encoder 重排及公开结果。接下来：上下文构建、结构化引用、拒答 | ⏳ 进行中 |
 | **M4** 运维与发布 | trace 与 dashboard、故障与压力测试、v0.1 benchmark 报告 | 计划中 |
 
 第一阶段明确不做：知识图谱与 GraphRAG、自主 Agent、更多向量数据库、OCR 与多模态、模型微调、Kubernetes 与多云、低代码编排。详见 [docs/project/milestones.md](./docs/project/milestones.md)。
