@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-    <a href="./README.md">English</a> · <b>简体中文</b> · <a href="./docs/architecture/overview.md">架构</a> · <a href="./docs/evaluation/strategy.md">评测</a> · <a href="./benchmarks/reports/m3-rerank/report.md">基准报告</a> · <a href="./docs/project/milestones.md">里程碑</a>
+    <a href="./README.md">English</a> · <b>简体中文</b> · <a href="./docs/architecture/overview.md">架构</a> · <a href="./docs/evaluation/strategy.md">评测</a> · <a href="./benchmarks/reports/m3-retrieval/report.md">基准报告</a> · <a href="./docs/project/milestones.md">里程碑</a>
 </p>
 
 ---
@@ -29,9 +29,9 @@
 
 - 🛡️ **授权写在查询里**：租户、密级、部门、项目四条规则被编译进每条检索路径的 SQL，未授权的行不会离开 PostgreSQL
 - 🔎 **一个数据库上的四种检索策略**：PostgreSQL 全文检索、pgvector 精确检索、RRF 融合和 cross-encoder 重排，每个响应都带检索配置的哈希
-- 📊 **带置信区间的评测**：122 条人工核对的用例、bootstrap 区间、配对比较和 BM25 参考行；区间不跨零才算有差异
+- 📊 **带置信区间的评测**：128 条人工核对的用例、bootstrap 区间、配对比较和 BM25 参考行；区间不跨零才算有差异
 - 🚨 **CI 里的安全门禁**：31 条用例专门去够无权查看的文档，每个返回的 chunk 都对照手写的可见性标注检查；出现一条越权结果，构建就失败
-- 🧪 **结果怎么测的就怎么公布**：在这份数据集上，不带重排的 hybrid 没有超过 dense；重排超过了（MRR@10 +0.08 [+0.03, +0.14]），代价是十倍的延迟；还有一条早先的结论，在更大的数据集不再支持它之后被撤回
+- 🧪 **结果怎么测的就怎么公布**：在这份数据集上，不带重排的 hybrid 没有超过 dense；重排超过了（MRR@10 +0.09 [+0.04, +0.15]），代价是十倍的延迟；还有一条早先的结论，在更大的数据集不再支持它之后被撤回
 - ⚙️ **真实的入库流程**：带重试和断点续跑的异步任务、带版本的文档、标签变更对下一次查询生效且不需要重新计算向量
 - 🚀 **笔记本上就能跑**：一条 `docker compose up`，CPU embedding 模型已打进镜像，不需要 API key，也不需要 GPU
 
@@ -137,31 +137,31 @@ curl -s localhost:8080/api/v1/retrieval/search -H "Authorization: Bearer $TOKEN"
     <img src="./assets/diagrams/ga-eval-results.zh-CN.svg" alt="各检索策略的 MRR@10 与置信区间" />
 </p>
 
-[`benchmarks/reports/m3-rerank/`](./benchmarks/reports/m3-rerank/) 保存了提交在仓库中的运行结果：`run.json`（数据集版本、commit、检索配置、policy 与 chunker 版本、bootstrap 种子、平台与 CPU）、`cases.jsonl`（逐条排名）和渲染出的 `report.md`。用 `./scripts/benchmark --out benchmarks/reports/<name>` 可以重新生成。
+[`benchmarks/reports/m3-retrieval/`](./benchmarks/reports/m3-retrieval/) 保存了提交在仓库中的运行结果：`run.json`（数据集版本、commit、检索配置、policy 与 chunker 版本、bootstrap 种子、平台与 CPU）、`cases.jsonl`（逐条排名）和渲染出的 `report.md`。用 `./scripts/benchmark --out benchmarks/reports/<name>` 可以重新生成。
 
-数据集 v3，`test` 划分，65 条可回答用例，95% bootstrap 区间，由 CI runner（Linux x86_64）生成：
+数据集 v4，`test` 划分，70 条可回答用例，95% bootstrap 区间，由 CI runner（Linux x86_64）生成：
 
 | 策略 | Recall@10 | MRR@10 | nDCG@10 | 越权结果 | 范围失败 |
 |---|---|---|---|---|---|
-| `sparse-only`（PostgreSQL FTS） | 0.923 [0.85, 0.98] | 0.683 [0.59, 0.77] | 0.742 [0.66, 0.82] | **0** | **0** |
-| `dense-only`（pgvector 精确检索） | 0.969 [0.92, 1.00] | 0.873 [0.80, 0.94] | 0.898 [0.84, 0.95] | **0** | **0** |
-| `hybrid-rrf`（两者的 RRF 融合） | 0.969 [0.92, 1.00] | 0.822 [0.74, 0.89] | 0.857 [0.79, 0.91] | **0** | **0** |
-| `hybrid-rrf-rerank`（cross-encoder 重排融合后的前 20 个） | 0.969 [0.92, 1.00] | **0.954 [0.90, 0.99]** | **0.952 [0.90, 0.99]** | **0** | **0** |
-| `bm25-reference`（离线，同一批已授权 chunk） | 0.931 [0.87, 0.98] | 0.720 [0.63, 0.80] | 0.770 [0.69, 0.84] | **0** | **0** |
+| `sparse-only`（PostgreSQL FTS） | 0.929 [0.86, 0.99] | 0.690 [0.60, 0.77] | 0.749 [0.67, 0.82] | **0** | **0** |
+| `dense-only`（pgvector 精确检索） | 0.971 [0.93, 1.00] | 0.865 [0.80, 0.93] | 0.892 [0.83, 0.94] | **0** | **0** |
+| `hybrid-rrf`（两者的 RRF 融合） | 0.971 [0.93, 1.00] | 0.825 [0.75, 0.89] | 0.860 [0.80, 0.91] | **0** | **0** |
+| `hybrid-rrf-rerank`（cross-encoder 重排融合后的前 20 个） | 0.971 [0.93, 1.00] | **0.957 [0.91, 0.99]** | **0.955 [0.91, 0.99]** | **0** | **0** |
+| `bm25-reference`（离线，同一批已授权 chunk） | 0.921 [0.86, 0.98] | 0.741 [0.66, 0.82] | 0.784 [0.71, 0.86] | **0** | **0** |
 
-**安全。** 122 条用例的越权结果为 0，其中 31 条专门去够身份无权查看的文档：在别的租户、高于自己的密级、不在自己参与的项目里，或者属于别的部门。每个返回的 chunk 都按文档和版本检查；在任何查询运行之前，每个身份能列出的全部 chunk 还会和人工标注的可见集合比较。
+**安全。** 128 条用例的越权结果为 0，其中 31 条专门去够身份无权查看的文档：在别的租户、高于自己的密级、不在自己参与的项目里，或者属于别的部门。每个返回的 chunk 都按文档和版本检查；在任何查询运行之前，每个身份能列出的全部 chunk 还会和人工标注的可见集合比较。
 
 **适用范围。** 13 条用例询问某个地区或某个日期，或者指明了「可以读但不适用」的文档：另一个地区的假期日历、去年的差旅制度、尚未生效的福利。没有任何策略返回过这类文档。范围失败与安全越权分开统计，不会加在一起。
 
 配对比较能支持什么、不能支持什么：
 
-- **重排超过了最好的单通道。** `hybrid-rrf-rerank` 相对 dense：MRR@10 +0.08 [+0.03, +0.14]。65 条用例里它有 61 条把正确证据排在第一，dense 是 53 条。Recall@10 没有变化，因为重排只是给融合已经找到的候选重新排序。代价是延迟：在 CI runner 上中位数 204 毫秒，dense 是 22 毫秒；在笔记本的 Docker 里约 1 秒。
-- **dense 把正确证据排得比 FTS 更靠前**：MRR@10 +0.19 [+0.11, +0.28]。但证据是否出现在前 10 条，**看不出可检测的差异**（Recall@10 +0.05 [−0.02, +0.11]）。
-- **不带重排的 hybrid 没有超过 dense。** 相对 dense，MRR@10 为 −0.05 [−0.11, +0.01]：没有可检测的差异，点估计偏向 dense。对第一次 hybrid 运行的[分析](./docs/evaluation/m1b-hybrid-analysis.md)解释了原因：等权融合让较弱的 FTS 通道拥有同样的投票权。
-- **FTS 与 BM25：一个没能站住的结论。** 在数据集 v1 上，BM25 明显领先 FTS（MRR@10 +0.10 [+0.02, +0.18]）。在 v2 和 v3 上这个差异不再可检测（v3：+0.04 [−0.02, +0.10]）。旧报告仍保留在仓库里；在更大的数据集支持它之前，这个结论撤回。
-- **dense 优于 BM25**：MRR@10 +0.15 [+0.07, +0.24]。
+- **重排超过了最好的单通道。** `hybrid-rrf-rerank` 相对 dense：MRR@10 +0.09 [+0.04, +0.15]。70 条用例里它有 66 条把正确证据排在第一，dense 是 56 条。Recall@10 没有变化，因为重排只是给融合已经找到的候选重新排序。代价是延迟：在这次运行的 CI runner 上中位数 480 毫秒，dense 是 41 毫秒，约十倍；在笔记本的 Docker 里约 1 秒。
+- **dense 把正确证据排得比 FTS 更靠前**：MRR@10 +0.18 [+0.10, +0.26]。但证据是否出现在前 10 条，**看不出可检测的差异**（Recall@10 +0.04 [−0.01, +0.10]）。
+- **不带重排的 hybrid 没有超过 dense。** 相对 dense，MRR@10 为 −0.04 [−0.10, +0.02]：没有可检测的差异，点估计偏向 dense。对第一次 hybrid 运行的[分析](./docs/evaluation/m1b-hybrid-analysis.md)解释了原因：等权融合让较弱的 FTS 通道拥有同样的投票权。
+- **FTS 与 BM25：一个没能站住的结论。** 在数据集 v1 上，BM25 明显领先 FTS（MRR@10 +0.10 [+0.02, +0.18]）。在之后的每个数据集版本上，这个差异都不可检测（v4：+0.05 [−0.01, +0.12]）。旧报告仍保留在仓库里；在更大的数据集支持它之前，这个结论撤回。
+- **dense 优于 BM25**：MRR@10 +0.12 [+0.04, +0.21]。
 
-没有任何参数是在 test 划分上调的。数据集是 32 篇虚构文档、122 条人工核对的用例，87 条可回答用例中有 36 条刻意写得与证据几乎没有共同词汇。这是 demo benchmark：它展示的是方法与差异的方向，而不是生产效果。更早数据集版本上的报告不能与这一份直接比较。已发布的数字在报告的精度内可复现；dense 的结果列表在不同 CPU 之间，得分接近的候选顺序可能不同（见 [benchmarks/README.md](./benchmarks/README.md)）。覆盖范围与局限见[数据集说明卡](./data/eval/DATASET_CARD.md)。
+没有任何参数是在 test 划分上调的。数据集是 35 篇虚构文档、128 条人工核对的用例，93 条可回答用例中有 36 条刻意写得与证据几乎没有共同词汇。这是 demo benchmark：它展示的是方法与差异的方向，而不是生产效果。更早数据集版本上的报告不能与这一份直接比较。已发布的数字在报告的精度内可复现；dense 的结果列表在不同 CPU 之间，得分接近的候选顺序可能不同（见 [benchmarks/README.md](./benchmarks/README.md)）。覆盖范围与局限见[数据集说明卡](./data/eval/DATASET_CARD.md)。
 
 证据以**文档版本 + 原文引用**标注，而不是 chunk id，因此不同切分策略可以在同一份标注上比较。方法见 [docs/evaluation/strategy.md](./docs/evaluation/strategy.md)。
 
@@ -172,7 +172,7 @@ curl -s localhost:8080/api/v1/retrieval/search -H "Authorization: Bearer $TOKEN"
 | 检索查询内的授权 | 租户、密级、部门、项目四条规则，每次请求编译一次，写进每条通道的 SQL；region 与有效期作为适用范围单独编译；两者都用基于属性的测试对照参考实现验证 | 回答链路上一致的「无法回答」（M3） |
 | 检索 | `sparse-only`（PostgreSQL FTS）、`dense-only`（pgvector 精确检索）、`hybrid-rrf`（RRF 融合并去除重叠 chunk）与 `hybrid-rrf-rerank`（用 cross-encoder 重排融合后的前若干候选，失败时退回融合顺序）；每个响应带检索配置哈希 | – |
 | 入库 | 异步任务（`202` + 轮询），`SKIP LOCKED` worker、有限重试与断点续跑；内容哈希版本管理；Markdown 与纯文本切分，按句拆分长段落并带重叠；停用与删除对下一次查询生效，后台清理 | – |
-| 评测 | 32 篇带标签的文档、122 条用例：改写、hard negatives、31 条授权负例与 13 条适用范围用例；BM25 参考行、bootstrap 置信区间与配对比较；CI 安全门禁逐个检查返回的 chunk 和每个身份的完整可见列表 | 回答指标：引用有效性、拒答（M3） |
+| 评测 | 35 篇带标签的文档、128 条用例：改写、hard negatives、31 条授权负例、13 条适用范围用例与 6 条提示注入用例；BM25 参考行、bootstrap 置信区间与配对比较；CI 安全门禁逐个检查返回的 chunk 和每个身份的完整可见列表 | 回答指标：引用有效性、拒答（M3） |
 | 回答 | `/api/v1/query`：每句话都引用已授权证据的回答；证据不足以回答时拒答；没有配置对话模型时只返回证据。生成是可选的，支持任何兼容 OpenAI 接口的端点。回答指标来自注明了模型的本地运行 | 检查每句话是否被它引用的段落支持（v0.1 之后） |
 | 运维 | Docker Compose、每个 PR 的 CI；每个请求一个 trace id，审计事件与执行记录同步写入，写失败则拒绝请求 | OpenTelemetry trace、dashboard（M4） |
 

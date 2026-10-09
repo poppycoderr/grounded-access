@@ -51,7 +51,7 @@
   <text class="lbl-sm" x="56" y="175">visibility.yaml</text>
   <text class="txt" x="56" y="195">hand-labelled visible documents</text>
   <text class="txt" x="56" y="213">per principal, current version only</text>
-  <text class="mono" x="56" y="231">data/eval/v3</text>
+  <text class="mono" x="56" y="231">data/eval/v4</text>
   <rect class="blue" x="40" y="284" width="300" height="104" rx="12"/>
   <text class="lbl-sm" x="56" y="309">System under test</text>
   <text class="txt" x="56" y="329">public API with demo tokens</text>
@@ -66,7 +66,7 @@
   <text class="txt" x="434" y="253">covers documents no query retrieves</text>
   <rect class="violet" x="418" y="290" width="304" height="104" rx="12"/>
   <text class="lbl-sm" x="434" y="315">2 · Per-result check</text>
-  <text class="txt" x="434" y="335">122 cases × every strategy</text>
+  <text class="txt" x="434" y="335">128 cases × every strategy</text>
   <text class="txt" x="434" y="353">each chunk: visible document</text>
   <text class="txt" x="434" y="371">and current version</text>
   <path class="ln" d="M340 202 L398 222" marker-end="url(#ar)"/>
