@@ -223,15 +223,19 @@ How `/query` decides, in order:
 |---|---|---|
 | Model service unavailable at query time (embed) | Sparse-only retrieval | `degraded: dense_unavailable` |
 | Reranker timeout or error | Fused RRF order after at most the rerank timeout | `degraded: rerank_unavailable`; the execution record has no reranker model |
+| Reranker busy | One rerank call is in flight at a time (`GA_RERANK_MAX_CONCURRENT`). A query waits up to the rerank timeout for the slot; without one it is answered in the fused order and is never sent to the reranker | `degraded: rerank_unavailable` |
 | Chat model timeout or error | Evidence-only response | `degraded: generation_unavailable` |
 | Chat output is not the expected JSON | Evidence-only response | `degraded: generation_invalid` |
 | Chat output cites unknown ids, or a statement has no citation | Those statements are dropped. If none remain, `no_answer` | `rejectedStatements` in the audit event |
 | Audit write fails | The request fails closed with 503 `AUDIT_UNAVAILABLE`: a search returns no results, and an administrative change is rolled back | error log with the trace id |
-| Model service unavailable during ingestion | Job retried, then `failed` | job `error_code` |
+| Model service unavailable at query time, `dense-only` | 503 `MODEL_SERVICE_UNAVAILABLE`: there is no other channel to answer from | error log with the trace id |
+| Model service unavailable during ingestion | Job retried with a growing delay, then `failed`. Nothing of a failed document becomes searchable | job `error_code` |
 
 Evaluation runs treat any degraded query as invalid for that configuration (see evaluation strategy).
 
-All outbound calls have explicit timeouts. Retries are only used for idempotent calls (embed, rerank) and are capped at one retry on the query path.
+All outbound calls have explicit timeouts, and nothing on the query path is retried: a failed call degrades the answer instead. `DependencyFailureIT` runs the application with its real HTTP clients against a local server whose endpoints hang, return errors or return something that is not the contract, and checks each row above, including that a hanging call is given up on and that a degraded answer still contains only documents the caller may read.
+
+A timeout ends the wait, not the work in the model service. That is why reranking has a concurrency limit: without it, overlapping calls all time out while the model service keeps scoring passages nobody waits for, and the embedding calls of other queries queue behind them. The [load smoke report](../../benchmarks/reports/m4-load-smoke/report.md) measures both cases. `./scripts/load-smoke` sends the evaluation cases concurrently as their own principals and checks every result against that principal's visible set; CI runs it on every pull request.
 
 ## 8. API surface (v0.1)
 

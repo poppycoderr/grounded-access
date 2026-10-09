@@ -97,7 +97,7 @@ flowchart LR
 |---|---|---|---|
 | V1 | Act while the audit store is unavailable | Audit is synchronous and fails closed: no results, and administrative changes roll back | Integration tests |
 | V2 | Alter or delete audit rows | None inside the application's reach | **Residual risk R6** |
-| V3 | Exhaust the service with large ingestion bodies or many queries | Request size limits per document and per batch; no rate limiting; exact vector search is linear in the authorized corpus | **Residual risk R7** |
+| V3 | Exhaust the service with large ingestion bodies or many queries | Request size limits per document and per batch; one rerank call at a time, so overlapping queries degrade to the fused order instead of stalling the model service (measured in the load smoke report); no rate limiting; exact vector search is linear in the authorized corpus | **Residual risk R7** |
 
 ## 5. Residual risks
 
@@ -110,7 +110,7 @@ flowchart LR
 | R4 | The model service is unauthenticated inside the deployment network and sees every ingested text | It runs in the same trust zone as the control plane | Mutual TLS or a service token; network policy |
 | R5 | The log test covers the failure paths it exercises, not every line a dependency could write. Raising a library's log level to `DEBUG` can print request bodies | Only the project's own log statements are under its control | Keep library loggers at `INFO` or above in production; ship logs through a pipeline that can redact |
 | R6 | Audit rows are ordinary table rows. A database administrator can change them, and nothing would show it | Tamper evidence needs infrastructure the demo does not have | Append-only storage or hash chaining; shipping events off the database |
-| R7 | No rate limiting; exact vector search scales with the authorized corpus | Demo scale | Rate limits at the edge; an approximate index, measured for filtered recall first (ADR-0002) |
+| R7 | No rate limiting, so one caller can use the whole rerank capacity; the embedding queue is not limited; exact vector search scales with the authorized corpus | Demo scale | Rate limits at the edge; an approximate index, measured for filtered recall first (ADR-0002) |
 | R8 | The predicate is enforced by the application, not by the database. Anyone with the application's database credentials reads everything | Defence in depth is deferred | PostgreSQL row-level security as a second layer; separate roles for ingestion and retrieval |
 | R9 | Embeddings of every chunk are stored next to the text | They are never returned by the API and sit behind the same predicate | Nothing further planned; anyone who can read the table can read the text anyway |
 | R10 | The security gate proves the absence of leaks only for the demo principals and the demo corpus | It is a regression gate, not a proof | The property test covers random principals and labels; a larger labelled dataset |

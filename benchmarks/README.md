@@ -38,6 +38,10 @@ GA_CHAT_BASE_URL=http://host.docker.internal:11434/v1 GA_CHAT_MODEL=llama3:8b do
 uv run --project packages/evaluation ga-eval answers --out benchmarks/reports/m3-answers-<model>
 ```
 
+### Load smoke reports
+
+`m4-load-smoke` holds local runs of `./scripts/load-smoke`: one directory per run with `run.json` and the generated report, and a `report.md` that reads them together. They show that concurrent requests of different principals stay correct and where the stack saturates on one laptop. They are not performance claims.
+
 Runs on the fictional demo corpus are labelled demo benchmarks. They show that the method is reproducible; they say nothing about production retrieval quality.
 
 `results/` at the repository root is the scratch directory for ad-hoc runs and is not tracked.

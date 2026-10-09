@@ -115,12 +115,16 @@ jobs:
       - name: Evaluate retrieval and enforce the security gate
         run: ./scripts/benchmark --out results/ci
 
+      # More clients than database connections, every result checked against its principal's visible set
+      - name: Load smoke test
+        run: ./scripts/load-smoke --strategy sparse-only --strategy dense-only --strategy hybrid-rrf --workers 16 --requests 600 --out results/load
+
       - name: Upload evaluation results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: evaluation-results
-          path: results/ci
+          path: results
           if-no-files-found: ignore
 
       - name: Show service logs
