@@ -16,6 +16,9 @@ import io.groundedaccess.modelclient.ChatReply;
 import io.groundedaccess.modelclient.EmbeddingClient;
 import io.groundedaccess.modelclient.RerankClient;
 import io.groundedaccess.modelclient.RerankScores;
+import io.micrometer.registry.otlp.OtlpMeterRegistry;
+import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter;
+import io.opentelemetry.exporter.otlp.trace.OtlpGrpcSpanExporter;
 import io.opentelemetry.sdk.testing.exporter.InMemorySpanExporter;
 import io.opentelemetry.sdk.trace.SdkTracerProvider;
 import io.opentelemetry.sdk.trace.data.SpanData;
@@ -35,6 +38,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
@@ -138,6 +142,9 @@ class TracingIT {
     @Autowired
     private SdkTracerProvider tracerProvider;
 
+    @Autowired
+    private ApplicationContext context;
+
     @BeforeEach
     void corpus() throws Exception {
         jdbc.sql("truncate audit_event, query_execution, ingestion_job_document, ingestion_job, chunk, document_version, document, tenant cascade").update();
@@ -232,6 +239,13 @@ class TracingIT {
 
         assertThat(exported()).isNotEmpty().allSatisfy(span -> assertThat(span.getTraceId()).matches("[0-9a-f]{32}"));
         assertThat(exported()).extracting(SpanData::getTraceId).contains(given);
+    }
+
+    @Test
+    void nothingIsSentToACollectorUnlessOneIsConfigured() {
+        assertThat(context.getBeanNamesForType(OtlpMeterRegistry.class)).isEmpty();
+        assertThat(context.getBeanNamesForType(OtlpHttpSpanExporter.class)).isEmpty();
+        assertThat(context.getBeanNamesForType(OtlpGrpcSpanExporter.class)).isEmpty();
     }
 
     @Test

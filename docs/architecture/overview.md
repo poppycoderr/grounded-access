@@ -298,7 +298,7 @@ The list is enforced where spans leave the process, not where they are created. 
 
 Never recorded: query text, chunk text, prompts, model output, embeddings, document titles, document keys, principal attributes, exception messages, and counts of rows removed by authorization.
 
-Spans are exported over OTLP when `MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT` is set (for example `http://localhost:4318/v1/traces`); without it they are created and discarded. `GA_TRACE_SAMPLING` sets the sampled share of requests and defaults to `1.0`.
+Spans are exported over OTLP when `MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT` is set (for example `http://localhost:4318/v1/traces`); without it they are created and discarded. Metrics are pushed to `MANAGEMENT_OTLP_METRICS_EXPORT_URL` only when `GA_OTLP_METRICS_ENABLED` is `true`. By default nothing is sent anywhere. `GA_TRACE_SAMPLING` sets the sampled share of requests and defaults to `1.0`.
 
 - **Trace id.** Every request gets one before authentication runs. It is the trace id of the request's span. A valid W3C `traceparent` header supplies it; anything else is discarded and a new id is generated, so a caller cannot inject text into logs or audit rows through the header. The id is returned in `X-Trace-Id`, in search responses, stored in the audit rows and the execution record, and put into the logging context.
 - **Execution record.** Each search stores a `query_execution` row: plan and hash, policy version, embedding model with revision, degraded reasons, result count and stage timings. Its owner can read it at `GET /api/v1/query-executions/{id}`; for anyone else it does not exist.
