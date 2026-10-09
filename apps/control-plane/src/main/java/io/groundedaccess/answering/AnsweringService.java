@@ -8,6 +8,8 @@ import io.groundedaccess.retrieval.RetrievalResult;
 import io.groundedaccess.retrieval.RetrievalService;
 import io.groundedaccess.retrieval.RetrievalStrategy;
 import io.groundedaccess.retrieval.Scope;
+import io.groundedaccess.telemetry.SpanAttribute;
+import io.groundedaccess.telemetry.Spans;
 import io.groundedaccess.telemetry.TraceContext;
 
 import java.util.ArrayList;
@@ -48,7 +50,10 @@ public class AnsweringService {
 
     private final ContextBuilder contextBuilder;
 
-    public AnsweringService(RetrievalService retrieval, ChatClient chat, AuditTrail audit, AnsweringProperties properties) {
+    private final Spans spans;
+
+    public AnsweringService(RetrievalService retrieval, ChatClient chat, AuditTrail audit, AnsweringProperties properties, Spans spans) {
+        this.spans = spans;
         this.retrieval = retrieval;
         this.chat = chat;
         this.audit = audit;
@@ -68,8 +73,24 @@ public class AnsweringService {
      * A {@code NO_ANSWER} carries no evidence, so it looks the same whether the answer is hidden from the principal or does not exist.
      */
     public Answer answer(Principal principal, String question, @Nullable RetrievalStrategy strategy, Scope scope) {
+        return spans.in("query.answer", span -> {
+            Answer answer = answerTraced(principal, question, strategy, scope);
+            span.set(SpanAttribute.ANSWER_STATUS, answer.status().wireName());
+            span.set(SpanAttribute.PROMPT_VERSION, AnswerPrompt.VERSION);
+            if (!answer.degraded().isEmpty()) {
+                span.set(SpanAttribute.DEGRADED, String.join(",", answer.degraded()));
+            }
+            return answer;
+        });
+    }
+
+    private Answer answerTraced(Principal principal, String question, @Nullable RetrievalStrategy strategy, Scope scope) {
         RetrievalResult retrieved = retrieval.search(principal, question, strategy != null ? strategy : properties.strategy(), properties.evidenceLimit(), scope);
-        List<Evidence> evidence = contextBuilder.build(retrieved.chunks());
+        List<Evidence> evidence = spans.in("context.build", span -> {
+            List<Evidence> built = contextBuilder.build(retrieved.chunks());
+            span.set(SpanAttribute.CONTEXT_EVIDENCE, built.size());
+            return built;
+        });
         Generation generation = generate(question, evidence);
         List<String> degraded = new ArrayList<>(retrieved.degraded());
         if (generation.degraded() != null) {
@@ -107,13 +128,24 @@ public class AnsweringService {
         }
         ChatReply reply;
         try {
-            reply = chat.complete(AnswerPrompt.SYSTEM, AnswerPrompt.user(question, evidence));
+            reply = spans.in("generation", span -> {
+                ChatReply completed = chat.complete(AnswerPrompt.SYSTEM, AnswerPrompt.user(question, evidence));
+                span.set(SpanAttribute.MODEL_NAME, completed.model());
+                return completed;
+            });
         } catch (RestClientException e) {
             log.warn("Generation failed, returning evidence only: {}", e.getClass().getSimpleName());
             return new Generation(AnswerStatus.EVIDENCE_ONLY, List.of(), 0, null, GENERATION_UNAVAILABLE);
         }
         Set<String> ids = evidence.stream().map(Evidence::id).collect(Collectors.toSet());
-        Optional<AnswerParser.Parsed> parsed = AnswerParser.parse(reply.content(), ids);
+        Optional<AnswerParser.Parsed> parsed = spans.in("citation.validate", span -> {
+            Optional<AnswerParser.Parsed> checked = AnswerParser.parse(reply.content(), ids);
+            checked.ifPresent(result -> {
+                span.set(SpanAttribute.ANSWER_STATEMENTS, result.statements().size());
+                span.set(SpanAttribute.ANSWER_REJECTED_STATEMENTS, result.rejected());
+            });
+            return checked;
+        });
         if (parsed.isEmpty()) {
             log.warn("The chat model's reply was not the expected JSON, returning evidence only");
             return new Generation(AnswerStatus.EVIDENCE_ONLY, List.of(), 0, reply.model(), GENERATION_INVALID);

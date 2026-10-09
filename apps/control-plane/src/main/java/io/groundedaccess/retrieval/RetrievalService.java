@@ -10,6 +10,8 @@ import io.groundedaccess.modelclient.Embeddings;
 import io.groundedaccess.modelclient.InputType;
 import io.groundedaccess.modelclient.RerankClient;
 import io.groundedaccess.modelclient.RerankScores;
+import io.groundedaccess.telemetry.SpanAttribute;
+import io.groundedaccess.telemetry.Spans;
 import io.groundedaccess.telemetry.TraceContext;
 
 import java.time.Clock;
@@ -53,16 +55,19 @@ public class RetrievalService {
 
     private final AuditTrail audit;
 
+    private final Spans spans;
+
     private final Clock clock = Clock.systemUTC();
 
     public RetrievalService(PolicyCompiler policyCompiler, AuthorizedChunkQuery chunks, EmbeddingClient embeddings, RerankClient reranker,
-            RetrievalProperties properties, AuditTrail audit) {
+            RetrievalProperties properties, AuditTrail audit, Spans spans) {
         this.policyCompiler = policyCompiler;
         this.chunks = chunks;
         this.embeddings = embeddings;
         this.reranker = reranker;
         this.properties = properties;
         this.audit = audit;
+        this.spans = spans;
     }
 
     public ChunkPage list(Principal principal, Scope scope, @Nullable ChunkCursor after, int limit) {
@@ -101,44 +106,96 @@ public class RetrievalService {
      * the result is returned: if that write fails, the search fails and nothing is disclosed.
      */
     public RetrievalResult search(Principal principal, String query, RetrievalStrategy strategy, int k, Scope scope) {
-        AuthorizationPredicate predicate = policyCompiler.compile(principal);
+        return spans.in("retrieval.search", span -> {
+            RetrievalResult result = searchTraced(principal, query, strategy, k, scope);
+            span.set(SpanAttribute.RETRIEVAL_STRATEGY, strategy.wireName());
+            span.set(SpanAttribute.RETRIEVAL_K, k);
+            span.set(SpanAttribute.PIPELINE_CONFIG_HASH, result.plan().hash());
+            span.set(SpanAttribute.POLICY_VERSION, result.policyVersion());
+            span.set(SpanAttribute.RETRIEVAL_RESULTS, result.chunks().size());
+            if (!result.degraded().isEmpty()) {
+                span.set(SpanAttribute.DEGRADED, String.join(",", result.degraded()));
+            }
+            return result;
+        });
+    }
+
+    private RetrievalResult searchTraced(Principal principal, String query, RetrievalStrategy strategy, int k, Scope scope) {
+        AuthorizationPredicate predicate = spans.in("policy.compile", span -> {
+            AuthorizationPredicate compiled = policyCompiler.compile(principal);
+            span.set(SpanAttribute.POLICY_VERSION, compiled.policyVersion());
+            return compiled;
+        });
         RetrievalPlan plan = RetrievalPlan.of(strategy, k, properties, reranker.modelName());
         List<String> degraded = new ArrayList<>();
         long started = System.nanoTime();
-        List<RetrievedChunk> sparse = strategy.usesSparse() ? chunks.sparse(query, predicate, scope, plan.candidates()) : List.of();
+        List<RetrievedChunk> sparse = strategy.usesSparse() ? spans.in("retrieval.sparse", span -> {
+            List<RetrievedChunk> rows = chunks.sparse(query, predicate, scope, plan.candidates());
+            span.set(SpanAttribute.RETRIEVAL_CANDIDATES, rows.size());
+            return rows;
+        }) : List.of();
         long sparseDone = System.nanoTime();
         List<RetrievedChunk> dense = List.of();
         String embeddingModel = null;
         boolean denseAvailable = strategy.usesDense();
         if (strategy.usesDense()) {
             try {
-                Embeddings embedded = embeddings.embed(List.of(query), InputType.QUERY);
-                embeddingModel = embedded.modelId();
-                dense = chunks.dense(embedded.vectors().getFirst(), predicate, scope, plan.candidates());
+                DenseCandidates found = spans.in("retrieval.dense", span -> {
+                    Embeddings embedded = spans.in("model.embed", model -> {
+                        Embeddings vectors = embeddings.embed(List.of(query), InputType.QUERY);
+                        model.set(SpanAttribute.MODEL_NAME, vectors.modelId());
+                        return vectors;
+                    });
+                    List<RetrievedChunk> rows = chunks.dense(embedded.vectors().getFirst(), predicate, scope, plan.candidates());
+                    span.set(SpanAttribute.RETRIEVAL_CANDIDATES, rows.size());
+                    return new DenseCandidates(embedded.modelId(), rows);
+                });
+                embeddingModel = found.model();
+                dense = found.rows();
             } catch (RestClientException e) {
                 if (!strategy.usesSparse() || e instanceof HttpClientErrorException) {
                     throw e;
                 }
-                log.warn("Embedding the query failed, answering from the sparse channel only: {}", e.toString());
+                log.warn("Embedding the query failed, answering from the sparse channel only: {}", e.getClass().getSimpleName());
                 degraded.add(DENSE_UNAVAILABLE);
                 denseAvailable = false;
             }
         }
         long denseDone = System.nanoTime();
         Integer rrfK = plan.rrfK();
-        List<RetrievedChunk> ordered = rrfK != null && denseAvailable ? RankFusion.reciprocalRank(sparse, dense, rrfK) : (strategy.usesSparse() ? sparse : dense);
+        List<RetrievedChunk> ordered;
+        if (rrfK != null && denseAvailable) {
+            List<RetrievedChunk> sparseRows = sparse;
+            List<RetrievedChunk> denseRows = dense;
+            ordered = spans.in("retrieval.fusion", span -> {
+                List<RetrievedChunk> fused = RankFusion.reciprocalRank(sparseRows, denseRows, rrfK);
+                span.set(SpanAttribute.RETRIEVAL_CANDIDATES, fused.size());
+                return fused;
+            });
+        } else {
+            ordered = strategy.usesSparse() ? sparse : dense;
+        }
         List<RetrievedChunk> results;
         String rerankerModel = null;
         Integer rerankCandidates = plan.rerankCandidates();
         if (rerankCandidates != null) {
             List<RetrievedChunk> pool = RankFusion.top(ordered, rerankCandidates, plan.dedupeOverlaps());
             if (!pool.isEmpty()) {
+                List<RetrievedChunk> candidates = pool;
                 try {
-                    RerankScores scores = reranker.score(query, pool.stream().map(RetrievedChunk::content).toList());
-                    rerankerModel = scores.modelId();
-                    pool = RankFusion.rerank(pool, scores.scores());
+                    Reranked reranked = spans.in("rerank", span -> {
+                        span.set(SpanAttribute.RETRIEVAL_CANDIDATES, candidates.size());
+                        RerankScores scores = spans.in("model.rerank", model -> {
+                            RerankScores scored = reranker.score(query, candidates.stream().map(RetrievedChunk::content).toList());
+                            model.set(SpanAttribute.MODEL_NAME, scored.modelId());
+                            return scored;
+                        });
+                        return new Reranked(scores.modelId(), RankFusion.rerank(candidates, scores.scores()));
+                    });
+                    rerankerModel = reranked.model();
+                    pool = reranked.rows();
                 } catch (RestClientException e) {
-                    log.warn("Reranking failed, answering in the fused order: {}", e.toString());
+                    log.warn("Reranking failed, answering in the fused order: {}", e.getClass().getSimpleName());
                     degraded.add(RERANK_UNAVAILABLE);
                 }
             }
@@ -153,6 +210,18 @@ public class RetrievalService {
                 plan.canonical(), predicate.policyVersion(), embeddingModel, rerankerModel, degraded, documents, results.size(), scope.asOf(),
                 scope.region(), millis(finished - started), millis(sparseDone - started), millis(denseDone - sparseDone), millis(finished - denseDone)));
         return new RetrievalResult(plan, predicate.policyVersion(), results, List.copyOf(degraded), scope, executionId, traceId);
+    }
+
+    private record DenseCandidates(
+            String model,
+
+            List<RetrievedChunk> rows) {
+    }
+
+    private record Reranked(
+            String model,
+
+            List<RetrievedChunk> rows) {
     }
 
     private static long millis(long nanos) {
