@@ -26,23 +26,29 @@ public record RetrievalPlan(
 
         @Nullable Integer rerankCandidates,
 
-        @Nullable String reranker) {
+        @Nullable String reranker,
+
+        boolean sparseContext,
+
+        boolean rerankContext) {
 
     static RetrievalPlan of(RetrievalStrategy strategy, int k, RetrievalProperties properties, String rerankerModel) {
         boolean fuses = strategy.usesSparse() && strategy.usesDense();
         boolean reranks = strategy.usesRerank();
         return new RetrievalPlan(strategy, k, Math.max(properties.candidates(), k), fuses ? properties.rrfK() : null, true,
-                reranks ? Math.max(properties.rerankCandidates(), k) : null, reranks ? rerankerModel : null);
+                reranks ? Math.max(properties.rerankCandidates(), k) : null, reranks ? rerankerModel : null,
+                strategy.usesSparse() && properties.sparseContext(), reranks && properties.rerankContext());
     }
 
     /**
      * The serialized form the hash is taken over. Field order and formatting are fixed here, not left to a JSON library, so the hash cannot change
-     * with a library upgrade. The rerank fields are appended only when present, so plans that existed before reranking keep their hashes.
+     * with a library upgrade. The rerank fields are appended only when present, so plans that existed before reranking keep their hashes; the context fields likewise.
      */
     public String canonical() {
         String rerank = rerankCandidates == null ? "" : ",\"rerankCandidates\":%d,\"reranker\":\"%s\"".formatted(rerankCandidates, reranker);
-        return "{\"strategy\":\"%s\",\"k\":%d,\"candidates\":%d,\"rrfK\":%s,\"dedupeOverlaps\":%s%s}".formatted(strategy.wireName(), k, candidates, rrfK,
-                dedupeOverlaps, rerank);
+        String context = (sparseContext ? ",\"sparseContext\":true" : "") + (rerankContext ? ",\"rerankContext\":true" : "");
+        return "{\"strategy\":\"%s\",\"k\":%d,\"candidates\":%d,\"rrfK\":%s,\"dedupeOverlaps\":%s%s%s}".formatted(strategy.wireName(), k, candidates, rrfK,
+                dedupeOverlaps, rerank, context);
     }
 
     public String hash() {

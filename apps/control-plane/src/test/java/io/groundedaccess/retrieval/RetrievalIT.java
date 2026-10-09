@@ -117,6 +117,27 @@ class RetrievalIT {
     }
 
     @Test
+    void aQuestionInTheWordsOfAHeadingFindsThePassageUnderItThroughBothChannels() throws Exception {
+        ingest("northstar", "launch-runbook", """
+                # Runbook
+
+                ## Launch gates
+
+                Borealis starts only after thirty days of shadow traffic.
+
+                ## Kill switch
+
+                The feature flag turns the engine off within one minute.
+                """);
+
+        search("alice", "northstar", "query", "gates", "sparse-only").andExpect(jsonPath("$.results", hasSize(1)))
+                .andExpect(jsonPath("$.results[0].sectionPath").value("Runbook > Launch gates"))
+                .andExpect(jsonPath("$.results[0].text").value("Borealis starts only after thirty days of shadow traffic."));
+        search("alice", "northstar", "query", "launch gates", "dense-only")
+                .andExpect(jsonPath("$.results[0].sectionPath").value("Runbook > Launch gates"));
+    }
+
+    @Test
     void reingestingUnchangedContentIsIdempotentAndNewVersionsReplaceOldChunks() throws Exception {
         ingest("northstar", "hr-volunteer-policy", VOLUNTEER_POLICY).andExpect(jsonPath("$.created").value(1));
         ingest("northstar", "hr-volunteer-policy", VOLUNTEER_POLICY).andExpect(jsonPath("$.unchanged").value(1));
@@ -135,14 +156,14 @@ class RetrievalIT {
 
         search("alice", "northstar", "query", "paid volunteer days", "sparse-only")
                 .andExpect(jsonPath("$.results[0].sectionPath").value(""))
-                .andExpect(jsonPath("$.results[0].chunkerVersion").value("text/2"));
+                .andExpect(jsonPath("$.results[0].chunkerVersion").value("text/3"));
 
         // The same text in another format is chunked differently, so it is a new version rather than unchanged.
         ingest("northstar", "volunteer-faq", faq, "markdown").andExpect(jsonPath("$.updated").value(1));
         ingest("northstar", "volunteer-faq", faq, "markdown").andExpect(jsonPath("$.unchanged").value(1));
         mvc.perform(get("/api/v1/retrieval/chunks").header("Authorization", "Bearer " + DemoTokens.token("eval", "northstar", "query debug")))
                 .andExpect(jsonPath("$.chunks[0].sectionPath").value("Volunteer FAQ"))
-                .andExpect(jsonPath("$.chunks[0].chunkerVersion").value("markdown/2"));
+                .andExpect(jsonPath("$.chunks[0].chunkerVersion").value("markdown/3"));
     }
 
     @Test
@@ -158,7 +179,7 @@ class RetrievalIT {
         search("eval", "northstar", "query debug", "paid volunteer days", "hybrid-rrf")
                 .andExpect(jsonPath("$.strategy").value("hybrid-rrf"))
                 .andExpect(jsonPath("$.degraded", empty()))
-                .andExpect(jsonPath("$.planHash").value("bd71e8ef3c45267b"))
+                .andExpect(jsonPath("$.planHash").value("2598002ea9c41e8d"))
                 .andExpect(jsonPath("$.plan.rrfK").value(60))
                 .andExpect(jsonPath("$.plan.candidates").value(50))
                 .andExpect(jsonPath("$.results[0].documentKey").value("hr-volunteer-policy"))
@@ -171,7 +192,7 @@ class RetrievalIT {
                 .andExpect(jsonPath("$.results[1].denseRank").value(2));
 
         search("alice", "northstar", "query", "paid volunteer days", "hybrid-rrf")
-                .andExpect(jsonPath("$.planHash").value("bd71e8ef3c45267b"))
+                .andExpect(jsonPath("$.planHash").value("2598002ea9c41e8d"))
                 .andExpect(jsonPath("$.plan", nullValue()))
                 .andExpect(jsonPath("$.results[0].score", nullValue()))
                 .andExpect(jsonPath("$.results[0].sparseRank", nullValue()))

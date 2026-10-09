@@ -86,7 +86,9 @@ class CorpusWriter {
 
             List<float[]> embeddings,
 
-            String embeddingModel) {
+            String embeddingModel,
+
+            String chunkerVersion) {
     }
 
     void ensureTenant(String tenantId) {
@@ -159,7 +161,7 @@ class CorpusWriter {
                 .param("title", version.source().title())
                 .param("sourceUri", version.source().sourceUri())
                 .param("format", version.source().format().column())
-                .param("chunker", DocumentChunker.version(version.source().format()))
+                .param("chunker", version.chunkerVersion())
                 .param("classification", labels.classification().column())
                 .param("departments", TextArrays.literal(labels.allowedDepartments()))
                 .param("projects", TextArrays.literal(labels.requiredProjects()))

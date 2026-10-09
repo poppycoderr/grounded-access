@@ -1,5 +1,6 @@
 package io.groundedaccess.retrieval;
 
+import io.groundedaccess.corpus.DocumentChunker;
 import io.groundedaccess.audit.AuditTrail;
 import io.groundedaccess.audit.SearchRecord;
 import io.groundedaccess.authorization.AuthorizationPredicate;
@@ -133,7 +134,7 @@ public class RetrievalService {
         List<String> degraded = new ArrayList<>();
         long started = System.nanoTime();
         List<RetrievedChunk> sparse = strategy.usesSparse() ? spans.in("retrieval.sparse", span -> {
-            List<RetrievedChunk> rows = chunks.sparse(query, predicate, scope, plan.candidates());
+            List<RetrievedChunk> rows = chunks.sparse(query, predicate, scope, plan.candidates(), plan.sparseContext());
             span.set(SpanAttribute.RETRIEVAL_CANDIDATES, rows.size());
             return rows;
         }) : List.of();
@@ -189,7 +190,9 @@ public class RetrievalService {
                     Reranked reranked = spans.in("rerank", span -> {
                         span.set(SpanAttribute.RETRIEVAL_CANDIDATES, candidates.size());
                         RerankScores scores = spans.in("model.rerank", model -> {
-                            RerankScores scored = reranker.score(query, candidates.stream().map(RetrievedChunk::content).toList());
+                            RerankScores scored = reranker.score(query, candidates.stream()
+                                    .map(chunk -> plan.rerankContext() ? DocumentChunker.withContext(chunk.sectionPath(), chunk.content()) : chunk.content())
+                                    .toList());
                             model.set(SpanAttribute.MODEL_NAME, scored.modelId());
                             return scored;
                         });

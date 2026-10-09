@@ -119,7 +119,9 @@ class AuthorizationPropertyIT {
         AuthorizationPredicate predicate = compiler.compile(principal);
 
         assertThat(chunks.list(predicate, scope, null, 1000)).extracting(AuthorizedChunk::documentKey).containsExactlyInAnyOrderElementsOf(expected);
-        assertThat(chunks.sparse("volunteer", predicate, scope, 1000)).extracting(RetrievedChunk::documentKey)
+        assertThat(chunks.sparse("volunteer", predicate, scope, 1000, false)).extracting(RetrievedChunk::documentKey)
+                .containsExactlyInAnyOrderElementsOf(expected);
+        assertThat(chunks.sparse("volunteer", predicate, scope, 1000, true)).extracting(RetrievedChunk::documentKey)
                 .containsExactlyInAnyOrderElementsOf(expected);
         assertThat(chunks.dense(VECTOR, predicate, scope, 1000)).extracting(RetrievedChunk::documentKey).containsExactlyInAnyOrderElementsOf(expected);
         assertThat(chunks.list(predicate, Scope.ANY, null, 1000)).extracting(AuthorizedChunk::documentKey)

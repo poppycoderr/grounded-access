@@ -34,6 +34,10 @@ services:
       GA_CHAT_BASE_URL: ${GA_CHAT_BASE_URL:-}
       GA_CHAT_MODEL: ${GA_CHAT_MODEL:-}
       GA_CHAT_API_KEY: ${GA_CHAT_API_KEY:-}
+      # Whether a chunk's heading path is embedded, searched by keyword and shown to the reranker; the defaults were chosen on the dev split
+      GA_EMBEDDING_CONTEXT: ${GA_EMBEDDING_CONTEXT:-true}
+      GA_SPARSE_CONTEXT: ${GA_SPARSE_CONTEXT:-true}
+      GA_RERANK_CONTEXT: ${GA_RERANK_CONTEXT:-false}
       # One JSON object per log line, with the trace id of the request
       LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
       # COMPOSE_PROFILES=observability docker compose up -d also starts the collector below and exports traces and metrics to it

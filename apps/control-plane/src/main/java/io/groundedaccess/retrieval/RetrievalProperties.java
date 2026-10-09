@@ -13,5 +13,9 @@ public record RetrievalProperties(
 
         int rrfK,
 
-        int rerankCandidates) {
+        int rerankCandidates,
+
+        boolean sparseContext,
+
+        boolean rerankContext) {
 }
