@@ -17,6 +17,9 @@ public final class DocumentChunker {
 
     private static final String RELEASE = "2";
 
+    /** Chunks as in release 2, embedded together with their heading path. */
+    private static final String CONTEXT_RELEASE = "3";
+
     private static final Pattern HEADING = Pattern.compile("^(#{1,6})\\s+(.+?)\\s*#*\\s*$");
 
     /** A sentence ends at terminal punctuation (plus closing quotes or brackets) followed by whitespace, or before a new list item. */
@@ -35,10 +38,19 @@ public final class DocumentChunker {
     }
 
     /**
-     * The version recorded with every document version, so evaluation results say which chunking produced them.
+     * The version recorded with every document version, so evaluation results say which chunking and which embedding input produced them.
      */
-    public static String version(DocumentFormat format) {
-        return format.column() + "/" + RELEASE;
+    public static String version(DocumentFormat format, boolean embeddedWithContext) {
+        return format.column() + "/" + (embeddedWithContext ? CONTEXT_RELEASE : RELEASE);
+    }
+
+    /**
+     * What is embedded for a chunk when context is on: the heading path, a blank line, the chunk. A chunk often depends on its headings
+     * ("Launch gates" above a sentence that never says "gate"), and a question tends to use the heading's words. The stored chunk and its
+     * offsets do not change; only the text handed to the embedding model does.
+     */
+    public static String withContext(String sectionPath, String content) {
+        return sectionPath.isEmpty() ? content : sectionPath + "\n\n" + content;
     }
 
     public static String normalize(String text) {

@@ -195,8 +195,15 @@ class DocumentChunkerTest {
 
     @Test
     void recordsTheFormatInTheChunkerVersion() {
-        assertThat(DocumentChunker.version(DocumentFormat.MARKDOWN)).isEqualTo("markdown/2");
-        assertThat(DocumentChunker.version(DocumentFormat.TEXT)).isEqualTo("text/2");
+        assertThat(DocumentChunker.version(DocumentFormat.MARKDOWN, false)).isEqualTo("markdown/2");
+        assertThat(DocumentChunker.version(DocumentFormat.TEXT, false)).isEqualTo("text/2");
+        assertThat(DocumentChunker.version(DocumentFormat.MARKDOWN, true)).isEqualTo("markdown/3");
+    }
+
+    @Test
+    void theEmbeddingInputPutsTheHeadingPathBeforeTheChunkAndLeavesPlainTextAlone() {
+        assertThat(DocumentChunker.withContext("Runbook > Launch gates", "Borealis launches after 30 days.")).isEqualTo("Runbook > Launch gates\n\nBorealis launches after 30 days.");
+        assertThat(DocumentChunker.withContext("", "No headings here.")).isEqualTo("No headings here.");
     }
 
     @Test

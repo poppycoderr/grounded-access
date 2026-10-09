@@ -41,11 +41,16 @@ public class AuthorizedChunkQuery {
     /**
      * Full-text search with OR semantics: plainto_tsquery ANDs every lexeme, so a natural-language question would rarely match any chunk; the
      * lexemes are re-joined with '|' and ranked with ts_rank_cd. This is PostgreSQL FTS ranking, not BM25 (ADR-0002).
+     *
+     * <p>
+     * The indexed text is the chunk with its heading path. {@code withContext = false} searches the chunk text alone, without an index; it
+     * exists so that the comparison that led to indexing headings can be repeated.
      */
-    public List<RetrievedChunk> sparse(String query, AuthorizationPredicate predicate, Scope scope, int limit) {
+    public List<RetrievedChunk> sparse(String query, AuthorizationPredicate predicate, Scope scope, int limit, boolean withContext) {
         String tsquery = "cast(replace(plainto_tsquery('english', :query)::text, '&', '|') as tsquery)";
-        String sql = SELECT.formatted("ts_rank_cd(c.content_tsv, " + tsquery + ")", predicate.sql(), scope.sql())
-                + " and c.content_tsv @@ " + tsquery + " order by score desc, " + TIE_BREAK + " limit :limit";
+        String document = withContext ? "c.content_tsv" : "to_tsvector('english', c.content)";
+        String sql = SELECT.formatted("ts_rank_cd(" + document + ", " + tsquery + ")", predicate.sql(), scope.sql())
+                + " and " + document + " @@ " + tsquery + " order by score desc, " + TIE_BREAK + " limit :limit";
         return run(sql, predicate, scope, true, limit, "query", query);
     }
 

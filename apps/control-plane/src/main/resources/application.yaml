@@ -33,6 +33,8 @@ ga:
     candidates: 50
     rrf-k: 60
     rerank-candidates: 20
+    sparse-context: ${GA_SPARSE_CONTEXT:true}
+    rerank-context: ${GA_RERANK_CONTEXT:false}
   answering:
     strategy: hybrid-rrf-rerank
     evidence-limit: 8
@@ -46,6 +48,7 @@ ga:
   corpus:
     chunk-max-words: 180
     chunk-overlap-words: 30
+    embedding-context: ${GA_EMBEDDING_CONTEXT:true}
     cleanup:
       enabled: ${GA_CORPUS_CLEANUP_ENABLED:true}
       interval: 1m

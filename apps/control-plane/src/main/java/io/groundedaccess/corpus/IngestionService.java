@@ -31,8 +31,12 @@ public class IngestionService {
 
     private final DocumentChunker chunker;
 
+    private final boolean embeddingContext;
+
     public IngestionService(CorpusWriter writer, EmbeddingClient embeddings, TransactionTemplate transactions,
-            @Value("${ga.corpus.chunk-max-words:180}") int chunkMaxWords, @Value("${ga.corpus.chunk-overlap-words:30}") int chunkOverlapWords) {
+            @Value("${ga.corpus.chunk-max-words:180}") int chunkMaxWords, @Value("${ga.corpus.chunk-overlap-words:30}") int chunkOverlapWords,
+            @Value("${ga.corpus.embedding-context:true}") boolean embeddingContext) {
+        this.embeddingContext = embeddingContext;
         this.writer = writer;
         this.embeddings = embeddings;
         this.transactions = transactions;
@@ -65,8 +69,11 @@ public class IngestionService {
                 }
             }
             List<ChunkDraft> chunks = chunker.chunk(normalized, source.format());
-            Embeddings vectors = embeddings.embed(chunks.stream().map(ChunkDraft::content).toList(), InputType.PASSAGE);
-            var version = new CorpusWriter.NewVersion(tenantId, source, sha, chunks, vectors.vectors(), vectors.modelId());
+            Embeddings vectors = embeddings.embed(chunks.stream()
+                    .map(chunk -> embeddingContext ? DocumentChunker.withContext(chunk.sectionPath(), chunk.content()) : chunk.content())
+                    .toList(), InputType.PASSAGE);
+            var version = new CorpusWriter.NewVersion(tenantId, source, sha, chunks, vectors.vectors(), vectors.modelId(),
+                    DocumentChunker.version(source.format(), embeddingContext));
             Outcome outcome = transactions.execute(status -> write(version, sha));
             if (outcome == Outcome.UNCHANGED) {
                 unchanged++;
