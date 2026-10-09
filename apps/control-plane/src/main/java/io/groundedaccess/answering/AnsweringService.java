@@ -83,7 +83,7 @@ public class AnsweringService {
         };
         audit.recordAnswer(principal, TraceContext.current(), retrieved.executionId(), retrieved.policyVersion(), generation.status().wireName(),
                 evidence.size(), generation.statements().size(), generation.rejected(), generation.model(), AnswerPrompt.VERSION);
-        return new Answer(generation.status(), generation.statements(), shown, List.copyOf(degraded), retrieved);
+        return new Answer(generation.status(), generation.statements(), shown, List.copyOf(degraded), retrieved, generation.model(), AnswerPrompt.VERSION);
     }
 
     private record Generation(
