@@ -1,0 +1,235 @@
+{
+  "split": "dev",
+  "dataset_version": "v4",
+  "before": {
+    "directory": "baseline",
+    "git_sha": "3e8d3d0",
+    "chunker_versions": [
+      "markdown/2"
+    ],
+    "plans": {
+      "sparse-only": [
+        "e09e5b51cd5c36ac"
+      ],
+      "dense-only": [
+        "d489d865e16bcda9"
+      ],
+      "hybrid-rrf": [
+        "bd71e8ef3c45267b"
+      ],
+      "hybrid-rrf-rerank": [
+        "7cb6787822a73cc9"
+      ]
+    },
+    "cpu": "arm",
+    "security_violations": 0
+  },
+  "after": {
+    "directory": "embedding",
+    "git_sha": "3e8d3d0",
+    "chunker_versions": [
+      "markdown/3"
+    ],
+    "plans": {
+      "sparse-only": [
+        "e09e5b51cd5c36ac"
+      ],
+      "dense-only": [
+        "d489d865e16bcda9"
+      ],
+      "hybrid-rrf": [
+        "bd71e8ef3c45267b"
+      ],
+      "hybrid-rrf-rerank": [
+        "7cb6787822a73cc9"
+      ]
+    },
+    "cpu": "arm",
+    "security_violations": 0
+  },
+  "strategies": [
+    {
+      "strategy": "sparse-only",
+      "cases": 23,
+      "recall@10": {
+        "before": 1.0,
+        "after": 1.0,
+        "difference": {
+          "mean": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "before": 0.6631642512077295,
+        "after": 0.6631642512077295,
+        "difference": {
+          "mean": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "verdict": "no detectable difference"
+      },
+      "ndcg@10": {
+        "before": 0.7435008309974391,
+        "after": 0.7435008309974391,
+        "difference": {
+          "mean": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "verdict": "no detectable difference"
+      },
+      "changed_cases": []
+    },
+    {
+      "strategy": "dense-only",
+      "cases": 23,
+      "recall@10": {
+        "before": 0.9565217391304348,
+        "after": 0.9565217391304348,
+        "difference": {
+          "mean": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "before": 0.8478260869565217,
+        "after": 0.9057971014492753,
+        "difference": {
+          "mean": 0.05797101449275363,
+          "low": 0.0,
+          "high": 0.13768115942028986
+        },
+        "verdict": "no detectable difference"
+      },
+      "ndcg@10": {
+        "before": 0.8752578153726721,
+        "after": 0.9187360762422373,
+        "difference": {
+          "mean": 0.043478260869565216,
+          "low": 0.0,
+          "high": 0.10300305419254531
+        },
+        "verdict": "no detectable difference"
+      },
+      "changed_cases": [
+        "backup-drill-040",
+        "eng-incident-root-cause-005",
+        "refund-approval-049"
+      ]
+    },
+    {
+      "strategy": "hybrid-rrf",
+      "cases": 23,
+      "recall@10": {
+        "before": 1.0,
+        "after": 1.0,
+        "difference": {
+          "mean": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "before": 0.8130434782608695,
+        "after": 0.863768115942029,
+        "difference": {
+          "mean": 0.050724637681159424,
+          "low": 0.0,
+          "high": 0.11594202898550723
+        },
+        "verdict": "no detectable difference"
+      },
+      "ndcg@10": {
+        "before": 0.8599844377369092,
+        "after": 0.8977701006251068,
+        "difference": {
+          "mean": 0.0377856628881975,
+          "low": 0.0,
+          "high": 0.08592526024844217
+        },
+        "verdict": "no detectable difference"
+      },
+      "changed_cases": [
+        "backup-drill-040",
+        "eng-incident-root-cause-005",
+        "rw-core-hours-018"
+      ]
+    },
+    {
+      "strategy": "hybrid-rrf-rerank",
+      "cases": 23,
+      "recall@10": {
+        "before": 1.0,
+        "after": 1.0,
+        "difference": {
+          "mean": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "before": 0.9275362318840579,
+        "after": 0.9275362318840579,
+        "difference": {
+          "mean": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "verdict": "no detectable difference"
+      },
+      "ndcg@10": {
+        "before": 0.9461678046583877,
+        "after": 0.9461678046583877,
+        "difference": {
+          "mean": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "verdict": "no detectable difference"
+      },
+      "changed_cases": []
+    },
+    {
+      "strategy": "bm25-reference",
+      "cases": 23,
+      "recall@10": {
+        "before": 0.9565217391304348,
+        "after": 0.9565217391304348,
+        "difference": {
+          "mean": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "before": 0.6678743961352657,
+        "after": 0.6678743961352657,
+        "difference": {
+          "mean": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "verdict": "no detectable difference"
+      },
+      "ndcg@10": {
+        "before": 0.7382914348504247,
+        "after": 0.7382914348504247,
+        "difference": {
+          "mean": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "verdict": "no detectable difference"
+      },
+      "changed_cases": []
+    }
+  ]
+}
