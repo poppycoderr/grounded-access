@@ -69,3 +69,27 @@ management:
     metrics:
       export:
         enabled: ${GA_OTLP_METRICS_ENABLED:false}
+
+---
+# COMPOSE_PROFILES=observability docker compose up -d starts a collector with Grafana and activates this profile.
+spring:
+  config:
+    activate:
+      on-profile: observability
+
+management:
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${GA_OTLP_ENDPOINT:http://localhost:4318}/v1/traces
+  otlp:
+    metrics:
+      export:
+        enabled: true
+        url: ${GA_OTLP_ENDPOINT:http://localhost:4318}/v1/metrics
+        step: 10s
+  metrics:
+    distribution:
+      percentiles-histogram:
+        "[http.server.requests]": true

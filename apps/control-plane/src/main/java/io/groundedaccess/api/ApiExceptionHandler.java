@@ -1,5 +1,6 @@
 package io.groundedaccess.api;
 
+import io.groundedaccess.telemetry.Failures;
 import io.groundedaccess.audit.AuditUnavailableException;
 
 import org.slf4j.Logger;
@@ -34,7 +35,8 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(AuditUnavailableException.class)
     ProblemDetail auditUnavailable(AuditUnavailableException exception) {
-        log.error("Audit write failed, request refused: {}", String.valueOf(exception.getCause()));
+        Throwable cause = exception.getCause();
+        log.error("Audit write failed, request refused: {}", Failures.describe(cause != null ? cause : exception));
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, "The request could not be audited and was not carried out");
         problem.setProperty("code", "AUDIT_UNAVAILABLE");
         return problem;
@@ -42,7 +44,7 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(RestClientException.class)
     ProblemDetail modelServiceUnavailable(RestClientException exception) {
-        log.warn("Model service call failed: {}", exception.toString());
+        log.warn("Model service call failed: {}", Failures.describe(exception));
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, "The model service is unavailable");
         problem.setProperty("code", "MODEL_SERVICE_UNAVAILABLE");
         return problem;

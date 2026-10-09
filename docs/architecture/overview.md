@@ -298,7 +298,27 @@ The list is enforced where spans leave the process, not where they are created. 
 
 Never recorded: query text, chunk text, prompts, model output, embeddings, document titles, document keys, principal attributes, exception messages, and counts of rows removed by authorization.
 
-Spans are exported over OTLP when `MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT` is set (for example `http://localhost:4318/v1/traces`); without it they are created and discarded. Metrics are pushed to `MANAGEMENT_OTLP_METRICS_EXPORT_URL` only when `GA_OTLP_METRICS_ENABLED` is `true`. By default nothing is sent anywhere. `GA_TRACE_SAMPLING` sets the sampled share of requests and defaults to `1.0`.
+By default nothing is sent anywhere: spans are created and discarded, and metrics stay in the process. `GA_TRACE_SAMPLING` sets the sampled share of requests and defaults to `1.0`.
+
+**Metrics.** Three metrics describe the pipeline, and their tags take values from fixed sets only:
+
+| Metric | Tags | Meaning |
+|---|---|---|
+| `ga.stage` (timer) | `stage`, `outcome` (`ok`, `error`) | duration of each stage, one per span of the tree above |
+| `ga.degraded` (counter) | `reason` | results returned without part of their plan |
+| `ga.answers` (counter) | `status` | answers by `answered`, `no_answer`, `evidence_only` |
+
+Request rate, latency and status come from the standard `http.server.requests` timer, tagged with the route template.
+
+**Logs.** In the compose stack every log line is one JSON object (Elastic Common Schema) with the `traceId` and `spanId` of its request. A log line never contains an exception message: a rejected model-service call quotes the text it was sent, and a database error can quote row values. `Failures.describe` logs the exception class, an HTTP status and an SQL state instead. An integration test makes the embedding, rerank and chat calls fail with errors that quote their input, breaks the audit table, sends malformed requests, and fails if the captured log contains the question, a document title, document text or the prompt.
+
+**The `observability` profile.** One command starts a collector with Tempo, Prometheus and Grafana next to the stack and makes the control plane export to it:
+
+```bash
+COMPOSE_PROFILES=observability docker compose up -d --build --wait
+```
+
+Grafana is at `http://localhost:3000`, with the dashboard `Grounded Access` (`ops/observability/grounded-access.json`): requests and p95 latency by route, p95 per stage, responses by status, degraded results by reason, answers by status, and a list of recent traces to open. It is a single container meant for a laptop, with no authentication and no retention policy. Logs are not shipped to it; they stay on the container's standard output, and the trace id connects a log line to its trace. To export to another collector, activate the Spring profile `observability` and set `GA_OTLP_ENDPOINT` to its OTLP/HTTP address.
 
 - **Trace id.** Every request gets one before authentication runs. It is the trace id of the request's span. A valid W3C `traceparent` header supplies it; anything else is discarded and a new id is generated, so a caller cannot inject text into logs or audit rows through the header. The id is returned in `X-Trace-Id`, in search responses, stored in the audit rows and the execution record, and put into the logging context.
 - **Execution record.** Each search stores a `query_execution` row: plan and hash, policy version, embedding model with revision, degraded reasons, result count and stage timings. Its owner can read it at `GET /api/v1/query-executions/{id}`; for anyone else it does not exist.

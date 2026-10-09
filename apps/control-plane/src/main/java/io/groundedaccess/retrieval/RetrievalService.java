@@ -10,6 +10,7 @@ import io.groundedaccess.modelclient.Embeddings;
 import io.groundedaccess.modelclient.InputType;
 import io.groundedaccess.modelclient.RerankClient;
 import io.groundedaccess.modelclient.RerankScores;
+import io.groundedaccess.telemetry.Failures;
 import io.groundedaccess.telemetry.SpanAttribute;
 import io.groundedaccess.telemetry.Spans;
 import io.groundedaccess.telemetry.TraceContext;
@@ -68,6 +69,7 @@ public class RetrievalService {
         this.properties = properties;
         this.audit = audit;
         this.spans = spans;
+        spans.expect(List.of(DENSE_UNAVAILABLE, RERANK_UNAVAILABLE), List.of());
     }
 
     public ChunkPage list(Principal principal, Scope scope, @Nullable ChunkCursor after, int limit) {
@@ -115,6 +117,7 @@ public class RetrievalService {
             span.set(SpanAttribute.RETRIEVAL_RESULTS, result.chunks().size());
             if (!result.degraded().isEmpty()) {
                 span.set(SpanAttribute.DEGRADED, String.join(",", result.degraded()));
+                result.degraded().forEach(spans::degraded);
             }
             return result;
         });
@@ -156,7 +159,7 @@ public class RetrievalService {
                 if (!strategy.usesSparse() || e instanceof HttpClientErrorException) {
                     throw e;
                 }
-                log.warn("Embedding the query failed, answering from the sparse channel only: {}", e.getClass().getSimpleName());
+                log.warn("Embedding the query failed, answering from the sparse channel only: {}", Failures.describe(e));
                 degraded.add(DENSE_UNAVAILABLE);
                 denseAvailable = false;
             }
@@ -195,7 +198,7 @@ public class RetrievalService {
                     rerankerModel = reranked.model();
                     pool = reranked.rows();
                 } catch (RestClientException e) {
-                    log.warn("Reranking failed, answering in the fused order: {}", e.getClass().getSimpleName());
+                    log.warn("Reranking failed, answering in the fused order: {}", Failures.describe(e));
                     degraded.add(RERANK_UNAVAILABLE);
                 }
             }
