@@ -16,7 +16,7 @@ These are the properties the design commits to. The table after them says which 
 |---|---|---|---|
 | Security | The full decision table | The evaluation security gate: 30 authorization negatives, every returned chunk checked for document and version against hand-labelled visibility, and each principal's full listing compared with its visible set. A property-based test that compares every query path with a separate reference evaluator over random principals and labels; integration tests per rule on all three strategies; an architecture test that only `AuthorizedChunkQuery` reads chunks | Chunk-level labels (v0.2) |
 | Recall | By construction | No ANN index exists, so every authorized row is a candidate | A measured comparison of exact search against a filtered HNSW index, once an index exists (post-v0.1, ADR-0002) |
-| Existence | For retrieval and document reads | A test reads a document that is confidential, restricted to another department, disabled, deleted, in another tenant, malformed and nonexistent: every response is the same 404, byte for byte apart from the key. A keyword search that only hidden documents could answer returns the same response as one nothing answers. Retrieval returns no filtered counts | A uniform `no_answer` on the answering path (M3). Timing side channels are not mitigated; see the threat model |
+| Existence | For retrieval and document reads | A test reads a document that is confidential, restricted to another department, disabled, deleted, in another tenant, malformed and nonexistent: every response is the same 404, byte for byte apart from the key. A keyword search that only hidden documents could answer returns the same response as one nothing answers. Retrieval returns no filtered counts. On the answering path, a refusal carries no evidence, and a principal with nothing to read gets `no_answer` without the chat model being called | Timing side channels are not mitigated; see the threat model |
 
 ## 2. Two kinds of filters
 
@@ -87,7 +87,7 @@ A submission that changes only the labels creates a new version that takes over 
 - Administrative `PATCH` and `DELETE` follow the same rule for keys outside the admin's tenant, and ingestion jobs and execution records for ids the caller does not own.
 - Search responses never include "N results were filtered out". A keyword search that only hidden documents could answer is identical to one that nothing answers. A vector search always returns the nearest visible chunks, whatever the query, so its results say nothing about hidden content either.
 - Reads are audited as `allow` or `deny`. A `deny` does not record why, so the audit log does not become a list of which hidden documents exist either.
-- `status: "no_answer"` will be identical whether nothing was relevant or everything relevant was unauthorized (M3).
+- `status: "no_answer"` carries no statements and no evidence, so it is the same whether nothing was relevant or everything relevant was unauthorized. The chat model only ever sees evidence the principal may read, so it cannot tell the two apart either.
 - **Known residual risk:** a timing side channel, because an authorized hit, an unauthorized document and a missing one may take different amounts of time. v0.1 does not mitigate it; see the [threat model](../security/threat-model.md).
 
 ## 6. Caching

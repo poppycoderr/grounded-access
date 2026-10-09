@@ -173,10 +173,10 @@ curl -s localhost:8080/api/v1/retrieval/search -H "Authorization: Bearer $TOKEN"
 | 检索 | `sparse-only`（PostgreSQL FTS）、`dense-only`（pgvector 精确检索）、`hybrid-rrf`（RRF 融合并去除重叠 chunk）与 `hybrid-rrf-rerank`（用 cross-encoder 重排融合后的前若干候选，失败时退回融合顺序）；每个响应带检索配置哈希 | – |
 | 入库 | 异步任务（`202` + 轮询），`SKIP LOCKED` worker、有限重试与断点续跑；内容哈希版本管理；Markdown 与纯文本切分，按句拆分长段落并带重叠；停用与删除对下一次查询生效，后台清理 | – |
 | 评测 | 32 篇带标签的文档、122 条用例：改写、hard negatives、31 条授权负例与 13 条适用范围用例；BM25 参考行、bootstrap 置信区间与配对比较；CI 安全门禁逐个检查返回的 chunk 和每个身份的完整可见列表 | 回答指标：引用有效性、拒答（M3） |
-| 回答 | `/api/v1/retrieval/search` 返回排序后的证据 | 带引用与拒答的 `/api/v1/query`（M3） |
+| 回答 | `/api/v1/query`：每句话都引用已授权证据的回答；证据不足以回答时拒答；没有配置对话模型时只返回证据。生成是可选的，支持任何兼容 OpenAI 接口的端点 | 回答指标与提示注入测试文档（M3） |
 | 运维 | Docker Compose、每个 PR 的 CI；每个请求一个 trace id，审计事件与执行记录同步写入，写失败则拒绝请求 | OpenTelemetry trace、dashboard（M4） |
 
-以下是设计目标，但**尚未端到端验证**，括号内是负责验证它的里程碑：无论内容是被隐藏还是不存在，都给出一致的「无法回答」（M3）；回答只引用模型实际看到的内容（M3）。
+尚未验证的一点：生成的句子是否真的被它引用的段落支持。引用会对照提示词里的证据做校验，但 v0.1 不判断忠实度。
 
 ## 架构
 
@@ -214,7 +214,7 @@ io.groundedaccess
 | **M0** Walking skeleton | demo 身份、Markdown 入库、sparse 与 dense 检索、租户隔离、评测 CLI、CI 安全门禁 | ✅ 已完成 |
 | **M1** 检索基线 | 带 hard negatives 的数据集、BM25 参考行、置信区间；异步入库、停用与删除、chunker v1；RRF hybrid 及公开结论 | ✅ 已完成 · `v0.1.0-alpha.1` |
 | **M2** 授权 | 完整决策表、基于属性的测试、带标签的数据集 v2 和更严格的门禁、带 `asOf` 的适用范围过滤、审计事件、不泄漏存在性的文档读取、威胁模型、带适用范围用例的数据集 v3、已发布的报告 | ✅ 已完成 · `v0.1.0-alpha.2` |
-| **M3** 重排与回答 | 已完成：带降级的 cross-encoder 重排及公开结果。接下来：上下文构建、结构化引用、拒答 | ⏳ 进行中 |
+| **M3** 重排与回答 | 已完成：带降级的 cross-encoder 重排及公开结果；带引用校验与拒答的回答。接下来：提示注入测试文档、回答指标 | ⏳ 进行中 |
 | **M4** 运维与发布 | trace 与 dashboard、故障与压力测试、v0.1 benchmark 报告 | 计划中 |
 
 第一阶段明确不做：知识图谱与 GraphRAG、自主 Agent、更多向量数据库、OCR 与多模态、模型微调、Kubernetes 与多云、低代码编排。详见 [docs/project/milestones.md](./docs/project/milestones.md)。
