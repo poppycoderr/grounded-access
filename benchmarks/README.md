@@ -46,6 +46,8 @@ uv run --project packages/evaluation ga-eval answers --out benchmarks/reports/m3
 
 `context-dev` holds six local runs on the `dev` split that compare where a chunk's heading path is taken into account, with a paired comparison of each against the baseline (`ga-eval compare`). They were used to choose a default and are not results.
 
+`heading-context` is the CI run on `main` after headings became part of the index (`markdown/3`), with `comparison.md`: the same strategies on the same test cases as `v0.1/`, paired per case. No difference is detectable; the [analysis](../docs/evaluation/heading-context-analysis.md) reads the cases that changed. The READMEs show the numbers of this run, because it is the current default configuration.
+
 ### Load smoke reports
 
 `m4-load-smoke` holds local runs of `./scripts/load-smoke`: one directory per run with `run.json` and the generated report, and a `report.md` that reads them together. They show that concurrent requests of different principals stay correct and where the stack saturates on one laptop. They are not performance claims.

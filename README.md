@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-    <sub>Recorded from <code>./scripts/demo-queries</code> and <code>./scripts/benchmark</code>: the query output is a local run, the table is the <a href="./benchmarks/reports/m3-retrieval/report.md">published report</a>. The lines starting with <code>#</code> are comments.</sub>
+    <sub>Recorded from <code>./scripts/demo-queries</code> and <code>./scripts/benchmark</code>: the query output is a local run, the table is the <a href="./benchmarks/reports/heading-context/report.md">published report</a>. The lines starting with <code>#</code> are comments.</sub>
 </p>
 
 ## Highlights
@@ -39,7 +39,7 @@
 - 🔎 **Four retrieval strategies on one database**: PostgreSQL full-text search, exact pgvector search, reciprocal rank fusion and cross-encoder reranking, each response tagged with the hash of its retrieval plan
 - 📊 **Evaluation with confidence intervals**: 128 hand-checked cases, bootstrap intervals, paired comparisons and a BM25 reference row; a difference counts only if its interval excludes zero
 - 🚨 **A security gate in CI**: 31 cases try to reach forbidden documents, and every returned chunk is checked against hand-written visibility; one unauthorized result fails the build
-- 🧪 **Results are published as measured**: plain hybrid does not beat dense on this dataset, reranking does (MRR@10 +0.09 [+0.04, +0.15]) at ten times the latency, and one earlier claim was withdrawn when a larger dataset stopped supporting it
+- 🧪 **Results are published as measured**: plain hybrid does not beat dense on this dataset, reranking does (MRR@10 +0.08 [+0.03, +0.13]) at about eleven times the latency, and one earlier claim was withdrawn when a larger dataset stopped supporting it
 - ⚙️ **Real ingestion**: asynchronous jobs with retry and resume, versioned documents, label changes that apply to the next query without re-embedding
 - 🚀 **Runs on a laptop**: one `docker compose up`, a CPU embedding model baked into the image, no API key and no GPU
 
@@ -148,17 +148,17 @@ The [threat model](./docs/security/threat-model.md) lists every control with the
     <img src="./assets/diagrams/ga-eval-results.en.svg" alt="MRR@10 with confidence intervals for each retrieval strategy" />
 </p>
 
-[`benchmarks/reports/m3-retrieval/`](./benchmarks/reports/m3-retrieval/) holds the committed run: `run.json` (dataset version, commit, retrieval plans, policy and chunker versions, bootstrap seed, platform and CPU), `cases.jsonl` (per-case rankings) and the rendered `report.md`. Regenerate it with `./scripts/benchmark --out benchmarks/reports/<name>`.
+[`benchmarks/reports/heading-context/`](./benchmarks/reports/heading-context/) holds the committed run: `run.json` (dataset version, commit, retrieval plans, policy and chunker versions, bootstrap seed, platform and CPU), `cases.jsonl` (per-case rankings) and the rendered `report.md`. Regenerate it with `./scripts/benchmark --out benchmarks/reports/<name>`.
 
 Dataset v4, `test` split, 70 answerable cases, 95% bootstrap intervals, produced by the CI runner (Linux x86_64):
 
 | Strategy | Recall@10 | MRR@10 | nDCG@10 | Security violations | Scope failures |
 |---|---|---|---|---|---|
-| `sparse-only` (PostgreSQL FTS) | 0.929 [0.86, 0.99] | 0.690 [0.60, 0.77] | 0.749 [0.67, 0.82] | **0** | **0** |
-| `dense-only` (pgvector, exact) | 0.971 [0.93, 1.00] | 0.865 [0.80, 0.93] | 0.892 [0.83, 0.94] | **0** | **0** |
-| `hybrid-rrf` (reciprocal rank fusion of the two) | 0.971 [0.93, 1.00] | 0.825 [0.75, 0.89] | 0.860 [0.80, 0.91] | **0** | **0** |
-| `hybrid-rrf-rerank` (cross-encoder over the fused top 20) | 0.971 [0.93, 1.00] | **0.957 [0.91, 0.99]** | **0.955 [0.91, 0.99]** | **0** | **0** |
-| `bm25-reference` (offline, same authorized chunks) | 0.921 [0.86, 0.98] | 0.741 [0.66, 0.82] | 0.784 [0.71, 0.86] | **0** | **0** |
+| `sparse-only` (PostgreSQL FTS) | 0.943 [0.89, 0.99] | 0.740 [0.66, 0.82] | 0.785 [0.71, 0.85] | **0** | **0** |
+| `dense-only` (pgvector, exact) | 0.979 [0.94, 1.00] | 0.895 [0.84, 0.95] | 0.915 [0.87, 0.96] | **0** | **0** |
+| `hybrid-rrf` (reciprocal rank fusion of the two) | 0.986 [0.96, 1.00] | 0.867 [0.80, 0.93] | 0.892 [0.84, 0.94] | **0** | **0** |
+| `hybrid-rrf-rerank` (cross-encoder over the fused top 20) | 0.986 [0.96, 1.00] | **0.971 [0.94, 1.00]** | **0.970 [0.93, 0.99]** | **0** | **0** |
+| `bm25-reference` (offline, same authorized chunks) | 0.943 [0.89, 0.99] | 0.772 [0.69, 0.85] | 0.812 [0.74, 0.88] | **0** | **0** |
 
 **Security.** Zero violations across 128 cases, 31 of which try to reach a document the principal may not see: in another tenant, above its clearance, in a project it is not on, or in another department. Every returned chunk is checked for document and version, and before any query runs each principal's full chunk listing is compared with its hand-labelled visible set.
 
@@ -166,10 +166,10 @@ Dataset v4, `test` split, 70 answerable cases, 95% bootstrap intervals, produced
 
 What the paired comparisons support, and what they do not:
 
-- **Reranking beats the best single channel.** `hybrid-rrf-rerank` against dense: MRR@10 +0.09 [+0.04, +0.15]. It puts the right evidence first in 66 of 70 cases, where dense manages 56. Recall@10 does not move, because reranking only reorders what fusion already found. The cost is latency: 480 ms at the median against 41 ms for dense on the CI runner of this run, about ten times, and about 1 s inside Docker on a laptop.
-- **Dense ranks the right evidence higher than FTS:** MRR@10 +0.18 [+0.10, +0.26]. Whether the evidence appears in the top 10 at all shows **no detectable difference** (Recall@10 +0.04 [−0.01, +0.10]).
-- **Plain hybrid does not beat dense.** MRR@10 −0.04 [−0.10, +0.02] against dense: no detectable difference, with the point estimate in favour of dense. The [analysis](./docs/evaluation/m1b-hybrid-analysis.md) of the first hybrid run explains why: equal-weight fusion gives the weaker FTS channel the same vote.
-- **FTS against BM25: a finding that did not hold.** On dataset v1, BM25 was measurably ahead of FTS (MRR@10 +0.10 [+0.02, +0.18]). On every later dataset version the difference is not detectable (v4: +0.05 [−0.01, +0.12]). The earlier reports stay in the repository; the claim is withdrawn until a larger dataset supports it.
+- **Reranking beats the best single channel.** `hybrid-rrf-rerank` against dense: MRR@10 +0.08 [+0.03, +0.13]. It puts the right evidence first in 67 of 70 cases, where dense manages 58. Recall@10 does not move, because reranking only reorders what fusion already found. The cost is latency: 469 ms at the median against 41 ms for dense on the CI runner of this run, about eleven times, and about 1 s inside Docker on a laptop.
+- **Dense ranks the right evidence higher than FTS:** MRR@10 +0.16 [+0.07, +0.25]. Whether the evidence appears in the top 10 at all shows **no detectable difference** (Recall@10 +0.04 [−0.01, +0.09]).
+- **Plain hybrid does not beat dense.** MRR@10 −0.03 [−0.09, +0.03] against dense: no detectable difference, with the point estimate in favour of dense. The [analysis](./docs/evaluation/m1b-hybrid-analysis.md) of the first hybrid run explains why: equal-weight fusion gives the weaker FTS channel the same vote.
+- **FTS against BM25: a finding that did not hold.** On dataset v1, BM25 was measurably ahead of FTS (MRR@10 +0.10 [+0.02, +0.18]). On every later dataset version the difference is not detectable (v4: +0.03 [−0.03, +0.10]). The earlier reports stay in the repository; the claim is withdrawn until a larger dataset supports it.
 - **Dense beats BM25** on MRR@10 (+0.12 [+0.04, +0.21]).
 
 Nothing was tuned on the test split. The dataset is 35 fictional documents and 128 hand-checked cases, with 36 of the 93 answerable ones deliberately worded so they share almost no words with their evidence. It is a demo benchmark: it shows the method and the direction of the differences, not production quality. Reports on earlier dataset versions are not comparable with this one. Published numbers are reproducible to the reported precision; dense result lists can differ in the order of near-tied candidates between CPUs (see [benchmarks/README.md](./benchmarks/README.md)). See the [dataset card](./data/eval/DATASET_CARD.md) for what it covers and what it does not.
@@ -235,6 +235,7 @@ Not in the first phase: knowledge graphs or GraphRAG, autonomous agents, extra v
 - [Architecture overview](./docs/architecture/overview.md) — trust boundaries, data model, ingestion and query flows, failure behaviour
 - [Authorization model](./docs/architecture/authorization.md) — invariants, decision table, compiled SQL, what is verified today
 - [Threat model](./docs/security/threat-model.md) — assets, actors, abuse cases with their checks, residual risks
+- [Heading context analysis](./docs/evaluation/heading-context-analysis.md) — an indexing change after v0.1 that shows no detectable gain, and why
 - [Answer analysis](./docs/evaluation/m3-answers-analysis.md) — what generated answers got right and wrong in a local run
 - [Evaluation strategy](./docs/evaluation/strategy.md) — case schema, metrics, CI gates, reproducibility rules
 - [Architecture decisions](./docs/adr/) — modular monolith, PostgreSQL FTS + pgvector, retrieval-time authorization, the Python model service, what `asOf` means
