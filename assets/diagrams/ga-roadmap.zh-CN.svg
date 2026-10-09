@@ -73,8 +73,8 @@
   <text class="txt" x="476" y="250">决策表、适用范围过滤</text>
   <text class="txt" x="476" y="269">审计、不泄漏存在性的读取</text>
   <text class="txt" x="476" y="288">带标签的数据集、威胁模型</text>
-  <rect class="pill-ok" x="476" y="334" width="47" height="20" rx="10"/>
-  <text class="pill-ok-t" x="499.5" y="348" text-anchor="middle">已完成</text>
+  <rect class="pill-ok" x="476" y="334" width="234" height="20" rx="10"/>
+  <text class="pill-ok-t" x="593.0" y="348" text-anchor="middle">已完成 · v0.1.0-alpha.2</text>
   <circle cx="690" cy="150" r="7" fill="#CBD5E1" stroke="#FBFCFE" stroke-width="3"/>
   <rect class="dash" x="670" y="176" width="200" height="190" rx="12"/>
   <text class="kicker" x="686" y="202">M3</text>

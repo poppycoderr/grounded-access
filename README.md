@@ -211,7 +211,7 @@ io.groundedaccess
 |---|---|---|
 | **M0** Walking skeleton | Demo identities, Markdown ingestion, sparse and dense retrieval, tenant isolation, eval CLI, CI security gate | ✅ Done |
 | **M1** Retrieval baseline | Dataset with hard negatives, BM25 reference, confidence intervals; async ingestion, disable and delete, chunker v1; RRF hybrid with a published verdict | ✅ Done · `v0.1.0-alpha.1` |
-| **M2** Authorization | Full decision table, property-based tests, labelled dataset v2 and the stricter gate, scope filters with `asOf`, audit events, existence-safe document reads, threat model, dataset v3 with scope cases, published report | ✅ Done |
+| **M2** Authorization | Full decision table, property-based tests, labelled dataset v2 and the stricter gate, scope filters with `asOf`, audit events, existence-safe document reads, threat model, dataset v3 with scope cases, published report | ✅ Done · `v0.1.0-alpha.2` |
 | **M3** Reranking and answers | Cross-encoder reranking with fallback, context builder, structured citations, abstention | Planned |
 | **M4** Operations and release | Traces and dashboards, failure and load tests, v0.1 benchmark report | Planned |
 

@@ -73,8 +73,8 @@
   <text class="txt" x="476" y="250">decision table, scope filters</text>
   <text class="txt" x="476" y="269">audit, existence-safe reads</text>
   <text class="txt" x="476" y="288">labelled dataset, threat model</text>
-  <rect class="pill-ok" x="476" y="334" width="40" height="20" rx="10"/>
-  <text class="pill-ok-t" x="496.0" y="348" text-anchor="middle">Done</text>
+  <rect class="pill-ok" x="476" y="334" width="153" height="20" rx="10"/>
+  <text class="pill-ok-t" x="552.5" y="348" text-anchor="middle">Done · v0.1.0-alpha.2</text>
   <circle cx="690" cy="150" r="7" fill="#CBD5E1" stroke="#FBFCFE" stroke-width="3"/>
   <rect class="dash" x="670" y="176" width="200" height="190" rx="12"/>
   <text class="kicker" x="686" y="202">M3</text>

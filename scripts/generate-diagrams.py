@@ -328,7 +328,7 @@ EN = {
                 "ok",
                 "Done · v0.1.0-alpha.1",
             ),
-            ("M2", "Authorization", ["decision table, scope filters", "audit, existence-safe reads", "labelled dataset, threat model"], "ok", "Done"),
+            ("M2", "Authorization", ["decision table, scope filters", "audit, existence-safe reads", "labelled dataset, threat model"], "ok", "Done · v0.1.0-alpha.2"),
             ("M3", "Reranking + answers", ["cross-encoder reranker", "cited answers", "abstention"], "next", "Planned"),
             ("M4", "Operations + v0.1", ["OpenTelemetry traces", "failure and load tests", "full benchmark, release"], "next", "Planned"),
         ],
@@ -420,7 +420,7 @@ ZH = {
         "stones": [
             ("M0", "Walking skeleton", ["SQL 内的租户隔离", "sparse + dense 检索", "评测 CLI、CI 安全门禁"], "ok", "已完成"),
             ("M1", "检索基线", ["数据集、BM25 参考行、置信区间", "异步入库、chunker", "RRF hybrid 与结论"], "ok", "已完成 · v0.1.0-alpha.1"),
-            ("M2", "授权", ["决策表、适用范围过滤", "审计、不泄漏存在性的读取", "带标签的数据集、威胁模型"], "ok", "已完成"),
+            ("M2", "授权", ["决策表、适用范围过滤", "审计、不泄漏存在性的读取", "带标签的数据集、威胁模型"], "ok", "已完成 · v0.1.0-alpha.2"),
             ("M3", "重排与回答", ["cross-encoder 重排", "带引用的回答", "拒答"], "next", "计划中"),
             ("M4", "运维与 v0.1", ["OpenTelemetry trace", "故障与压力测试", "完整 benchmark、发布"], "next", "计划中"),
         ],
