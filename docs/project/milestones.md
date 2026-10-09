@@ -96,6 +96,8 @@ Deferred on purpose: the precomputed-embeddings cache. CI currently embeds the d
 
 ## M4 — Operations and release (≈ 6 days, 3 weeks)
 
+**M4 delivered** (report: `benchmarks/reports/v0.1.md`; load: `benchmarks/reports/m4-load-smoke/`; tagged as `v0.1.0`). All seven items are done. Two things were found on the way and fixed: overlapping rerank calls stalled the model service under load, and the Tomcat and Jackson versions managed by Spring Boot had known vulnerabilities. What v0.1 does not do is listed in `docs/project/known-limitations.md`.
+
 **Exit:** `v0.1.0` is tagged. A clean-machine quickstart is verified in CI, a single trace ID explains a query end to end, and the benchmark report and known limitations are published.
 
 | # | Issue | Size |

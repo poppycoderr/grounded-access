@@ -226,7 +226,7 @@ io.groundedaccess
 | **M1** Retrieval baseline | Dataset with hard negatives, BM25 reference, confidence intervals; async ingestion, disable and delete, chunker v1; RRF hybrid with a published verdict | ✅ Done · `v0.1.0-alpha.1` |
 | **M2** Authorization | Full decision table, property-based tests, labelled dataset v2 and the stricter gate, scope filters with `asOf`, audit events, existence-safe document reads, threat model, dataset v3 with scope cases, published report | ✅ Done · `v0.1.0-alpha.2` |
 | **M3** Reranking and answers | Cross-encoder reranking with fallback and a published result; cited answers with validation and refusal, prompt-injection test documents, answer metrics and a published local run | ✅ Done · `v0.1.0-alpha.3` |
-| **M4** Operations and release | Traces and dashboards, failure and load tests, v0.1 benchmark report | Planned |
+| **M4** Operations and release | Traces with an attribute allow-list, JSON logs, a dashboard; failure and load tests; supply-chain scans and SBOMs; the v0.1 benchmark report and known limitations | ✅ Done · `v0.1.0` |
 
 Not in the first phase: knowledge graphs or GraphRAG, autonomous agents, extra vector databases, OCR and multimodal input, fine-tuning, Kubernetes and multi-cloud, a no-code builder. See [docs/project/milestones.md](./docs/project/milestones.md).
 

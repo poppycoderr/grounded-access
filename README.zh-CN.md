@@ -226,7 +226,7 @@ io.groundedaccess
 | **M1** 检索基线 | 带 hard negatives 的数据集、BM25 参考行、置信区间；异步入库、停用与删除、chunker v1；RRF hybrid 及公开结论 | ✅ 已完成 · `v0.1.0-alpha.1` |
 | **M2** 授权 | 完整决策表、基于属性的测试、带标签的数据集 v2 和更严格的门禁、带 `asOf` 的适用范围过滤、审计事件、不泄漏存在性的文档读取、威胁模型、带适用范围用例的数据集 v3、已发布的报告 | ✅ 已完成 · `v0.1.0-alpha.2` |
 | **M3** 重排与回答 | 带降级的 cross-encoder 重排及公开结果；带引用校验与拒答的回答、提示注入测试文档、回答指标及已发布的本地运行 | ✅ 已完成 · `v0.1.0-alpha.3` |
-| **M4** 运维与发布 | trace 与 dashboard、故障与压力测试、v0.1 benchmark 报告 | 计划中 |
+| **M4** 运维与发布 | 带属性白名单的 trace、JSON 日志、dashboard；故障与压力测试；供应链扫描与 SBOM；v0.1 benchmark 报告与已知限制 | ✅ 已完成 · `v0.1.0` |
 
 第一阶段明确不做：知识图谱与 GraphRAG、自主 Agent、更多向量数据库、OCR 与多模态、模型微调、Kubernetes 与多云、低代码编排。详见 [docs/project/milestones.md](./docs/project/milestones.md)。
 

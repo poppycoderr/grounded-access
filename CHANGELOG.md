@@ -1,10 +1,10 @@
 # Changelog
 
-Notable changes per release. Versions before `v0.1.0` are pre-releases: APIs, the schema and the evaluation dataset may change without a migration path.
+Notable changes per release. Versions before `v0.1.0` are pre-releases. Before `v1.0`, APIs, the schema and the evaluation dataset may still change without a migration path.
 
-## Unreleased
+## v0.1.0
 
-Milestone M4: operations and release. This section becomes `v0.1.0`.
+Milestone M4: operations and release. The first release that is not a pre-release. It is a reference system and has not been hardened for production; read the [known limitations](./docs/project/known-limitations.md) first.
 
 ### Observability
 
