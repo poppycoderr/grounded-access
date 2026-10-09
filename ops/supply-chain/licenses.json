@@ -1,0 +1,26 @@
+{
+  "allowed": [
+    "Apache-2.0",
+    "MIT",
+    "MIT-CMU",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "0BSD",
+    "ISC",
+    "Zlib",
+    "CC0-1.0",
+    "PSF-2.0",
+    "MPL-2.0",
+    "EPL-2.0"
+  ],
+  "overrides": {
+    "pkg:pypi/fastembed": {
+      "license": "Apache-2.0",
+      "reason": "The package classifier says 'Other/Proprietary License', but its metadata says 'Apache License' and the wheel ships the Apache-2.0 LICENSE file."
+    },
+    "pkg:pypi/py-rust-stemmers": {
+      "license": "MIT",
+      "reason": "The package metadata declares no license; the wheel ships a LICENSE file that is the MIT License."
+    }
+  }
+}

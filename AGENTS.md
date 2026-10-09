@@ -34,6 +34,7 @@ Integration tests use Testcontainers and need a running Docker daemon. Do not sk
 | `packages/contracts` | OpenAPI contracts between the control plane and the model service |
 | `packages/evaluation` | Python `ga-eval` CLI: dataset validation, metrics, reports |
 | `ops/observability` | Grafana dashboard and provisioning for the `observability` compose profile |
+| `ops/supply-chain` | Accepted scan findings and the license allow-list, each entry with its reason |
 | `data/` | Fictional corpus, manifests, principals, evaluation cases |
 | `docs/` | Public architecture, ADRs, evaluation and project docs, all in English |
 
