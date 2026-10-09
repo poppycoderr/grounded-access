@@ -42,6 +42,10 @@ GA_CHAT_BASE_URL=http://host.docker.internal:11434/v1 GA_CHAT_MODEL=llama3:8b do
 uv run --project packages/evaluation ga-eval answers --out benchmarks/reports/m3-answers-<model>
 ```
 
+### Configuration comparisons
+
+`context-dev` holds six local runs on the `dev` split that compare where a chunk's heading path is taken into account, with a paired comparison of each against the baseline (`ga-eval compare`). They were used to choose a default and are not results.
+
 ### Load smoke reports
 
 `m4-load-smoke` holds local runs of `./scripts/load-smoke`: one directory per run with `run.json` and the generated report, and a `report.md` that reads them together. They show that concurrent requests of different principals stay correct and where the stack saturates on one laptop. They are not performance claims.

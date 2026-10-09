@@ -1,0 +1,517 @@
+{
+  "dataset_version": "v4",
+  "git_sha": "3e8d3d0",
+  "created_at": "2026-10-09T17:16:31+00:00",
+  "strategies": [
+    "sparse-only",
+    "dense-only",
+    "hybrid-rrf",
+    "hybrid-rrf-rerank",
+    "bm25-reference"
+  ],
+  "reference_strategies": [
+    "bm25-reference"
+  ],
+  "k": 10,
+  "splits": [
+    "dev"
+  ],
+  "case_count": 34,
+  "policy_versions": [
+    "abac/1"
+  ],
+  "chunker_versions": [
+    "markdown/3"
+  ],
+  "plans": {
+    "sparse-only": {
+      "d7967398b8117b5f": {
+        "strategy": "sparse-only",
+        "k": 10,
+        "candidates": 50,
+        "rrfK": null,
+        "dedupeOverlaps": true,
+        "rerankCandidates": null,
+        "reranker": null,
+        "sparseContext": true,
+        "rerankContext": false
+      }
+    },
+    "dense-only": {
+      "d489d865e16bcda9": {
+        "strategy": "dense-only",
+        "k": 10,
+        "candidates": 50,
+        "rrfK": null,
+        "dedupeOverlaps": true,
+        "rerankCandidates": null,
+        "reranker": null,
+        "sparseContext": false,
+        "rerankContext": false
+      }
+    },
+    "hybrid-rrf": {
+      "2598002ea9c41e8d": {
+        "strategy": "hybrid-rrf",
+        "k": 10,
+        "candidates": 50,
+        "rrfK": 60,
+        "dedupeOverlaps": true,
+        "rerankCandidates": null,
+        "reranker": null,
+        "sparseContext": true,
+        "rerankContext": false
+      }
+    },
+    "hybrid-rrf-rerank": {
+      "748ba4f7e675effe": {
+        "strategy": "hybrid-rrf-rerank",
+        "k": 10,
+        "candidates": 50,
+        "rrfK": 60,
+        "dedupeOverlaps": true,
+        "rerankCandidates": 20,
+        "reranker": "Xenova/ms-marco-MiniLM-L-12-v2",
+        "sparseContext": true,
+        "rerankContext": false
+      }
+    }
+  },
+  "repeated_degraded_requests": 0,
+  "reference_indexes_headings": [
+    true
+  ],
+  "visibility_check": {
+    "alice-engineer": {
+      "visible_documents": 26,
+      "listed_chunks": 100,
+      "violations": []
+    },
+    "bob-support": {
+      "visible_documents": 26,
+      "listed_chunks": 100,
+      "violations": []
+    },
+    "carol-manager": {
+      "visible_documents": 28,
+      "listed_chunks": 108,
+      "violations": []
+    },
+    "dave-contractor": {
+      "visible_documents": 2,
+      "listed_chunks": 8,
+      "violations": []
+    },
+    "mallory-outsider": {
+      "visible_documents": 4,
+      "listed_chunks": 12,
+      "violations": []
+    }
+  },
+  "platform": "macOS-27.0.1-arm64-arm-64bit",
+  "cpu": "arm",
+  "bootstrap": {
+    "samples": 10000,
+    "seed": 20260921,
+    "confidence": 0.95
+  },
+  "summary": {
+    "dev": {
+      "sparse-only": {
+        "answerable_cases": 23,
+        "recall@5": {
+          "mean": 0.9565217391304348,
+          "low": 0.8695652173913043,
+          "high": 1.0
+        },
+        "recall@10": {
+          "mean": 1.0,
+          "low": 1.0,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.7043478260869565,
+          "low": 0.5623188405797102,
+          "high": 0.8405797101449275
+        },
+        "ndcg@10": {
+          "mean": 0.7767944616361855,
+          "low": 0.6686580729109907,
+          "high": 0.8797975158287308
+        },
+        "hard_negative_cases": 3,
+        "hard_negative_above_evidence": 0,
+        "security_violations": 0,
+        "latency_ms": {
+          "p50": 7.9,
+          "p95": 13.8,
+          "requests": 34
+        },
+        "scope_cases": 3,
+        "scope_failures": 0
+      },
+      "dense-only": {
+        "answerable_cases": 23,
+        "recall@5": {
+          "mean": 0.9565217391304348,
+          "low": 0.8695652173913043,
+          "high": 1.0
+        },
+        "recall@10": {
+          "mean": 0.9565217391304348,
+          "low": 0.8695652173913043,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.9057971014492753,
+          "low": 0.7898550724637682,
+          "high": 1.0
+        },
+        "ndcg@10": {
+          "mean": 0.9187360762422373,
+          "low": 0.8100404240683242,
+          "high": 1.0
+        },
+        "hard_negative_cases": 3,
+        "hard_negative_above_evidence": 0,
+        "security_violations": 0,
+        "latency_ms": {
+          "p50": 29.2,
+          "p95": 46.0,
+          "requests": 34
+        },
+        "scope_cases": 3,
+        "scope_failures": 0
+      },
+      "hybrid-rrf": {
+        "answerable_cases": 23,
+        "recall@5": {
+          "mean": 0.9565217391304348,
+          "low": 0.8695652173913043,
+          "high": 1.0
+        },
+        "recall@10": {
+          "mean": 1.0,
+          "low": 1.0,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.8822463768115942,
+          "low": 0.7644927536231884,
+          "high": 0.9782608695652174
+        },
+        "ndcg@10": {
+          "mean": 0.9107128100155298,
+          "low": 0.8214256200310597,
+          "high": 0.9839534675465851
+        },
+        "hard_negative_cases": 3,
+        "hard_negative_above_evidence": 0,
+        "security_violations": 0,
+        "latency_ms": {
+          "p50": 27.2,
+          "p95": 36.3,
+          "requests": 34
+        },
+        "scope_cases": 3,
+        "scope_failures": 0
+      },
+      "hybrid-rrf-rerank": {
+        "answerable_cases": 23,
+        "recall@5": {
+          "mean": 1.0,
+          "low": 1.0,
+          "high": 1.0
+        },
+        "recall@10": {
+          "mean": 1.0,
+          "low": 1.0,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.9275362318840579,
+          "low": 0.8405797101449275,
+          "high": 1.0
+        },
+        "ndcg@10": {
+          "mean": 0.9461678046583877,
+          "low": 0.8819816748447281,
+          "high": 1.0
+        },
+        "hard_negative_cases": 3,
+        "hard_negative_above_evidence": 0,
+        "security_violations": 0,
+        "latency_ms": {
+          "p50": 903.8,
+          "p95": 1021.2,
+          "requests": 34
+        },
+        "scope_cases": 3,
+        "scope_failures": 0
+      },
+      "bm25-reference": {
+        "answerable_cases": 23,
+        "recall@5": {
+          "mean": 0.8695652173913043,
+          "low": 0.7391304347826086,
+          "high": 1.0
+        },
+        "recall@10": {
+          "mean": 1.0,
+          "low": 1.0,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.7471014492753624,
+          "low": 0.6036231884057971,
+          "high": 0.8768115942028986
+        },
+        "ndcg@10": {
+          "mean": 0.808121935933244,
+          "low": 0.6981618886875983,
+          "high": 0.9078228783214719
+        },
+        "hard_negative_cases": 3,
+        "hard_negative_above_evidence": 0,
+        "security_violations": 0,
+        "latency_ms": null,
+        "scope_cases": 3,
+        "scope_failures": 0
+      }
+    }
+  },
+  "comparisons": [
+    {
+      "first": "sparse-only",
+      "second": "dense-only",
+      "cases": 0,
+      "recall@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      },
+      "ndcg@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      }
+    },
+    {
+      "first": "sparse-only",
+      "second": "hybrid-rrf",
+      "cases": 0,
+      "recall@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      },
+      "ndcg@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      }
+    },
+    {
+      "first": "sparse-only",
+      "second": "hybrid-rrf-rerank",
+      "cases": 0,
+      "recall@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      },
+      "ndcg@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      }
+    },
+    {
+      "first": "sparse-only",
+      "second": "bm25-reference",
+      "cases": 0,
+      "recall@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      },
+      "ndcg@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      }
+    },
+    {
+      "first": "dense-only",
+      "second": "hybrid-rrf",
+      "cases": 0,
+      "recall@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      },
+      "ndcg@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      }
+    },
+    {
+      "first": "dense-only",
+      "second": "hybrid-rrf-rerank",
+      "cases": 0,
+      "recall@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      },
+      "ndcg@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      }
+    },
+    {
+      "first": "dense-only",
+      "second": "bm25-reference",
+      "cases": 0,
+      "recall@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      },
+      "ndcg@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      }
+    },
+    {
+      "first": "hybrid-rrf",
+      "second": "hybrid-rrf-rerank",
+      "cases": 0,
+      "recall@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      },
+      "ndcg@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      }
+    },
+    {
+      "first": "hybrid-rrf",
+      "second": "bm25-reference",
+      "cases": 0,
+      "recall@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      },
+      "ndcg@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      }
+    },
+    {
+      "first": "hybrid-rrf-rerank",
+      "second": "bm25-reference",
+      "cases": 0,
+      "recall@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      },
+      "ndcg@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      }
+    }
+  ],
+  "security_violations": 0,
+  "scope_failures": 0
+}
