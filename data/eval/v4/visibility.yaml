@@ -28,6 +28,9 @@ principals:
     - hr-public-holidays-us
     - hr-travel-policy-2025
     - hr-wellness-benefit-2099
+    - support-chatbot-notes
+    - eng-wiki-migration-note
+    - hr-faq-archive
   # support, no projects, clearance internal: the 17 unrestricted documents and the two support-department documents
   bob-support:
     - hr-volunteer-policy
@@ -53,6 +56,9 @@ principals:
     - hr-public-holidays-us
     - hr-travel-policy-2025
     - hr-wellness-benefit-2099
+    - support-chatbot-notes
+    - eng-wiki-migration-note
+    - hr-faq-archive
   # engineering, projects atlas and borealis, clearance confidential: adds both confidential documents and both project documents
   carol-manager:
     - hr-volunteer-policy
@@ -80,6 +86,9 @@ principals:
     - hr-public-holidays-us
     - hr-travel-policy-2025
     - hr-wellness-benefit-2099
+    - support-chatbot-notes
+    - eng-wiki-migration-note
+    - hr-faq-archive
   # no department, no projects, clearance public: only the two public documents
   dave-contractor:
     - hr-volunteer-policy
