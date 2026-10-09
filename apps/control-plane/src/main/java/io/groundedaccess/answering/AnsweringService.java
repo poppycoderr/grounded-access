@@ -8,11 +8,13 @@ import io.groundedaccess.retrieval.RetrievalResult;
 import io.groundedaccess.retrieval.RetrievalService;
 import io.groundedaccess.retrieval.RetrievalStrategy;
 import io.groundedaccess.retrieval.Scope;
+import io.groundedaccess.telemetry.Failures;
 import io.groundedaccess.telemetry.SpanAttribute;
 import io.groundedaccess.telemetry.Spans;
 import io.groundedaccess.telemetry.TraceContext;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -54,6 +56,7 @@ public class AnsweringService {
 
     public AnsweringService(RetrievalService retrieval, ChatClient chat, AuditTrail audit, AnsweringProperties properties, Spans spans) {
         this.spans = spans;
+        spans.expect(List.of(GENERATION_UNAVAILABLE, GENERATION_INVALID), Arrays.stream(AnswerStatus.values()).map(AnswerStatus::wireName).toList());
         this.retrieval = retrieval;
         this.chat = chat;
         this.audit = audit;
@@ -76,6 +79,7 @@ public class AnsweringService {
         return spans.in("query.answer", span -> {
             Answer answer = answerTraced(principal, question, strategy, scope);
             span.set(SpanAttribute.ANSWER_STATUS, answer.status().wireName());
+            spans.answered(answer.status().wireName());
             span.set(SpanAttribute.PROMPT_VERSION, AnswerPrompt.VERSION);
             if (!answer.degraded().isEmpty()) {
                 span.set(SpanAttribute.DEGRADED, String.join(",", answer.degraded()));
@@ -95,6 +99,7 @@ public class AnsweringService {
         List<String> degraded = new ArrayList<>(retrieved.degraded());
         if (generation.degraded() != null) {
             degraded.add(generation.degraded());
+            spans.degraded(generation.degraded());
         }
         Set<String> cited = generation.statements().stream().flatMap(statement -> statement.citations().stream()).collect(Collectors.toSet());
         List<Evidence> shown = switch (generation.status()) {
@@ -134,7 +139,7 @@ public class AnsweringService {
                 return completed;
             });
         } catch (RestClientException e) {
-            log.warn("Generation failed, returning evidence only: {}", e.getClass().getSimpleName());
+            log.warn("Generation failed, returning evidence only: {}", Failures.describe(e));
             return new Generation(AnswerStatus.EVIDENCE_ONLY, List.of(), 0, null, GENERATION_UNAVAILABLE);
         }
         Set<String> ids = evidence.stream().map(Evidence::id).collect(Collectors.toSet());

@@ -1,5 +1,6 @@
 package io.groundedaccess.ingestion;
 
+import io.groundedaccess.telemetry.Failures;
 import io.groundedaccess.corpus.IngestionResult;
 import io.groundedaccess.corpus.IngestionService;
 import io.groundedaccess.corpus.SourceDocument;
@@ -87,12 +88,12 @@ public class IngestionWorker {
         if (retryable != null && job.attempt() < job.maxAttempts()) {
             Duration delay = properties.retryBackoff().multipliedBy(1L << Math.min(job.attempt() - 1, 10));
             log.warn("Ingestion job {} attempt {} of {} failed with {}; retrying in {}: {}", job.id(), job.attempt(), job.maxAttempts(), retryable, delay,
-                    cause.toString());
+                    Failures.describe(cause));
             store.retryLater(job, retryable, delay);
             return;
         }
         String code = retryable != null ? retryable : permanentCode(cause);
-        log.warn("Ingestion job {} failed on attempt {} with {}: {}", job.id(), job.attempt(), code, cause.toString());
+        log.warn("Ingestion job {} failed on attempt {} with {}: {}", job.id(), job.attempt(), code, Failures.describe(cause));
         store.finish(job, IngestionJobStatus.FAILED, code);
     }
 

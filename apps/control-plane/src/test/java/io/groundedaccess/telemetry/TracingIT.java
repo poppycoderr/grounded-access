@@ -105,7 +105,8 @@ class TracingIT {
                 public RerankScores score(String query, List<String> passages) {
                     if (RERANKER_REJECTS.get()) {
                         byte[] body = ("{\"detail\":\"" + query + " " + passages + "\"}").getBytes(StandardCharsets.UTF_8);
-                        throw HttpClientErrorException.create(HttpStatus.UNPROCESSABLE_CONTENT, "Unprocessable", HttpHeaders.EMPTY, body, StandardCharsets.UTF_8);
+                        throw HttpClientErrorException.create("422 Unprocessable: \"" + query + " " + passages + "\"", HttpStatus.UNPROCESSABLE_CONTENT, "Unprocessable",
+                                HttpHeaders.EMPTY, body, StandardCharsets.UTF_8);
                     }
                     return new RerankScores("test-reranker", "test", passages.stream().map(passage -> 1.0).toList());
                 }

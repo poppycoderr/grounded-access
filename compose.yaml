@@ -34,6 +34,11 @@ services:
       GA_CHAT_BASE_URL: ${GA_CHAT_BASE_URL:-}
       GA_CHAT_MODEL: ${GA_CHAT_MODEL:-}
       GA_CHAT_API_KEY: ${GA_CHAT_API_KEY:-}
+      # One JSON object per log line, with the trace id of the request
+      LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
+      # COMPOSE_PROFILES=observability docker compose up -d also starts the collector below and exports traces and metrics to it
+      SPRING_PROFILES_ACTIVE: ${COMPOSE_PROFILES:-}
+      GA_OTLP_ENDPOINT: http://observability:4318
     ports:
       - "8080:8080"
     healthcheck:
@@ -47,6 +52,16 @@ services:
         condition: service_healthy
       model-service:
         condition: service_healthy
+
+  # Collector, Tempo, Prometheus and Grafana in one container, for local use only. Grafana: http://localhost:3000
+  observability:
+    profiles: ["observability"]
+    image: grafana/otel-lgtm:0.35.0
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./ops/observability/dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/grounded-access.yaml:ro
+      - ./ops/observability/grounded-access.json:/otel-lgtm/grounded-access.json:ro
 
 volumes:
   postgres-data:

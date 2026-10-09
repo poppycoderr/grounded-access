@@ -1,0 +1,8 @@
+apiVersion: 1
+
+providers:
+  - name: "Grounded Access"
+    type: file
+    options:
+      path: /otel-lgtm/grounded-access.json
+      foldersFromFilesStructure: false
