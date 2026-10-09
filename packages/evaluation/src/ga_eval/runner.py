@@ -7,6 +7,7 @@ import itertools
 import json
 import platform
 import subprocess
+import time
 from collections import defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
@@ -17,7 +18,7 @@ from ga_eval.client import ApiClient
 from ga_eval.dataset import Dataset
 from ga_eval.metrics import Result
 
-SYSTEM_STRATEGIES = ["sparse-only", "dense-only", "hybrid-rrf"]
+SYSTEM_STRATEGIES = ["sparse-only", "dense-only", "hybrid-rrf", "hybrid-rrf-rerank"]
 REFERENCE = "bm25-reference"
 QUALITY_METRICS = ["recall@5", "recall@10", "mrr@10", "ndcg@10"]
 COMPARED_METRICS = ["recall@10", "mrr@10", "ndcg@10"]
@@ -67,7 +68,9 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
                 ranked = references[scope].search(case.query, k)
                 results = [Result(c.document, c.version, c.start, c.end, rank) for rank, (c, _) in enumerate(ranked, start=1)]
             else:
+                started = time.perf_counter()
                 response = client.search(token, case.query, strategy, k, as_of, case.region)
+                latency_ms = (time.perf_counter() - started) * 1000
                 if response["degraded"]:
                     raise DegradedRunError(
                         f"case {case.id} · {strategy} was answered degraded ({', '.join(response['degraded'])}); the run is invalid"
@@ -75,7 +78,10 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
                 policy_versions.add(response["policyVersion"])
                 plans.setdefault(strategy, {})[response["planHash"]] = response["plan"]
                 results = [Result(r["documentKey"], r["versionNo"], r["charStart"], r["charEnd"], r["rank"]) for r in response["results"]]
-            records.append(_record(case, strategy, results, spans, dataset.visibility[case.principal], dataset.current_version))
+            record = _record(case, strategy, results, spans, dataset.visibility[case.principal], dataset.current_version)
+            if strategy != REFERENCE:
+                record["latency_ms"] = round(latency_ms, 1)
+            records.append(record)
     return {
         "run": {
             "dataset_version": dataset.version,
@@ -173,10 +179,19 @@ def summarize(records: list[dict], strategies: list[str]) -> dict:
             "hard_negative_cases": len(tempted),
             "hard_negative_above_evidence": sum(r["hard_negative_above_evidence"] for r in tempted),
             "security_violations": sum(len(r["violations"]) for r in rows),
+            "latency_ms": _latency([r["latency_ms"] for r in rows if "latency_ms" in r]),
             "scope_cases": sum(1 for r in rows if r["scoped"]),
             "scope_failures": sum(len(r["scope_failures"]) for r in rows),
         }
     return summary
+
+
+def _latency(samples: list[float]) -> dict | None:
+    """Client-side request latency, HTTP round trip included. It describes the machine the run was made on, not the system in general."""
+    if not samples:
+        return None
+    ordered = sorted(samples)
+    return {"p50": ordered[len(ordered) // 2], "p95": ordered[min(len(ordered) - 1, int(len(ordered) * 0.95))], "requests": len(ordered)}
 
 
 def compare(records: list[dict], strategies: list[str]) -> list[dict]:
@@ -254,6 +269,19 @@ def render(output: dict) -> str:
             "|---|---|---|",
         ]
         lines += [f"| `{name}` | {s['hard_negative_cases']} | {s['hard_negative_above_evidence']} |" for name, s in test.items()]
+        lines.append("")
+    timed = {name: s["latency_ms"] for name, s in test.items() if s.get("latency_ms")}
+    if timed:
+        lines += [
+            "## Latency (test split)",
+            "",
+            f"Request latency seen by the evaluation client on `{run_info.get('cpu', 'an unrecorded CPU')}`, HTTP round trip included. "
+            "It shows what each stage costs on this machine and is not a performance claim.",
+            "",
+            "| Strategy | Requests | p50 ms | p95 ms |",
+            "|---|---|---|---|",
+        ]
+        lines += [f"| `{name}` | {t['requests']} | {t['p50']:.0f} | {t['p95']:.0f} |" for name, t in timed.items()]
         lines.append("")
     if any(s.get("scope_cases") for s in test.values()):
         lines += [

@@ -29,6 +29,11 @@ def test_chunker_release_ignores_the_format():
     assert runner.chunker_release("markdown-headings/1") == "1"
 
 
+def test_latency_summary_reports_the_median_and_the_tail():
+    assert runner._latency([10.0, 30.0, 20.0, 1000.0]) == {"p50": 30.0, "p95": 1000.0, "requests": 4}
+    assert runner._latency([]) is None
+
+
 def test_refuses_to_run_on_a_partially_re_indexed_corpus():
     with pytest.raises(runner.MixedChunkerError, match="markdown-headings/1, markdown/2"):
         runner.run(ds.load(DATA), ListingOnlyClient(["markdown/2", "markdown-headings/1"]), ["sparse-only"], 10, {"test"})
