@@ -1,0 +1,9 @@
+# Secret scanning for CI: the default rules, with one exception.
+[extend]
+useDefault = true
+
+# The demo signing key is public on purpose: it lets anyone mint demo tokens for the local stack (see data/demo-keys/README.md).
+# It must never be used outside a local demo.
+[[allowlists]]
+description = "public demo JWT key for the local stack"
+paths = ['''^data/demo-keys/jwt-private\.pem$''']

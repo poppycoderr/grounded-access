@@ -1,0 +1,13 @@
+# Vulnerabilities the image scan reports and the project accepts, each with the reason. Keep this list short and remove an entry as soon
+# as the base image no longer contains the finding.
+vulnerabilities:
+  # /usr/bin/pebble is a service manager that the eclipse-temurin base image inherits from Ubuntu. The container's entrypoint is `java`;
+  # pebble is never started, so its HTTP and TLS server code is not reachable.
+  - id: CVE-2026-78667
+    paths:
+      - "usr/bin/pebble"
+    statement: Go standard library in a base-image binary that is never executed
+  - id: CVE-2026-97031
+    paths:
+      - "usr/bin/pebble"
+    statement: Go standard library in a base-image binary that is never executed
