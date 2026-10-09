@@ -173,10 +173,10 @@ Evidence is labelled as a **document version plus a quote**, not a chunk id, so 
 | Retrieval | `sparse-only` (PostgreSQL FTS), `dense-only` (exact pgvector), `hybrid-rrf` (reciprocal rank fusion with overlap deduplication) and `hybrid-rrf-rerank` (a cross-encoder over the top fused candidates, falling back to the fused order); every response carries a plan hash | – |
 | Ingestion | Asynchronous jobs (`202` + poll) with a `SKIP LOCKED` worker, bounded retry and resume; content-hash versioning; Markdown and plain-text chunking with sentence-level splitting and overlap; disable and delete apply to the next query, with background cleanup | – |
 | Evaluation | 122 cases over 32 labelled documents: paraphrases, hard negatives, 31 authorization negatives and 13 scope cases; a BM25 reference row, bootstrap intervals and paired comparisons; a security gate in CI that checks every returned chunk and every principal's full listing | Answer metrics: citation validity, abstention (M3) |
-| Answers | `/api/v1/query`: statements that cite authorized evidence, a refusal when the evidence does not answer, or evidence alone when no chat model is configured. Generation is optional and uses any OpenAI-compatible endpoint | Answer metrics and prompt-injection test documents (M3) |
+| Answers | `/api/v1/query`: statements that cite authorized evidence, a refusal when the evidence does not answer, or evidence alone when no chat model is configured. Generation is optional and uses any OpenAI-compatible endpoint. Answer metrics come from local runs that name their model | A check that each statement is supported by the passage it cites (after v0.1) |
 | Operations | Docker Compose, CI on every PR; a trace id per request, audit events and execution records written synchronously and failing closed | OpenTelemetry traces, dashboards (M4) |
 
-Not verified: that a generated statement is actually supported by the passage it cites. Citations are validated against the evidence that was in the prompt; faithfulness is not judged in v0.1.
+**Generated answers are not reliable yet, and the project measures that.** In the committed local run with `llama3:8b`, no hidden content leaked and every citation resolved, but 10 of 24 questions that should have been refused were answered from a readable look-alike document, and 2 of 5 planted instructions added a false statement. Citation validation proves that a statement points at authorized evidence, not that the evidence supports it. See the [answer analysis](./docs/evaluation/m3-answers-analysis.md).
 
 ## Architecture
 
@@ -214,7 +214,7 @@ io.groundedaccess
 | **M0** Walking skeleton | Demo identities, Markdown ingestion, sparse and dense retrieval, tenant isolation, eval CLI, CI security gate | ✅ Done |
 | **M1** Retrieval baseline | Dataset with hard negatives, BM25 reference, confidence intervals; async ingestion, disable and delete, chunker v1; RRF hybrid with a published verdict | ✅ Done · `v0.1.0-alpha.1` |
 | **M2** Authorization | Full decision table, property-based tests, labelled dataset v2 and the stricter gate, scope filters with `asOf`, audit events, existence-safe document reads, threat model, dataset v3 with scope cases, published report | ✅ Done · `v0.1.0-alpha.2` |
-| **M3** Reranking and answers | Done: cross-encoder reranking with fallback and a published result; cited answers with validation and refusal. Next: prompt-injection test documents, answer metrics | ⏳ In progress |
+| **M3** Reranking and answers | Cross-encoder reranking with fallback and a published result; cited answers with validation and refusal, prompt-injection test documents, answer metrics and a published local run | ✅ Done |
 | **M4** Operations and release | Traces and dashboards, failure and load tests, v0.1 benchmark report | Planned |
 
 Not in the first phase: knowledge graphs or GraphRAG, autonomous agents, extra vector databases, OCR and multimodal input, fine-tuning, Kubernetes and multi-cloud, a no-code builder. See [docs/project/milestones.md](./docs/project/milestones.md).
@@ -224,6 +224,7 @@ Not in the first phase: knowledge graphs or GraphRAG, autonomous agents, extra v
 - [Architecture overview](./docs/architecture/overview.md) — trust boundaries, data model, ingestion and query flows, failure behaviour
 - [Authorization model](./docs/architecture/authorization.md) — invariants, decision table, compiled SQL, what is verified today
 - [Threat model](./docs/security/threat-model.md) — assets, actors, abuse cases with their checks, residual risks
+- [Answer analysis](./docs/evaluation/m3-answers-analysis.md) — what generated answers got right and wrong in a local run
 - [Evaluation strategy](./docs/evaluation/strategy.md) — case schema, metrics, CI gates, reproducibility rules
 - [Architecture decisions](./docs/adr/) — modular monolith, PostgreSQL FTS + pgvector, retrieval-time authorization, the Python model service, what `asOf` means
 - [Milestones](./docs/project/milestones.md) and [open questions](./docs/project/open-questions.md)

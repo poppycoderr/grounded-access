@@ -28,6 +28,16 @@ The same effect, smaller, appears between hosted x86_64 runners, which do not al
 
 `m0-walking-skeleton`, `m1a-baseline` and `m1b-hybrid` use dataset v1. `m2-labelled-dataset` is the report on dataset v2; `m2-authorization` and `m3-rerank` are reports on dataset v3, the second adding the `hybrid-rrf-rerank` strategy and per-strategy latency; v2 adds labelled documents and authorization cases, and v3 adds documents with regions and validity windows and scope cases; numbers across the two versions are not comparable (see the [dataset card](../data/eval/DATASET_CARD.md)). One v1 finding did not carry over: BM25 was measurably ahead of PostgreSQL FTS on v1 (MRR@10 +0.10 [+0.02, +0.18]) and shows no detectable difference on v2 (+0.05 [−0.02, +0.12]).
 
+### Answer reports
+
+A directory whose name starts with `m3-answers-` holds a run of `ga-eval answers`: `answers.json`, `answers.jsonl` and `answers-report.md`. These are local runs. CI has no chat model, and an answer report depends on the model, so its directory name and its header name the model. `m3-answers-llama3-8b` was produced on a laptop with Ollama on dataset v4.
+
+```bash
+GA_CHAT_BASE_URL=http://host.docker.internal:11434/v1 GA_CHAT_MODEL=llama3:8b docker compose up -d --build --wait
+./scripts/load-demo
+uv run --project packages/evaluation ga-eval answers --out benchmarks/reports/m3-answers-<model>
+```
+
 Runs on the fictional demo corpus are labelled demo benchmarks. They show that the method is reproducible; they say nothing about production retrieval quality.
 
 `results/` at the repository root is the scratch directory for ad-hoc runs and is not tracked.
