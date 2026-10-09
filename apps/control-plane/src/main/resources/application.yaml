@@ -32,6 +32,16 @@ ga:
     candidates: 50
     rrf-k: 60
     rerank-candidates: 20
+  answering:
+    strategy: hybrid-rrf-rerank
+    evidence-limit: 8
+    context-max-words: 1200
+  chat:
+    base-url: ${GA_CHAT_BASE_URL:}
+    model: ${GA_CHAT_MODEL:}
+    api-key: ${GA_CHAT_API_KEY:}
+    connect-timeout: 2s
+    read-timeout: 60s
   corpus:
     chunk-max-words: 180
     chunk-overlap-words: 30
