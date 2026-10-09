@@ -7,7 +7,7 @@ from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
-from ga_eval import answers, runner, tokens
+from ga_eval import answers, load, runner, tokens
 from ga_eval import dataset as ds
 from ga_eval.client import ApiClient, IngestionFailedError
 
@@ -27,6 +27,13 @@ def main(argv: list[str] | None = None) -> int:
     run_parser.add_argument("--split", action="append", choices=["dev", "test"], help="repeatable; default: all")
     run_parser.add_argument("--k", type=int, default=10)
     run_parser.add_argument("--out", type=Path, help="output directory (default: results/<timestamp>)")
+    load_parser = commands.add_parser("load-test", help="send the cases concurrently and check every result; a smoke test, not a benchmark")
+    load_parser.add_argument("--strategy", action="append", choices=runner.SYSTEM_STRATEGIES, help="repeatable; default: all")
+    load_parser.add_argument("--workers", type=int, default=16, help="concurrent clients")
+    load_parser.add_argument("--requests", type=int, default=600)
+    load_parser.add_argument("--k", type=int, default=10)
+    load_parser.add_argument("--allow-degraded", action="store_true", help="report degraded results instead of failing on them")
+    load_parser.add_argument("--out", type=Path, help="output directory (default: results/load-<timestamp>)")
     search_parser = commands.add_parser("search", help="search as a demo principal and print the ranked results")
     search_parser.add_argument("principal")
     search_parser.add_argument("query")
@@ -49,6 +56,8 @@ def main(argv: list[str] | None = None) -> int:
         return _answers(dataset, client, args)
     if args.command == "load":
         return _load(dataset, client)
+    if args.command == "load-test":
+        return _load_test(dataset, client, args)
     if args.command == "search":
         return _search(dataset, client, args.principal, args.query, args.strategy, args.k)
     if _validate(dataset) != 0:
@@ -121,6 +130,24 @@ def _loaded_documents(dataset: ds.Dataset, client: ApiClient, tenant: str) -> se
             _, chunks = client.list_chunks(tokens.mint(dataset.root, name, claims, scope="query debug"), include_out_of_scope=True)
             loaded |= {chunk["documentKey"] for chunk in chunks}
     return loaded
+
+
+def _load_test(dataset: ds.Dataset, client: ApiClient, args: argparse.Namespace) -> int:
+    output = load.run(dataset, client, args.strategy or list(runner.SYSTEM_STRATEGIES), args.workers, args.requests, args.k)
+    out_dir = args.out or Path("results") / f"load-{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}"
+    load.write(output, out_dir)
+    print((out_dir / "report.md").read_text())
+    info = output["run"]
+    if info["security_violations"] or info["repeated_trace_ids"]:
+        print(f"SECURITY GATE FAILED: {info['security_violations']} unauthorized results under load", file=sys.stderr)
+        return 2
+    if info["failed"]:
+        print(f"error: {info['failed']} requests were not answered", file=sys.stderr)
+        return 1
+    if info["degraded"] and not args.allow_degraded:
+        print(f"error: {info['degraded']} results were degraded; pass --allow-degraded to measure saturation instead of failing", file=sys.stderr)
+        return 1
+    return 0
 
 
 def _answers(dataset: ds.Dataset, client: ApiClient, args: argparse.Namespace) -> int:
