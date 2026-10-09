@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 560" width="1120" height="560"
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 600" width="1120" height="600"
      role="img" aria-labelledby="ttl dsc" style="max-width:100%;height:auto">
-  <title id="ttl">Dense ranks evidence highest; hybrid does not beat it</title>
+  <title id="ttl">Reranking puts the evidence first; plain hybrid does not beat dense</title>
   <desc id="dsc">Dataset v3, test split, 65 answerable cases. Bars are MRR@10 with 95% bootstrap intervals, from the committed CI run.</desc>
   <defs>
     <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk" d="M0 0 L10 5 L0 10 z"/></marker>
@@ -36,64 +36,70 @@
     .ln{stroke:#94A3B8;stroke-width:1.5;fill:none}
     .ln-v{stroke:#6366F1;stroke-width:1.75;fill:none}
     .mk{fill:#94A3B8}.mk-v{fill:#6366F1}
-    .bar-s{fill:#38BDF8}.bar-d{fill:#6366F1}.bar-h{fill:#A78BFA}.bar-r{fill:#CBD5E1}
+    .bar-s{fill:#38BDF8}.bar-d{fill:#6366F1}.bar-h{fill:#A78BFA}.bar-x{fill:#10B981}.bar-r{fill:#CBD5E1}
     .axis{stroke:#E2E8F0;stroke-width:1}
     .whisk{stroke:#0F172A;stroke-width:1.5}
     .pill-ok{fill:#D1FAE5}.pill-ok-t{font-size:11.5px;font-weight:700;fill:#047857}
     .pill-now{fill:#E0E7FF}.pill-now-t{font-size:11.5px;font-weight:700;fill:#4338CA}
     .pill-next{fill:#F1F5F9}.pill-next-t{font-size:11.5px;font-weight:700;fill:#64748B}
   </style>
-  <rect class="bg" width="1120" height="560" rx="18"/>
+  <rect class="bg" width="1120" height="600" rx="18"/>
   <text class="kicker" x="40" y="44">GROUNDED ACCESS · EVALUATION</text>
-  <text class="title" x="40" y="76">Dense ranks evidence highest; hybrid does not beat it</text>
+  <text class="title" x="40" y="76">Reranking puts the evidence first; plain hybrid does not beat dense</text>
   <text class="sub" x="40" y="101">Dataset v3, test split, 65 answerable cases. Bars are MRR@10 with 95% bootstrap intervals, from the committed CI run.</text>
   <text class="kicker" x="290" y="142">MRR@10</text>
   <text class="kicker" x="980" y="142">Recall@10</text>
-  <line class="axis" x1="290" y1="152" x2="290" y2="392"/>
-  <text class="txt" x="290" y="410" text-anchor="middle">0</text>
-  <line class="axis" x1="425.0" y1="152" x2="425.0" y2="392"/>
-  <text class="txt" x="425.0" y="410" text-anchor="middle">0.25</text>
-  <line class="axis" x1="560.0" y1="152" x2="560.0" y2="392"/>
-  <text class="txt" x="560.0" y="410" text-anchor="middle">0.5</text>
-  <line class="axis" x1="695.0" y1="152" x2="695.0" y2="392"/>
-  <text class="txt" x="695.0" y="410" text-anchor="middle">0.75</text>
-  <line class="axis" x1="830.0" y1="152" x2="830.0" y2="392"/>
-  <text class="txt" x="830.0" y="410" text-anchor="middle">1</text>
-  <text class="mono" x="40" y="183">sparse-only</text>
-  <text class="txt" x="40" y="201">PostgreSQL full-text search</text>
-  <rect class="bar-s" x="290" y="166" width="369" height="30" rx="6"/>
-  <path class="whisk" d="M608.5999999999999 181 L705.8 181 M608.5999999999999 175 v12 M705.8 175 v12"/>
-  <text class="num" x="717.8" y="186">0.683  [0.59, 0.77]</text>
-  <text class="num" x="980" y="186">0.923</text>
-  <text class="mono" x="40" y="241">dense-only</text>
-  <text class="txt" x="40" y="259">exact pgvector search</text>
-  <rect class="bar-d" x="290" y="224" width="471" height="30" rx="6"/>
-  <path class="whisk" d="M722.0 239 L797.5999999999999 239 M722.0 233 v12 M797.5999999999999 233 v12"/>
-  <text class="num" x="809.5999999999999" y="244">0.873  [0.80, 0.94]</text>
-  <text class="num" x="980" y="244">0.969</text>
-  <text class="mono" x="40" y="299">hybrid-rrf</text>
-  <text class="txt" x="40" y="317">reciprocal rank fusion of the two</text>
-  <rect class="bar-h" x="290" y="282" width="444" height="30" rx="6"/>
-  <path class="whisk" d="M689.6 297 L770.6 297 M689.6 291 v12 M770.6 291 v12"/>
-  <text class="num" x="782.6" y="302">0.822  [0.74, 0.89]</text>
-  <text class="num" x="980" y="302">0.969</text>
-  <text class="mono" x="40" y="357">bm25-reference</text>
-  <text class="txt" x="40" y="375">offline reference row</text>
-  <rect class="bar-r" x="290" y="340" width="389" height="30" rx="6"/>
-  <path class="whisk" d="M630.2 355 L722.0 355 M630.2 349 v12 M722.0 349 v12"/>
-  <text class="num" x="734.0" y="360">0.720  [0.63, 0.80]</text>
-  <text class="num" x="980" y="360">0.931</text>
-  <rect class="green" x="40" y="436" width="330" height="70" rx="12"/>
-  <text class="bigok" x="58" y="482">0</text>
-  <text class="lbl-sm" x="89" y="470">unauthorized results</text>
-  <text class="txt" x="89" y="489">across 122 cases and every strategy</text>
-  <rect class="card" x="390" y="436" width="330" height="70" rx="12"/>
-  <text class="big" x="408" y="482">31</text>
-  <text class="lbl-sm" x="458" y="470">authorization negatives</text>
-  <text class="txt" x="458" y="489">tenant, clearance, project, department</text>
-  <rect class="card" x="740" y="436" width="330" height="70" rx="12"/>
-  <text class="big" x="758" y="482">−0.05</text>
-  <text class="lbl-sm" x="865" y="470">hybrid vs dense, MRR@10</text>
-  <text class="txt" x="865" y="489">no detectable difference</text>
-  <text class="foot" x="40" y="536">Source: benchmarks/reports/m2-authorization. A demo benchmark on a small fictional corpus, not a claim about production quality.</text>
+  <line class="axis" x1="290" y1="152" x2="290" y2="436"/>
+  <text class="txt" x="290" y="454" text-anchor="middle">0</text>
+  <line class="axis" x1="425.0" y1="152" x2="425.0" y2="436"/>
+  <text class="txt" x="425.0" y="454" text-anchor="middle">0.25</text>
+  <line class="axis" x1="560.0" y1="152" x2="560.0" y2="436"/>
+  <text class="txt" x="560.0" y="454" text-anchor="middle">0.5</text>
+  <line class="axis" x1="695.0" y1="152" x2="695.0" y2="436"/>
+  <text class="txt" x="695.0" y="454" text-anchor="middle">0.75</text>
+  <line class="axis" x1="830.0" y1="152" x2="830.0" y2="436"/>
+  <text class="txt" x="830.0" y="454" text-anchor="middle">1</text>
+  <text class="mono" x="40" y="179">sparse-only</text>
+  <text class="txt" x="40" y="197">PostgreSQL full-text search</text>
+  <rect class="bar-s" x="290" y="162" width="369" height="30" rx="6"/>
+  <path class="whisk" d="M608.5999999999999 177 L705.8 177 M608.5999999999999 171 v12 M705.8 171 v12"/>
+  <text class="num" x="717.8" y="182">0.683  [0.59, 0.77]</text>
+  <text class="num" x="980" y="182">0.923</text>
+  <text class="mono" x="40" y="233">dense-only</text>
+  <text class="txt" x="40" y="251">exact pgvector search</text>
+  <rect class="bar-d" x="290" y="216" width="471" height="30" rx="6"/>
+  <path class="whisk" d="M722.0 231 L797.5999999999999 231 M722.0 225 v12 M797.5999999999999 225 v12"/>
+  <text class="num" x="809.5999999999999" y="236">0.873  [0.80, 0.94]</text>
+  <text class="num" x="980" y="236">0.969</text>
+  <text class="mono" x="40" y="287">hybrid-rrf</text>
+  <text class="txt" x="40" y="305">reciprocal rank fusion of the two</text>
+  <rect class="bar-h" x="290" y="270" width="444" height="30" rx="6"/>
+  <path class="whisk" d="M689.6 285 L770.6 285 M689.6 279 v12 M770.6 279 v12"/>
+  <text class="num" x="782.6" y="290">0.822  [0.74, 0.89]</text>
+  <text class="num" x="980" y="290">0.969</text>
+  <text class="mono" x="40" y="341">hybrid-rrf-rerank</text>
+  <text class="txt" x="40" y="359">cross-encoder over the fused top 20</text>
+  <rect class="bar-x" x="290" y="324" width="515" height="30" rx="6"/>
+  <path class="whisk" d="M776.0 339 L824.6 339 M776.0 333 v12 M824.6 333 v12"/>
+  <text class="num" x="836.6" y="344">0.954  [0.90, 0.99]</text>
+  <text class="num" x="980" y="344">0.969</text>
+  <text class="mono" x="40" y="395">bm25-reference</text>
+  <text class="txt" x="40" y="413">offline reference row</text>
+  <rect class="bar-r" x="290" y="378" width="389" height="30" rx="6"/>
+  <path class="whisk" d="M630.2 393 L722.0 393 M630.2 387 v12 M722.0 387 v12"/>
+  <text class="num" x="734.0" y="398">0.720  [0.63, 0.80]</text>
+  <text class="num" x="980" y="398">0.931</text>
+  <rect class="green" x="40" y="476" width="330" height="70" rx="12"/>
+  <text class="bigok" x="58" y="522">0</text>
+  <text class="lbl-sm" x="89" y="510">unauthorized results</text>
+  <text class="txt" x="89" y="529">across 122 cases and every strategy</text>
+  <rect class="card" x="390" y="476" width="330" height="70" rx="12"/>
+  <text class="big" x="408" y="522">31</text>
+  <text class="lbl-sm" x="458" y="510">authorization negatives</text>
+  <text class="txt" x="458" y="529">tenant, clearance, project, department</text>
+  <rect class="card" x="740" y="476" width="330" height="70" rx="12"/>
+  <text class="big" x="758" y="522">+0.08</text>
+  <text class="lbl-sm" x="865" y="510">rerank vs dense, MRR@10</text>
+  <text class="txt" x="865" y="529">[+0.03, +0.14], at 10× the latency</text>
+  <text class="foot" x="40" y="576">Source: benchmarks/reports/m3-rerank. A demo benchmark on a small fictional corpus, not a claim about production quality.</text>
 </svg>

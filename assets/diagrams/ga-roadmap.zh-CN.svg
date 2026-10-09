@@ -36,7 +36,7 @@
     .ln{stroke:#94A3B8;stroke-width:1.5;fill:none}
     .ln-v{stroke:#6366F1;stroke-width:1.75;fill:none}
     .mk{fill:#94A3B8}.mk-v{fill:#6366F1}
-    .bar-s{fill:#38BDF8}.bar-d{fill:#6366F1}.bar-h{fill:#A78BFA}.bar-r{fill:#CBD5E1}
+    .bar-s{fill:#38BDF8}.bar-d{fill:#6366F1}.bar-h{fill:#A78BFA}.bar-x{fill:#10B981}.bar-r{fill:#CBD5E1}
     .axis{stroke:#E2E8F0;stroke-width:1}
     .whisk{stroke:#0F172A;stroke-width:1.5}
     .pill-ok{fill:#D1FAE5}.pill-ok-t{font-size:11.5px;font-weight:700;fill:#047857}
@@ -75,15 +75,15 @@
   <text class="txt" x="476" y="288">带标签的数据集、威胁模型</text>
   <rect class="pill-ok" x="476" y="334" width="234" height="20" rx="10"/>
   <text class="pill-ok-t" x="593.0" y="348" text-anchor="middle">已完成 · v0.1.0-alpha.2</text>
-  <circle cx="690" cy="150" r="7" fill="#CBD5E1" stroke="#FBFCFE" stroke-width="3"/>
-  <rect class="dash" x="670" y="176" width="200" height="190" rx="12"/>
+  <circle cx="690" cy="150" r="7" fill="#6366F1" stroke="#FBFCFE" stroke-width="3"/>
+  <rect class="card" x="670" y="176" width="200" height="190" rx="12"/>
   <text class="kicker" x="686" y="202">M3</text>
   <text class="lbl" x="686" y="226">重排与回答</text>
-  <text class="txt" x="686" y="250">cross-encoder 重排</text>
+  <text class="txt" x="686" y="250">cross-encoder 重排 ✓</text>
   <text class="txt" x="686" y="269">带引用的回答</text>
   <text class="txt" x="686" y="288">拒答</text>
-  <rect class="pill-next" x="686" y="334" width="47" height="20" rx="10"/>
-  <text class="pill-next-t" x="709.5" y="348" text-anchor="middle">计划中</text>
+  <rect class="pill-now" x="686" y="334" width="47" height="20" rx="10"/>
+  <text class="pill-now-t" x="709.5" y="348" text-anchor="middle">进行中</text>
   <circle cx="900" cy="150" r="7" fill="#CBD5E1" stroke="#FBFCFE" stroke-width="3"/>
   <rect class="dash" x="880" y="176" width="200" height="190" rx="12"/>
   <text class="kicker" x="896" y="202">M4</text>

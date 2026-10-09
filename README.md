@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-    <b>English</b> · <a href="./README.zh-CN.md">简体中文</a> · <a href="./docs/architecture/overview.md">Architecture</a> · <a href="./docs/evaluation/strategy.md">Evaluation</a> · <a href="./benchmarks/reports/m2-authorization/report.md">Benchmark</a> · <a href="./docs/project/milestones.md">Milestones</a>
+    <b>English</b> · <a href="./README.zh-CN.md">简体中文</a> · <a href="./docs/architecture/overview.md">Architecture</a> · <a href="./docs/evaluation/strategy.md">Evaluation</a> · <a href="./benchmarks/reports/m3-rerank/report.md">Benchmark</a> · <a href="./docs/project/milestones.md">Milestones</a>
 </p>
 
 ---
@@ -28,10 +28,10 @@
 ## Highlights
 
 - 🛡️ **Authorization inside the query**: tenant, clearance, department and project rules are compiled into the SQL of every retrieval path, so unauthorized rows never leave PostgreSQL
-- 🔎 **Three retrieval strategies on one database**: PostgreSQL full-text search, exact pgvector search and reciprocal rank fusion, each response tagged with the hash of its retrieval plan
+- 🔎 **Four retrieval strategies on one database**: PostgreSQL full-text search, exact pgvector search, reciprocal rank fusion and cross-encoder reranking, each response tagged with the hash of its retrieval plan
 - 📊 **Evaluation with confidence intervals**: 122 hand-checked cases, bootstrap intervals, paired comparisons and a BM25 reference row; a difference counts only if its interval excludes zero
 - 🚨 **A security gate in CI**: 31 cases try to reach forbidden documents, and every returned chunk is checked against hand-written visibility; one unauthorized result fails the build
-- 🧪 **Negative results are published**: hybrid does not beat dense on this dataset, and one earlier claim was withdrawn when a larger dataset stopped supporting it
+- 🧪 **Results are published as measured**: plain hybrid does not beat dense on this dataset, reranking does (MRR@10 +0.08 [+0.03, +0.14]) at ten times the latency, and one earlier claim was withdrawn when a larger dataset stopped supporting it
 - ⚙️ **Real ingestion**: asynchronous jobs with retry and resume, versioned documents, label changes that apply to the next query without re-embedding
 - 🚀 **Runs on a laptop**: one `docker compose up`, a CPU embedding model baked into the image, no API key and no GPU
 
@@ -137,7 +137,7 @@ The [threat model](./docs/security/threat-model.md) lists every control with the
     <img src="./assets/diagrams/ga-eval-results.en.svg" alt="MRR@10 with confidence intervals for each retrieval strategy" />
 </p>
 
-[`benchmarks/reports/m2-authorization/`](./benchmarks/reports/m2-authorization/) holds the committed run: `run.json` (dataset version, commit, retrieval plans, policy and chunker versions, bootstrap seed, platform and CPU), `cases.jsonl` (per-case rankings) and the rendered `report.md`. Regenerate it with `./scripts/benchmark --out benchmarks/reports/<name>`.
+[`benchmarks/reports/m3-rerank/`](./benchmarks/reports/m3-rerank/) holds the committed run: `run.json` (dataset version, commit, retrieval plans, policy and chunker versions, bootstrap seed, platform and CPU), `cases.jsonl` (per-case rankings) and the rendered `report.md`. Regenerate it with `./scripts/benchmark --out benchmarks/reports/<name>`.
 
 Dataset v3, `test` split, 65 answerable cases, 95% bootstrap intervals, produced by the CI runner (Linux x86_64):
 
@@ -146,6 +146,7 @@ Dataset v3, `test` split, 65 answerable cases, 95% bootstrap intervals, produced
 | `sparse-only` (PostgreSQL FTS) | 0.923 [0.85, 0.98] | 0.683 [0.59, 0.77] | 0.742 [0.66, 0.82] | **0** | **0** |
 | `dense-only` (pgvector, exact) | 0.969 [0.92, 1.00] | 0.873 [0.80, 0.94] | 0.898 [0.84, 0.95] | **0** | **0** |
 | `hybrid-rrf` (reciprocal rank fusion of the two) | 0.969 [0.92, 1.00] | 0.822 [0.74, 0.89] | 0.857 [0.79, 0.91] | **0** | **0** |
+| `hybrid-rrf-rerank` (cross-encoder over the fused top 20) | 0.969 [0.92, 1.00] | **0.954 [0.90, 0.99]** | **0.952 [0.90, 0.99]** | **0** | **0** |
 | `bm25-reference` (offline, same authorized chunks) | 0.931 [0.87, 0.98] | 0.720 [0.63, 0.80] | 0.770 [0.69, 0.84] | **0** | **0** |
 
 **Security.** Zero violations across 122 cases, 31 of which try to reach a document the principal may not see: in another tenant, above its clearance, in a project it is not on, or in another department. Every returned chunk is checked for document and version, and before any query runs each principal's full chunk listing is compared with its hand-labelled visible set.
@@ -154,8 +155,9 @@ Dataset v3, `test` split, 65 answerable cases, 95% bootstrap intervals, produced
 
 What the paired comparisons support, and what they do not:
 
+- **Reranking beats the best single channel.** `hybrid-rrf-rerank` against dense: MRR@10 +0.08 [+0.03, +0.14]. It puts the right evidence first in 61 of 65 cases, where dense manages 53. Recall@10 does not move, because reranking only reorders what fusion already found. The cost is latency: 204 ms at the median against 22 ms for dense on the CI runner, and about 1 s inside Docker on a laptop.
 - **Dense ranks the right evidence higher than FTS:** MRR@10 +0.19 [+0.11, +0.28]. Whether the evidence appears in the top 10 at all shows **no detectable difference** (Recall@10 +0.05 [−0.02, +0.11]).
-- **Hybrid does not beat dense.** MRR@10 −0.05 [−0.11, +0.01] against dense: no detectable difference, with the point estimate in favour of dense. The [analysis](./docs/evaluation/m1b-hybrid-analysis.md) of the first hybrid run explains why: equal-weight fusion gives the weaker FTS channel the same vote.
+- **Plain hybrid does not beat dense.** MRR@10 −0.05 [−0.11, +0.01] against dense: no detectable difference, with the point estimate in favour of dense. The [analysis](./docs/evaluation/m1b-hybrid-analysis.md) of the first hybrid run explains why: equal-weight fusion gives the weaker FTS channel the same vote.
 - **FTS against BM25: a finding that did not hold.** On dataset v1, BM25 was measurably ahead of FTS (MRR@10 +0.10 [+0.02, +0.18]). On v2 and v3 the difference is no longer detectable (v3: +0.04 [−0.02, +0.10]). The earlier reports stay in the repository; the claim is withdrawn until a larger dataset supports it.
 - **Dense beats BM25** on MRR@10 (+0.15 [+0.07, +0.24]).
 
@@ -212,7 +214,7 @@ io.groundedaccess
 | **M0** Walking skeleton | Demo identities, Markdown ingestion, sparse and dense retrieval, tenant isolation, eval CLI, CI security gate | ✅ Done |
 | **M1** Retrieval baseline | Dataset with hard negatives, BM25 reference, confidence intervals; async ingestion, disable and delete, chunker v1; RRF hybrid with a published verdict | ✅ Done · `v0.1.0-alpha.1` |
 | **M2** Authorization | Full decision table, property-based tests, labelled dataset v2 and the stricter gate, scope filters with `asOf`, audit events, existence-safe document reads, threat model, dataset v3 with scope cases, published report | ✅ Done · `v0.1.0-alpha.2` |
-| **M3** Reranking and answers | Cross-encoder reranking with fallback, context builder, structured citations, abstention | Planned |
+| **M3** Reranking and answers | Done: cross-encoder reranking with fallback and a published result. Next: context builder, structured citations, abstention | ⏳ In progress |
 | **M4** Operations and release | Traces and dashboards, failure and load tests, v0.1 benchmark report | Planned |
 
 Not in the first phase: knowledge graphs or GraphRAG, autonomous agents, extra vector databases, OCR and multimodal input, fine-tuning, Kubernetes and multi-cloud, a no-code builder. See [docs/project/milestones.md](./docs/project/milestones.md).

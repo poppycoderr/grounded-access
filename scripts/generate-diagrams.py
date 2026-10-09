@@ -39,7 +39,7 @@ STYLE = """
     .ln{stroke:#94A3B8;stroke-width:1.5;fill:none}
     .ln-v{stroke:#6366F1;stroke-width:1.75;fill:none}
     .mk{fill:#94A3B8}.mk-v{fill:#6366F1}
-    .bar-s{fill:#38BDF8}.bar-d{fill:#6366F1}.bar-h{fill:#A78BFA}.bar-r{fill:#CBD5E1}
+    .bar-s{fill:#38BDF8}.bar-d{fill:#6366F1}.bar-h{fill:#A78BFA}.bar-x{fill:#10B981}.bar-r{fill:#CBD5E1}
     .axis{stroke:#E2E8F0;stroke-width:1}
     .whisk{stroke:#0F172A;stroke-width:1.5}
     .pill-ok{fill:#D1FAE5}.pill-ok-t{font-size:11.5px;font-weight:700;fill:#047857}
@@ -139,21 +139,22 @@ RESULTS = [
     ("sparse-only", 0.683, 0.59, 0.77, 0.923, "bar-s"),
     ("dense-only", 0.873, 0.80, 0.94, 0.969, "bar-d"),
     ("hybrid-rrf", 0.822, 0.74, 0.89, 0.969, "bar-h"),
+    ("hybrid-rrf-rerank", 0.954, 0.90, 0.99, 0.969, "bar-x"),
     ("bm25-reference", 0.720, 0.63, 0.80, 0.931, "bar-r"),
 ]
 
 
 def results(lang, s):
-    d = Svg(1120, 560, "GROUNDED ACCESS · EVALUATION", s["title"], s["sub"])
+    d = Svg(1120, 600, "GROUNDED ACCESS · EVALUATION", s["title"], s["sub"])
     x0, scale = 290, 540
     d.t(x0, 142, s["axis"], "kicker")
     d.t(980, 142, "Recall@10", "kicker")
     for tick in (0, 0.25, 0.5, 0.75, 1.0):
         x = x0 + tick * scale
-        d.parts.append(f'<line class="axis" x1="{x}" y1="152" x2="{x}" y2="392"/>')
-        d.t(x, 410, f"{tick:.2f}".rstrip("0").rstrip(".") if tick else "0", "txt", "middle")
+        d.parts.append(f'<line class="axis" x1="{x}" y1="152" x2="{x}" y2="436"/>')
+        d.t(x, 454, f"{tick:.2f}".rstrip("0").rstrip(".") if tick else "0", "txt", "middle")
     for i, (name, mean, low, high, recall, cls) in enumerate(RESULTS):
-        y = 166 + i * 58
+        y = 162 + i * 54
         d.t(40, y + 17, name, "mono")
         d.t(40, y + 35, s["notes"][i], "txt")
         d.rect(x0, y, round(mean * scale), 30, cls, 6)
@@ -165,11 +166,11 @@ def results(lang, s):
         d.t(980, y + 20, f"{recall:.3f}", "num")
     for i, (big, label, ok) in enumerate(s["tiles"]):
         x = 40 + i * 350
-        d.rect(x, 436, 330, 70, "green" if ok else "card")
-        d.t(x + 18, 482, big, "bigok" if ok else "big")
-        d.t(x + 18 + len(big) * 19 + 12, 470, label[0], "lbl-sm")
-        d.t(x + 18 + len(big) * 19 + 12, 489, label[1], "txt")
-    d.t(40, 536, s["foot"], "foot")
+        d.rect(x, 476, 330, 70, "green" if ok else "card")
+        d.t(x + 18, 522, big, "bigok" if ok else "big")
+        d.t(x + 18 + len(big) * 19 + 12, 510, label[0], "lbl-sm")
+        d.t(x + 18 + len(big) * 19 + 12, 529, label[1], "txt")
+    d.t(40, 576, s["foot"], "foot")
     d.save(f"ga-eval-results.{lang}.svg")
 
 
@@ -282,16 +283,22 @@ EN = {
         "foot": "Region, validity dates and document status are scope, not authorization, and are counted separately.",
     },
     "results": {
-        "title": "Dense ranks evidence highest; hybrid does not beat it",
+        "title": "Reranking puts the evidence first; plain hybrid does not beat dense",
         "sub": "Dataset v3, test split, 65 answerable cases. Bars are MRR@10 with 95% bootstrap intervals, from the committed CI run.",
         "axis": "MRR@10",
-        "notes": ["PostgreSQL full-text search", "exact pgvector search", "reciprocal rank fusion of the two", "offline reference row"],
+        "notes": [
+            "PostgreSQL full-text search",
+            "exact pgvector search",
+            "reciprocal rank fusion of the two",
+            "cross-encoder over the fused top 20",
+            "offline reference row",
+        ],
         "tiles": [
             ("0", ("unauthorized results", "across 122 cases and every strategy"), True),
             ("31", ("authorization negatives", "tenant, clearance, project, department"), False),
-            ("−0.05", ("hybrid vs dense, MRR@10", "no detectable difference"), False),
+            ("+0.08", ("rerank vs dense, MRR@10", "[+0.03, +0.14], at 10× the latency"), False),
         ],
-        "foot": "Source: benchmarks/reports/m2-authorization. A demo benchmark on a small fictional corpus, not a claim about production quality.",
+        "foot": "Source: benchmarks/reports/m3-rerank. A demo benchmark on a small fictional corpus, not a claim about production quality.",
     },
     "gate": {
         "title": "The security gate compares the system with hand-written labels",
@@ -328,8 +335,14 @@ EN = {
                 "ok",
                 "Done · v0.1.0-alpha.1",
             ),
-            ("M2", "Authorization", ["decision table, scope filters", "audit, existence-safe reads", "labelled dataset, threat model"], "ok", "Done · v0.1.0-alpha.2"),
-            ("M3", "Reranking + answers", ["cross-encoder reranker", "cited answers", "abstention"], "next", "Planned"),
+            (
+                "M2",
+                "Authorization",
+                ["decision table, scope filters", "audit, existence-safe reads", "labelled dataset, threat model"],
+                "ok",
+                "Done · v0.1.0-alpha.2",
+            ),
+            ("M3", "Reranking + answers", ["cross-encoder reranker ✓", "cited answers", "abstention"], "now", "In progress"),
             ("M4", "Operations + v0.1", ["OpenTelemetry traces", "failure and load tests", "full benchmark, release"], "next", "Planned"),
         ],
     },
@@ -383,16 +396,16 @@ ZH = {
         "foot": "region、有效期和文档状态属于适用范围，不属于授权，单独统计。",
     },
     "results": {
-        "title": "dense 把证据排得最靠前；hybrid 没有超过它",
+        "title": "重排把证据排到最前；不带重排的 hybrid 没有超过 dense",
         "sub": "数据集 v3，test 划分，65 条可回答用例。柱子是 MRR@10 及 95% bootstrap 区间，来自已提交的 CI 运行。",
         "axis": "MRR@10",
-        "notes": ["PostgreSQL 全文检索", "pgvector 精确检索", "两者的 RRF 融合", "离线参考行"],
+        "notes": ["PostgreSQL 全文检索", "pgvector 精确检索", "两者的 RRF 融合", "cross-encoder 重排融合后的前 20 个", "离线参考行"],
         "tiles": [
             ("0", ("越权结果", "122 条用例、所有策略"), True),
             ("31", ("授权负例", "租户、密级、项目、部门"), False),
-            ("−0.05", ("hybrid 对 dense，MRR@10", "没有可检测的差异"), False),
+            ("+0.08", ("重排对 dense，MRR@10", "[+0.03, +0.14]，延迟约为 10 倍"), False),
         ],
-        "foot": "数据来源：benchmarks/reports/m2-authorization。这是小型虚构语料上的 demo benchmark，不代表生产效果。",
+        "foot": "数据来源：benchmarks/reports/m3-rerank。这是小型虚构语料上的 demo benchmark，不代表生产效果。",
     },
     "gate": {
         "title": "安全门禁拿系统和手写标注做比较",
@@ -421,7 +434,7 @@ ZH = {
             ("M0", "Walking skeleton", ["SQL 内的租户隔离", "sparse + dense 检索", "评测 CLI、CI 安全门禁"], "ok", "已完成"),
             ("M1", "检索基线", ["数据集、BM25 参考行、置信区间", "异步入库、chunker", "RRF hybrid 与结论"], "ok", "已完成 · v0.1.0-alpha.1"),
             ("M2", "授权", ["决策表、适用范围过滤", "审计、不泄漏存在性的读取", "带标签的数据集、威胁模型"], "ok", "已完成 · v0.1.0-alpha.2"),
-            ("M3", "重排与回答", ["cross-encoder 重排", "带引用的回答", "拒答"], "next", "计划中"),
+            ("M3", "重排与回答", ["cross-encoder 重排 ✓", "带引用的回答", "拒答"], "now", "进行中"),
             ("M4", "运维与 v0.1", ["OpenTelemetry trace", "故障与压力测试", "完整 benchmark、发布"], "next", "计划中"),
         ],
     },
