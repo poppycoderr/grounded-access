@@ -78,9 +78,9 @@
   <rect class="amber" x="318" y="389" width="404" height="62" rx="12"/>
   <text class="lbl-sm" x="334" y="414">corpus + ingestion</text>
   <text class="txt" x="334" y="434">job queue · chunking · versions · access labels</text>
-  <rect class="dash" x="318" y="462" width="404" height="62" rx="12"/>
-  <text class="lbl-sm" x="334" y="487">answering · M3</text>
-  <text class="txt" x="334" y="507">citations · abstention</text>
+  <rect class="rose" x="318" y="462" width="404" height="62" rx="12"/>
+  <text class="lbl-sm" x="334" y="487">answering</text>
+  <text class="txt" x="334" y="507">context · validated citations · refusal</text>
   <rect class="card" x="800" y="170" width="280" height="84" rx="12"/>
   <text class="lbl-sm" x="816" y="195">PostgreSQL 17 + pgvector</text>
   <text class="txt" x="816" y="215">authorization runs inside</text>
@@ -92,8 +92,9 @@
   <text class="txt" x="816" y="353">embeddings and reranking on CPU</text>
   <path class="ln" d="M740 332 L798 332" marker-end="url(#ar)"/>
   <rect class="dash" x="800" y="410" width="280" height="84" rx="12"/>
-  <text class="lbl-sm" x="816" y="435">local chat model · M3</text>
-  <text class="txt" x="816" y="455">optional, no API key needed</text>
+  <text class="lbl-sm" x="816" y="435">chat model · optional</text>
+  <text class="txt" x="816" y="455">any OpenAI-compatible endpoint</text>
+  <text class="txt" x="816" y="473">sees authorized evidence only</text>
   <path class="ln" d="M740 452 L798 452" marker-end="url(#ar)"/>
   <text class="foot" x="40" y="574">Unauthorized rows never leave PostgreSQL  ·  label changes apply to the next query  ·  every evaluation run is reproducible</text>
 </svg>

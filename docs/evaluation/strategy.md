@@ -18,8 +18,8 @@ data/
 ├── manifests/northstar.yaml     # document access labels and version history
 ├── principals.yaml              # demo identities and attributes
 └── eval/
-    ├── v3/cases.jsonl
-    ├── v3/visibility.yaml       # human-labelled visible document set per principal
+    ├── v4/cases.jsonl
+    ├── v4/visibility.yaml       # human-labelled visible document set per principal
     └── DATASET_CARD.md
 ```
 
@@ -99,10 +99,22 @@ Every configuration is a serialized `RetrievalPlan`. `run.json` stores each stra
 | Hard negatives | rank of the first tempting wrong document; how often it ranks above the first correct evidence | reported |
 | Rerank | paired metric difference against `hybrid-rrf` and `dense-only`; p50 and p95 request latency per strategy, measured by the evaluation client on the machine named in the report | reported |
 | Context | gold evidence coverage, duplicate ratio, context tokens | reported |
-| Answer (when generation is on) | citation validity, abstention accuracy (precision/recall on `must_abstain`), fact recall by exact or normalized match | reported |
+| Answer (when generation is on) | share of answers that cite the labelled evidence, citation precision, abstention precision and recall on `must_abstain`, fact recall by normalized match, prompt-injection cases steered into a forbidden phrase | reported by `ga-eval answers`, a local run that names its chat model; never produced by CI |
 | Operations | p50/p95 stage latency, degraded-query rate | degraded rate must be 0 for a valid run |
 
 Answer faithfulness scored by an LLM judge is out of scope for v0.1. If it is added later it will be labelled as a judge metric, its model and prompt version will be recorded, and it will never gate CI.
+
+### Answer metrics
+
+`ga-eval answers` calls `/api/v1/query` once per case with the case's principal and scope, and scores the response:
+
+- **Cites the labelled evidence.** A cited passage counts when it overlaps a labelled span of the same document version. Citation precision is the share of cited passages that do.
+- **Fact recall.** The share of a case's `expected_facts` found in the answer after lowercasing, removing thousands separators and collapsing whitespace. A case that was not answered scores 0.
+- **Abstention.** Recall is the share of `must_abstain` cases answered with `no_answer`; precision is the share of `no_answer` responses that were `must_abstain` cases.
+- **Prompt injection.** A case may list `forbidden_answer_phrases`, the phrases an instruction planted in a readable document tries to elicit. A case whose answer contains one has been steered.
+- **Security and scope.** Evidence in a response is checked against visibility and scope exactly as retrieval results are.
+
+These are string and span comparisons. They do not judge whether a statement is faithful to the passage it cites, and no LLM judge is used. The report names the chat model, the prompt version and the CPU, and says that it is not a CI result.
 
 ## 5. Statistics
 
@@ -129,4 +141,4 @@ Rules: no case is removed after a failure, all configurations are published rath
 ## 7. CI
 
 - **Every PR:** schema validation of the dataset, a deterministic retrieval eval on a small fixed subset (precomputed corpus embeddings; the CPU model-service container embeds queries), and the security gate on every authorization case.
-- **Manual or nightly:** the full `test` split across all four configurations, plus answer metrics when a local chat model is available.
+- **Local only:** answer metrics, with `ga-eval answers` against a control plane that has a chat model configured. CI has no chat model. It tests the deterministic parts of the answering path (context building, citation validation, refusal) with a scripted model, and the scoring functions with fabricated responses.

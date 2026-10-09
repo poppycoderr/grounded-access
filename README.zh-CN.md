@@ -173,10 +173,10 @@ curl -s localhost:8080/api/v1/retrieval/search -H "Authorization: Bearer $TOKEN"
 | 检索 | `sparse-only`（PostgreSQL FTS）、`dense-only`（pgvector 精确检索）、`hybrid-rrf`（RRF 融合并去除重叠 chunk）与 `hybrid-rrf-rerank`（用 cross-encoder 重排融合后的前若干候选，失败时退回融合顺序）；每个响应带检索配置哈希 | – |
 | 入库 | 异步任务（`202` + 轮询），`SKIP LOCKED` worker、有限重试与断点续跑；内容哈希版本管理；Markdown 与纯文本切分，按句拆分长段落并带重叠；停用与删除对下一次查询生效，后台清理 | – |
 | 评测 | 32 篇带标签的文档、122 条用例：改写、hard negatives、31 条授权负例与 13 条适用范围用例；BM25 参考行、bootstrap 置信区间与配对比较；CI 安全门禁逐个检查返回的 chunk 和每个身份的完整可见列表 | 回答指标：引用有效性、拒答（M3） |
-| 回答 | `/api/v1/query`：每句话都引用已授权证据的回答；证据不足以回答时拒答；没有配置对话模型时只返回证据。生成是可选的，支持任何兼容 OpenAI 接口的端点 | 回答指标与提示注入测试文档（M3） |
+| 回答 | `/api/v1/query`：每句话都引用已授权证据的回答；证据不足以回答时拒答；没有配置对话模型时只返回证据。生成是可选的，支持任何兼容 OpenAI 接口的端点。回答指标来自注明了模型的本地运行 | 检查每句话是否被它引用的段落支持（v0.1 之后） |
 | 运维 | Docker Compose、每个 PR 的 CI；每个请求一个 trace id，审计事件与执行记录同步写入，写失败则拒绝请求 | OpenTelemetry trace、dashboard（M4） |
 
-尚未验证的一点：生成的句子是否真的被它引用的段落支持。引用会对照提示词里的证据做校验，但 v0.1 不判断忠实度。
+**生成的回答目前还不可靠，这个项目把这一点测了出来。** 在已提交的 `llama3:8b` 本地运行里，没有任何隐藏内容泄漏，每个引用都能对上证据；但 24 个应当拒答的问题里有 10 个被回答了（答案来自一篇可读的相似文档），5 条植入的指令里有 2 条让回答多出了一句错误的话。引用校验能证明一句话指向已授权的证据，不能证明证据支持这句话。见[回答分析](./docs/evaluation/m3-answers-analysis.md)。
 
 ## 架构
 
@@ -214,7 +214,7 @@ io.groundedaccess
 | **M0** Walking skeleton | demo 身份、Markdown 入库、sparse 与 dense 检索、租户隔离、评测 CLI、CI 安全门禁 | ✅ 已完成 |
 | **M1** 检索基线 | 带 hard negatives 的数据集、BM25 参考行、置信区间；异步入库、停用与删除、chunker v1；RRF hybrid 及公开结论 | ✅ 已完成 · `v0.1.0-alpha.1` |
 | **M2** 授权 | 完整决策表、基于属性的测试、带标签的数据集 v2 和更严格的门禁、带 `asOf` 的适用范围过滤、审计事件、不泄漏存在性的文档读取、威胁模型、带适用范围用例的数据集 v3、已发布的报告 | ✅ 已完成 · `v0.1.0-alpha.2` |
-| **M3** 重排与回答 | 已完成：带降级的 cross-encoder 重排及公开结果；带引用校验与拒答的回答。接下来：提示注入测试文档、回答指标 | ⏳ 进行中 |
+| **M3** 重排与回答 | 带降级的 cross-encoder 重排及公开结果；带引用校验与拒答的回答、提示注入测试文档、回答指标及已发布的本地运行 | ✅ 已完成 |
 | **M4** 运维与发布 | trace 与 dashboard、故障与压力测试、v0.1 benchmark 报告 | 计划中 |
 
 第一阶段明确不做：知识图谱与 GraphRAG、自主 Agent、更多向量数据库、OCR 与多模态、模型微调、Kubernetes 与多云、低代码编排。详见 [docs/project/milestones.md](./docs/project/milestones.md)。
@@ -224,6 +224,7 @@ io.groundedaccess
 - [架构总览](./docs/architecture/overview.md)——信任边界、数据模型、入库与查询链路、故障行为
 - [授权模型](./docs/architecture/authorization.md)——不变量、决策表、编译后的 SQL、当前已验证的范围
 - [威胁模型](./docs/security/threat-model.md)——资产、参与者、滥用场景及其验证方式、残余风险
+- [回答分析](./docs/evaluation/m3-answers-analysis.md)——一次本地运行里，生成的回答哪些对了、哪些错了
 - [评测策略](./docs/evaluation/strategy.md)——用例格式、指标、CI 门禁、可复现规则
 - [架构决策记录](./docs/adr/)——模块化单体、PostgreSQL FTS + pgvector、检索时授权、Python 模型服务、`asOf` 的含义
 - [里程碑](./docs/project/milestones.md)与[待决问题](./docs/project/open-questions.md)

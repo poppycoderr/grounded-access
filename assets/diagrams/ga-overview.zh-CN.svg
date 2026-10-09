@@ -78,9 +78,9 @@
   <rect class="amber" x="318" y="389" width="404" height="62" rx="12"/>
   <text class="lbl-sm" x="334" y="414">corpus + ingestion</text>
   <text class="txt" x="334" y="434">任务队列 · 切分 · 版本 · 访问标签</text>
-  <rect class="dash" x="318" y="462" width="404" height="62" rx="12"/>
-  <text class="lbl-sm" x="334" y="487">answering · M3</text>
-  <text class="txt" x="334" y="507">引用 · 拒答</text>
+  <rect class="rose" x="318" y="462" width="404" height="62" rx="12"/>
+  <text class="lbl-sm" x="334" y="487">answering</text>
+  <text class="txt" x="334" y="507">上下文 · 引用校验 · 拒答</text>
   <rect class="card" x="800" y="170" width="280" height="84" rx="12"/>
   <text class="lbl-sm" x="816" y="195">PostgreSQL 17 + pgvector</text>
   <text class="txt" x="816" y="215">授权在检索查询内部执行</text>
@@ -91,8 +91,9 @@
   <text class="txt" x="816" y="353">在 CPU 上计算向量与重排</text>
   <path class="ln" d="M740 332 L798 332" marker-end="url(#ar)"/>
   <rect class="dash" x="800" y="410" width="280" height="84" rx="12"/>
-  <text class="lbl-sm" x="816" y="435">本地对话模型 · M3</text>
-  <text class="txt" x="816" y="455">可选，不需要 API key</text>
+  <text class="lbl-sm" x="816" y="435">对话模型 · 可选</text>
+  <text class="txt" x="816" y="455">任何兼容 OpenAI 接口的端点</text>
+  <text class="txt" x="816" y="473">只能看到已授权的证据</text>
   <path class="ln" d="M740 452 L798 452" marker-end="url(#ar)"/>
   <text class="foot" x="40" y="574">未授权的行不会离开 PostgreSQL  ·  标签变更对下一次查询生效  ·  每次评测都可复现</text>
 </svg>
