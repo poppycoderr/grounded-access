@@ -18,6 +18,7 @@ uv run --directory apps/model-service pytest        # model service
 uv run --directory packages/evaluation pytest       # evaluation CLI
 docker compose up -d                                # PostgreSQL + model service for local runs
 ./scripts/load-smoke                                # concurrent searches against the running stack, every result checked
+python3 scripts/check-links.py                      # relative links and heading anchors in every tracked Markdown file
 ```
 
 NullAway only runs on classes the compiler actually recompiles, and its checks on generic types depend on the javac version: an older JDK 21 update can pass a build that CI rejects. Before pushing, run `mvn -B -ntp clean verify` and also `docker compose build control-plane`, which compiles with the same JDK image as CI.
@@ -63,6 +64,7 @@ These rules come from the design. Changing one of them requires an ADR first.
 
 - Public docs under `docs/` and the READMEs are in English, precise and free of marketing language.
 - When behaviour, configuration or an API changes, update the matching doc in the same PR.
+- CI runs the commands of the README quick start as they are printed, and requires `README.md` and `README.zh-CN.md` to print the same commands. Change both together.
 
 <!-- shared-agent-rules:start v1 — keep this block identical (per language) in codesphere, codesphere-labs, domain-driven-kit and grounded-access -->
 ## Shared rules
