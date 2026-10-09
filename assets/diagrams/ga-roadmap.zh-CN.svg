@@ -84,13 +84,13 @@
   <text class="txt" x="686" y="288">回答指标、提示注入</text>
   <rect class="pill-ok" x="686" y="334" width="234" height="20" rx="10"/>
   <text class="pill-ok-t" x="803.0" y="348" text-anchor="middle">已完成 · v0.1.0-alpha.3</text>
-  <circle cx="900" cy="150" r="7" fill="#CBD5E1" stroke="#FBFCFE" stroke-width="3"/>
-  <rect class="dash" x="880" y="176" width="200" height="190" rx="12"/>
+  <circle cx="900" cy="150" r="7" fill="#10B981" stroke="#FBFCFE" stroke-width="3"/>
+  <rect class="card" x="880" y="176" width="200" height="190" rx="12"/>
   <text class="kicker" x="896" y="202">M4</text>
   <text class="lbl" x="896" y="226">运维与 v0.1</text>
   <text class="txt" x="896" y="250">OpenTelemetry trace</text>
   <text class="txt" x="896" y="269">故障与压力测试</text>
   <text class="txt" x="896" y="288">完整 benchmark、发布</text>
-  <rect class="pill-next" x="896" y="334" width="47" height="20" rx="10"/>
-  <text class="pill-next-t" x="919.5" y="348" text-anchor="middle">计划中</text>
+  <rect class="pill-ok" x="896" y="334" width="146" height="20" rx="10"/>
+  <text class="pill-ok-t" x="969.0" y="348" text-anchor="middle">已完成 · v0.1.0</text>
 </svg>

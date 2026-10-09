@@ -84,13 +84,13 @@
   <text class="txt" x="686" y="288">answer metrics, injection</text>
   <rect class="pill-ok" x="686" y="334" width="153" height="20" rx="10"/>
   <text class="pill-ok-t" x="762.5" y="348" text-anchor="middle">Done · v0.1.0-alpha.3</text>
-  <circle cx="900" cy="150" r="7" fill="#CBD5E1" stroke="#FBFCFE" stroke-width="3"/>
-  <rect class="dash" x="880" y="176" width="200" height="190" rx="12"/>
+  <circle cx="900" cy="150" r="7" fill="#10B981" stroke="#FBFCFE" stroke-width="3"/>
+  <rect class="card" x="880" y="176" width="200" height="190" rx="12"/>
   <text class="kicker" x="896" y="202">M4</text>
   <text class="lbl" x="896" y="226">Operations + v0.1</text>
   <text class="txt" x="896" y="250">OpenTelemetry traces</text>
   <text class="txt" x="896" y="269">failure and load tests</text>
   <text class="txt" x="896" y="288">full benchmark, release</text>
-  <rect class="pill-next" x="896" y="334" width="60" height="20" rx="10"/>
-  <text class="pill-next-t" x="926.0" y="348" text-anchor="middle">Planned</text>
+  <rect class="pill-ok" x="896" y="334" width="100" height="20" rx="10"/>
+  <text class="pill-ok-t" x="946.0" y="348" text-anchor="middle">Done · v0.1.0</text>
 </svg>
