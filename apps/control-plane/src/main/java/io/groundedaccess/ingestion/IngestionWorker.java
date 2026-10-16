@@ -4,9 +4,15 @@ import io.groundedaccess.telemetry.Failures;
 import io.groundedaccess.corpus.IngestionResult;
 import io.groundedaccess.corpus.IngestionService;
 import io.groundedaccess.corpus.SourceDocument;
+import io.groundedaccess.corpus.WriteFence;
+
+import jakarta.annotation.PreDestroy;
 
 import java.time.Duration;
-import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.Optional;
 
 import org.jspecify.annotations.Nullable;
@@ -18,11 +24,13 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 
 /**
- * Runs queued ingestion jobs one document at a time. Progress is recorded after every document, so a retry or a takeover resumes where the last
- * attempt stopped instead of starting over.
+ * Runs queued ingestion jobs one document at a time, so a retry or a takeover resumes where the last attempt stopped instead of starting over.
  *
- * <p>Delivery is at least once: a document written just before a worker dies is ingested again by the next attempt. That is safe because
- * ingestion is idempotent by content hash; the second pass counts it as unchanged.
+ * <p>
+ * Each document is committed in one transaction with the job's progress, and that transaction first checks that this worker still owns the
+ * job: the claimed attempt is current and its lease has not expired. A worker that lost the job, because it stalled until another worker took
+ * over or until the lease ran out, therefore writes nothing. While a job runs, its lease is renewed in the background, so a single slow document
+ * does not lose the job for a worker that is still alive.
  */
 @Component
 public class IngestionWorker {
@@ -35,10 +43,21 @@ public class IngestionWorker {
 
     private final IngestionWorkerProperties properties;
 
+    private final ScheduledExecutorService renewals = Executors.newSingleThreadScheduledExecutor(runnable -> {
+        Thread thread = new Thread(runnable, "ingestion-lease-renewal");
+        thread.setDaemon(true);
+        return thread;
+    });
+
     public IngestionWorker(IngestionJobStore store, IngestionService ingestion, IngestionWorkerProperties properties) {
         this.store = store;
         this.ingestion = ingestion;
         this.properties = properties;
+    }
+
+    @PreDestroy
+    void stopRenewals() {
+        renewals.shutdownNow();
     }
 
     /**
@@ -66,20 +85,59 @@ public class IngestionWorker {
     }
 
     private void run(IngestionJobStore.ClaimedJob job) {
+        long every = Math.max(1, properties.lease().toMillis() / 3);
+        ScheduledFuture<?> renewal = renewals.scheduleAtFixedRate(() -> renew(job), every, every, TimeUnit.MILLISECONDS);
         try {
             for (int ordinal = job.processed(); ordinal < job.documentCount(); ordinal++) {
                 SourceDocument document = store.document(job.id(), ordinal).orElseThrow(() -> new IllegalStateException("job document is missing"));
-                IngestionResult result = ingestion.ingest(job.tenantId(), List.of(document));
-                if (!store.recordProgress(job, result, properties.lease())) {
-                    log.warn("Ingestion job {} attempt {} lost its lease; the next claim resumes it", job.id(), job.attempt());
-                    return;
-                }
+                ingestion.ingest(job.tenantId(), document, fence(job));
             }
             if (store.finish(job, IngestionJobStatus.SUCCEEDED, null)) {
                 log.info("Ingestion job {} succeeded on attempt {}", job.id(), job.attempt());
             }
+        } catch (LeaseLostException e) {
+            log.warn("Ingestion job {} attempt {} lost its lease before writing; the next claim resumes it", job.id(), job.attempt());
         } catch (RuntimeException e) {
             fail(job, e);
+        } finally {
+            renewal.cancel(false);
+        }
+    }
+
+    private WriteFence fence(IngestionJobStore.ClaimedJob job) {
+        return new WriteFence() {
+
+            @Override
+            public void verify() {
+                if (!store.lockForCommit(job)) {
+                    throw new LeaseLostException();
+                }
+            }
+
+            @Override
+            public void record(IngestionResult result) {
+                if (!store.recordProgress(job, result, properties.lease())) {
+                    throw new IllegalStateException("the job row is locked by this transaction, so its progress must be recordable");
+                }
+            }
+        };
+    }
+
+    private void renew(IngestionJobStore.ClaimedJob job) {
+        try {
+            store.renewLease(job, properties.lease());
+        } catch (RuntimeException e) {
+            log.warn("Renewing the lease of ingestion job {} failed: {}", job.id(), Failures.describe(e));
+        }
+    }
+
+    /**
+     * The worker no longer owns the job, so it stops without touching the job or the corpus.
+     */
+    private static final class LeaseLostException extends RuntimeException {
+
+        LeaseLostException() {
+            super("the worker no longer owns the job", null, false, false);
         }
     }
 

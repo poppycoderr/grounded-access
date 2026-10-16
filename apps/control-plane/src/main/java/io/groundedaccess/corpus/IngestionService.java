@@ -9,7 +9,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -44,49 +46,62 @@ public class IngestionService {
     }
 
     public IngestionResult ingest(String tenantId, List<SourceDocument> documents) {
-        writer.ensureTenant(tenantId);
-        int created = 0;
-        int updated = 0;
-        int unchanged = 0;
-        int chunkCount = 0;
+        IngestionResult total = new IngestionResult(0, 0, 0, 0);
         for (SourceDocument source : documents) {
-            String normalized = DocumentChunker.normalize(source.content());
-            String sha = sha256(normalized);
-            Optional<CorpusWriter.ActiveVersion> active = writer.findActive(tenantId, source.key()).filter(a -> a.hasContent(sha, source.format()));
-            if (active.isPresent()) {
-                if (active.get().hasMetadata(source)) {
-                    unchanged++;
-                    continue;
-                }
-                Outcome relabelled = transactions.execute(status -> relabel(tenantId, source, sha));
-                if (relabelled == Outcome.UPDATED) {
-                    updated++;
-                    continue;
-                }
-                if (relabelled == Outcome.UNCHANGED) {
-                    unchanged++;
-                    continue;
-                }
+            IngestionResult one = ingest(tenantId, source, WriteFence.NONE);
+            total = new IngestionResult(total.created() + one.created(), total.updated() + one.updated(), total.unchanged() + one.unchanged(),
+                    total.chunks() + one.chunks());
+        }
+        return total;
+    }
+
+    /**
+     * Ingests one document. Chunking and embedding run outside any transaction; every outcome, including "unchanged", is then committed in
+     * one short transaction that starts with {@code fence.verify()} and ends with {@code fence.record(result)}, so the document and whatever
+     * the fence records change together or not at all.
+     */
+    public IngestionResult ingest(String tenantId, SourceDocument source, WriteFence fence) {
+        writer.ensureTenant(tenantId);
+        String normalized = DocumentChunker.normalize(source.content());
+        String sha = sha256(normalized);
+        Optional<CorpusWriter.ActiveVersion> active = writer.findActive(tenantId, source.key()).filter(a -> a.hasContent(sha, source.format()));
+        if (active.isPresent()) {
+            if (active.get().hasMetadata(source)) {
+                return commit(fence, () -> Outcome.UNCHANGED, 0).orElseThrow();
             }
-            List<ChunkDraft> chunks = chunker.chunk(normalized, source.format());
-            Embeddings vectors = embeddings.embed(chunks.stream()
-                    .map(chunk -> embeddingContext ? DocumentChunker.withContext(chunk.sectionPath(), chunk.content()) : chunk.content())
-                    .toList(), InputType.PASSAGE);
-            var version = new CorpusWriter.NewVersion(tenantId, source, sha, chunks, vectors.vectors(), vectors.modelId(),
-                    DocumentChunker.version(source.format(), embeddingContext));
-            Outcome outcome = transactions.execute(status -> write(version, sha));
-            if (outcome == Outcome.UNCHANGED) {
-                unchanged++;
-                continue;
-            }
-            chunkCount += chunks.size();
-            if (outcome == Outcome.UPDATED) {
-                updated++;
-            } else {
-                created++;
+            Optional<IngestionResult> relabelled = commit(fence, () -> relabel(tenantId, source, sha), 0);
+            if (relabelled.isPresent()) {
+                return relabelled.get();
             }
         }
-        return new IngestionResult(created, updated, unchanged, chunkCount);
+        List<ChunkDraft> chunks = chunker.chunk(normalized, source.format());
+        Embeddings vectors = embeddings.embed(chunks.stream()
+                .map(chunk -> embeddingContext ? DocumentChunker.withContext(chunk.sectionPath(), chunk.content()) : chunk.content())
+                .toList(), InputType.PASSAGE);
+        var version = new CorpusWriter.NewVersion(tenantId, source, sha, chunks, vectors.vectors(), vectors.modelId(),
+                DocumentChunker.version(source.format(), embeddingContext));
+        return commit(fence, () -> write(version, sha), chunks.size()).orElseThrow();
+    }
+
+    /**
+     * Runs one decision in a transaction between the fence's two calls. Returns nothing when the decision found that the content changed after
+     * the pre-check, which writes nothing; the caller then takes the full path.
+     */
+    private Optional<IngestionResult> commit(WriteFence fence, Supplier<Outcome> decision, int chunks) {
+        return Objects.requireNonNull(transactions.execute(status -> {
+            fence.verify();
+            Outcome outcome = decision.get();
+            if (outcome == Outcome.CONTENT_CHANGED) {
+                return Optional.<IngestionResult>empty();
+            }
+            IngestionResult result = switch (outcome) {
+                case CREATED -> new IngestionResult(1, 0, 0, chunks);
+                case UPDATED -> new IngestionResult(0, 1, 0, chunks);
+                case UNCHANGED, CONTENT_CHANGED -> new IngestionResult(0, 0, 1, 0);
+            };
+            fence.record(result);
+            return Optional.of(result);
+        }));
     }
 
     /**

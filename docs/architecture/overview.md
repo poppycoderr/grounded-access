@@ -133,14 +133,12 @@ sequenceDiagram
     W->>Q: claim: UPDATE … WHERE id = (SELECT … FOR UPDATE SKIP LOCKED), attempts + 1, lease
     loop each document from the resume point
         W->>W: normalize + chunk
-        alt content unchanged
-            W->>W: skip (no new version)
-        else changed
-            W->>MS: embed(chunk texts)
-            W->>DB: tx: lock document, insert version + chunks, flip active_version_id
+        opt content changed
+            W->>MS: embed(chunk texts), outside any transaction
         end
-        W->>Q: processed + 1, counts, renew lease
+        W->>DB: tx: lock job if this attempt still owns it, lock document, write version or relabel or nothing, processed + 1
     end
+    Note over W,Q: in the background, every third of the lease: renew the lease while it is still valid
     W->>Q: succeeded, or queued with backoff, or failed(error_code); drop job documents
     C->>API: GET /ingestion-jobs/{jobId} until succeeded | failed
 ```
@@ -149,9 +147,10 @@ sequenceDiagram
 - **Disable and delete** are a single status update on the document row, so they take effect on the next query: every retrieval query joins only the active version of an `active` document. The update takes the same row lock as ingestion, so it serialises with an ingestion of the same key; whichever commits last wins.
 - **Status and new content.** A new version never re-enables a `disabled` document: disabling is an administrator's decision, and a routine re-sync must not undo it. Ingesting a `deleted` key brings it back as a new document, even with identical content. Its version numbers continue from the last one ever written, so `key` + `version` always names the same content, which evaluation labels and citations rely on.
 - **Cleanup** runs every minute and removes versions no query can reach: versions replaced by a newer one, and all versions of deleted documents (chunks follow through the foreign-key cascade). It locks each document with the lock ingestion uses, skips documents an ingestion holds, and keeps the deleted document row as a tombstone. Retrieval correctness never depends on cleanup having run. Because replaced versions are removed, historical retrieval would need a retention period; see open question Q11.
-- **Claiming:** a worker takes the oldest runnable job with `FOR UPDATE SKIP LOCKED`, so several workers can poll without waiting on each other, and holds it under a lease that is renewed after every document. A job whose lease expired is claimed again; if that was its last attempt it is marked `failed` with `WORKER_LOST`. Every worker write checks the attempt number it claimed, so a worker that lost its lease cannot change the job.
+- **Claiming:** a worker takes the oldest runnable job with `FOR UPDATE SKIP LOCKED`, so several workers can poll without waiting on each other, and holds it under a lease. While the job runs, the lease is renewed in the background every third of its length, and only while it is still valid. A job whose lease expired is claimed again; if that was its last attempt it is marked `failed` with `WORKER_LOST`.
+- **A worker that lost its job writes nothing.** Each document is committed in one short transaction that first locks the job row, and only if the job is still `running` under the attempt this worker claimed and its lease has not expired; then it locks the document, writes, and records the job's progress. A worker that stalled until its lease ran out, or until another worker took over, fails that check before touching the corpus, whatever the document's state is by then. Locks are always taken job first, then document.
 - **Retries:** bounded (5 attempts by default), with exponential backoff. Only failures that can pass on their own are retried: the model service being unreachable or returning 5xx, and transient database errors. A 4xx from the model service or any other error fails the job at once. A job that runs out of attempts is marked `failed` with an `error_code`. That is the dead-letter state; there is no separate queue.
-- **Resume and delivery:** each attempt starts at the first document the previous attempt did not record, so documents already written are not embedded again. Delivery is at least once: a document written just before a worker dies is ingested again and, being unchanged, counted as `unchanged`.
+- **Resume and delivery:** each attempt starts at the first document the previous attempt did not record. A document and the job's progress are committed together, so a document is never written without its progress being recorded, and the next attempt never ingests it a second time. Embedding work done by an attempt that then loses its job is discarded.
 - **Submission is not deduplicated.** Submitting the same documents twice creates two jobs; the second finds every document unchanged. Each document is idempotent by content hash, so a client retry is harmless.
 - **Chunking** (`markdown/3`, `text/3`): Markdown is split on headings first, and chunks never cross a heading. Within a section, whole paragraphs are packed up to 180 words. A longer paragraph is packed sentence by sentence (list items count as sentences), and code blocks stay whole. When a section needs several chunks, each later chunk starts with up to 30 words of whole trailing sentences from the previous one, counted inside the 180. Plain text (`"format": "text"` on ingestion) has no headings or fences, only paragraphs. Every chunk is one contiguous span of the normalized text, so evidence spans map to chunks by offset.
 - **What is indexed.** A chunk is stored as it appears in the document, and its offsets point into the document. What is embedded and what keyword search covers is the chunk together with its heading path, for example `Project Borealis: Launch Runbook > Launch gates`. A passage often depends on its headings, and a question tends to use the heading's words. The reranker sees the chunk alone. All three are switches (`GA_EMBEDDING_CONTEXT`, `GA_SPARSE_CONTEXT`, `GA_RERANK_CONTEXT`); the defaults were chosen on the `dev` split ([comparison](../../benchmarks/reports/context-dev/README.md)). Release 3 chunks exactly as release 2 did; the number changed because the embedding input did, and switching embedding context off records `markdown/2` again. Changing it needs a fresh index.
