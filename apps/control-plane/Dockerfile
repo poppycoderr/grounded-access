@@ -9,6 +9,8 @@ COPY apps/control-plane/src apps/control-plane/src
 RUN --mount=type=cache,target=/root/.m2 mvn -B -ntp -q package -DskipTests -Dspotless.check.skip=true && cp apps/control-plane/target/control-plane-*.jar /app.jar
 
 FROM eclipse-temurin:21-jre
+# The base image is rebuilt less often than Ubuntu publishes security fixes, so packages are upgraded at build time
+RUN apt-get update && apt-get -y upgrade && rm -rf /var/lib/apt/lists/*
 RUN useradd --system --uid 10001 app
 USER app
 COPY --from=build /app.jar /app/app.jar
