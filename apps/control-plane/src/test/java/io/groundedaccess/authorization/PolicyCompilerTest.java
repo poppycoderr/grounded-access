@@ -55,14 +55,4 @@ class PolicyCompilerTest {
         assertThat(TextArrays.literal(Set.of("a,b", "c\"d", "e\\f", "{g}"))).isEqualTo("{\"a,b\",\"c\\\"d\",\"e\\\\f\",\"{g}\"}");
         assertThat(TextArrays.literal(Set.of())).isEqualTo("{}");
     }
-
-    @Test
-    void labelFingerprintsIgnoreOrderAndMatchTheMigrationBackfillForUnrestrictedLabels() {
-        var labels = new AccessLabels(Classification.INTERNAL, Set.of("support", "engineering"), Set.of("atlas"));
-
-        assertThat(labels.sha256()).isEqualTo(new AccessLabels(Classification.INTERNAL, Set.of("engineering", "support"), Set.of("atlas")).sha256())
-                .isNotEqualTo(new AccessLabels(Classification.INTERNAL, Set.of("engineering"), Set.of("atlas", "support")).sha256())
-                .isNotEqualTo(new AccessLabels(Classification.CONFIDENTIAL, Set.of("support", "engineering"), Set.of("atlas")).sha256());
-        assertThat(AccessLabels.UNRESTRICTED.sha256()).isEqualTo("ad39a9fa770b8c62bc04e6378fb1fa23c6e5faf0a721e24696d2efe3fcf555b0");
-    }
 }

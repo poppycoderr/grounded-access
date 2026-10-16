@@ -10,6 +10,11 @@ Notable changes per release. Versions before `v0.1.0` are pre-releases. Before `
 - On the test split the change shows **no detectable difference** in any strategy (for example `hybrid-rrf` MRR@10 +0.04 [−0.01, +0.10]). It was chosen on the `dev` split and is kept as the default because the test split shows no harm. The case that motivated it is still not retrieved ([analysis](./docs/evaluation/heading-context-analysis.md)).
 - New configuration: `GA_EMBEDDING_CONTEXT`, `GA_SPARSE_CONTEXT`, `GA_RERANK_CONTEXT`.
 
+### Fixed
+
+- **Label and scope changes could be missed.** Whether a submission changed a document's labels or scope was decided by comparing fingerprints of a delimited encoding, and two different department sets could encode alike. A label change that narrowed access could then be taken as "unchanged". Metadata is now compared field by field, sets as sets; the fingerprint columns are dropped (migration V10, no version changes). Label and region values with control characters are rejected ([ADR-0006](./docs/adr/0006-what-a-document-version-is.md)).
+- **A title or source link change was ignored.** It now creates a new version that keeps the existing embeddings. An empty source link is the same as none.
+
 ### Evaluation
 
 - `ga-eval compare <before> <after>` pairs two runs case by case and lists the cases whose rank changed.
