@@ -15,7 +15,7 @@ from pathlib import Path
 from ga_eval import metrics, stats, tokens
 from ga_eval.bm25 import Bm25Index, Chunk
 from ga_eval.client import ApiClient
-from ga_eval.dataset import Dataset
+from ga_eval.dataset import Dataset, digest
 from ga_eval.metrics import Result
 
 SYSTEM_STRATEGIES = ["sparse-only", "dense-only", "hybrid-rrf", "hybrid-rrf-rerank"]
@@ -29,8 +29,17 @@ COMPARED_METRICS = ["recall@10", "mrr@10", "ndcg@10"]
 ATTEMPTS = 3
 
 
+# The meaning of the per-case metrics. A run records it, and a comparison of runs that measured different things is refused.
+METRICS_VERSION = "1"
+
+
 class DegradedRunError(RuntimeError):
-    """The system answered without part of its plan (for example without the dense channel), so the result does not measure the strategy."""
+    """The system answered without part of its plan (for example without the dense channel) too often, so the result does not measure the
+    strategy. `output` holds what was measured until then, marked invalid, so that the evidence can be kept."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.output: dict | None = None
 
 
 class VisibilityMismatchError(RuntimeError):
@@ -78,6 +87,39 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
     repeated = 0
     reference_headings: set[bool] = set()
     plans: dict[str, dict[str, dict]] = {}
+
+    def assemble(status: str, reason: str | None = None) -> dict:
+        return {
+            "run": {
+                "status": status,
+                "invalid_reason": reason,
+                "dataset_version": dataset.version,
+                "dataset_digest": digest(dataset),
+                "metrics_version": METRICS_VERSION,
+                "git_sha": _git_sha(dataset.root),
+                "created_at": datetime.now(UTC).isoformat(timespec="seconds"),
+                "strategies": strategies,
+                "reference_strategies": [s for s in strategies if s == REFERENCE],
+                "k": k,
+                "splits": sorted(splits),
+                "case_count": len(cases),
+                "policy_versions": sorted(policy_versions),
+                "chunker_versions": chunker_versions,
+                "plans": plans,
+                "repeated_degraded_requests": repeated,
+                "reference_indexes_headings": sorted(reference_headings),
+                "visibility_check": visibility_check,
+                "platform": platform.platform(),
+                "cpu": cpu_model(),
+                "bootstrap": {"samples": stats.SAMPLES, "seed": stats.SEED, "confidence": 0.95},
+                "summary": {split: summarize([r for r in records if r["split"] == split], strategies) for split in sorted(splits)},
+                "comparisons": compare([r for r in records if r["split"] == "test"], strategies),
+                "security_violations": sum(len(r["violations"]) for r in records) + sum(len(v["violations"]) for v in visibility_check.values()),
+                "scope_failures": sum(len(r["scope_failures"]) for r in records),
+            },
+            "cases": records,
+        }
+
     for case in cases:
         token = tokens_by_principal[case.principal]
         spans = [dataset.span(e) for e in case.evidence]
@@ -107,51 +149,37 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
                 ranked = references[scope].search(case.query, k)
                 results = [Result(c.document, c.version, c.start, c.end, rank) for rank, (c, _) in enumerate(ranked, start=1)]
             else:
+                # Every response is checked before anything else is decided about it. A degraded response is repeated rather than scored,
+                # but one that returned something the principal may not see, or something out of scope, is kept as the case's result:
+                # a later clean answer must not hide it.
+                degraded_attempts = 0
                 for attempt in range(1, ATTEMPTS + 1):
                     started = time.perf_counter()
                     response = client.search(token, case.query, strategy, k, as_of, case.region)
                     latency_ms = (time.perf_counter() - started) * 1000
-                    if not response["degraded"]:
+                    policy_versions.add(response["policyVersion"])
+                    plans.setdefault(strategy, {})[response["planHash"]] = response["plan"]
+                    results = [Result(r["documentKey"], r["versionNo"], r["charStart"], r["charEnd"], r["rank"]) for r in response["results"]]
+                    record = _record(case, strategy, results, spans, dataset.visibility[case.principal], dataset.current_version)
+                    if record["violations"] or record["scope_failures"] or not response["degraded"]:
                         break
                     if attempt == ATTEMPTS:
-                        raise DegradedRunError(
+                        invalid = DegradedRunError(
                             f"case {case.id} · {strategy} was answered degraded ({', '.join(response['degraded'])}) "
                             f"{ATTEMPTS} times in a row; the run is invalid"
                         )
+                        invalid.output = assemble("invalid", str(invalid))
+                        raise invalid
+                    degraded_attempts += 1
                     repeated += 1
-                policy_versions.add(response["policyVersion"])
-                plans.setdefault(strategy, {})[response["planHash"]] = response["plan"]
-                results = [Result(r["documentKey"], r["versionNo"], r["charStart"], r["charEnd"], r["rank"]) for r in response["results"]]
-            record = _record(case, strategy, results, spans, dataset.visibility[case.principal], dataset.current_version)
-            if strategy != REFERENCE:
+                if response["degraded"]:
+                    record["degraded"] = response["degraded"]
+                record["degraded_attempts"] = degraded_attempts
                 record["latency_ms"] = round(latency_ms, 1)
-            records.append(record)
-    return {
-        "run": {
-            "dataset_version": dataset.version,
-            "git_sha": _git_sha(dataset.root),
-            "created_at": datetime.now(UTC).isoformat(timespec="seconds"),
-            "strategies": strategies,
-            "reference_strategies": [s for s in strategies if s == REFERENCE],
-            "k": k,
-            "splits": sorted(splits),
-            "case_count": len(cases),
-            "policy_versions": sorted(policy_versions),
-            "chunker_versions": chunker_versions,
-            "plans": plans,
-            "repeated_degraded_requests": repeated,
-            "reference_indexes_headings": sorted(reference_headings),
-            "visibility_check": visibility_check,
-            "platform": platform.platform(),
-            "cpu": cpu_model(),
-            "bootstrap": {"samples": stats.SAMPLES, "seed": stats.SEED, "confidence": 0.95},
-            "summary": {split: summarize([r for r in records if r["split"] == split], strategies) for split in sorted(splits)},
-            "comparisons": compare([r for r in records if r["split"] == "test"], strategies),
-            "security_violations": sum(len(r["violations"]) for r in records) + sum(len(v["violations"]) for v in visibility_check.values()),
-            "scope_failures": sum(len(r["scope_failures"]) for r in records),
-        },
-        "cases": records,
-    }
+                records.append(record)
+                continue
+            records.append(_record(case, strategy, results, spans, dataset.visibility[case.principal], dataset.current_version))
+    return assemble("complete")
 
 
 def cpu_model() -> str:
@@ -284,6 +312,8 @@ def render(output: dict) -> str:
             "This happens when a model call exceeds its timeout on a busy machine.",
             "",
         ]
+    if run_info.get("status") == "invalid":
+        lines += [f"**This run is invalid and incomplete:** {run_info.get('invalid_reason')}. It is kept as evidence, not as a result.", ""]
     if REFERENCE in strategies:
         lines += [
             f"`{REFERENCE}` is not a system configuration: it is Okapi BM25 computed offline over the same authorized chunks"

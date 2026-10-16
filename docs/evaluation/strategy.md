@@ -88,7 +88,7 @@ Reference row, which is not a system configuration: `bm25-reference`. It shows h
 - Tokens are lowercased, English stopwords are removed and words are Snowball-stemmed. This approximates PostgreSQL's `english` configuration; it does not reproduce it exactly.
 - Ties keep corpus order (document key, version, ordinal), the same rule the SQL channels use.
 
-Every configuration is a serialized `RetrievalPlan`. `run.json` stores each strategy's plan and hash, and the report prints the hashes. A response marked `degraded` (for example hybrid answered without the dense channel) is never scored, because it does not measure the strategy it is filed under. The request is sent again, up to three times in all: on a busy machine one rerank call can exceed its timeout. Three degraded answers in a row abort the run. `run.json` records how many requests were repeated (`repeated_degraded_requests`), and the report says so when the number is not zero.
+Every configuration is a serialized `RetrievalPlan`. `run.json` stores each strategy's plan and hash, and the report prints the hashes. Every response the evaluator receives is checked for security violations and scope failures before anything else is decided about it. A response marked `degraded` (for example hybrid answered without the dense channel) does not measure the strategy it is filed under, so a clean degraded response is not scored: the request is sent again, up to three times in all, because on a busy machine one rerank call can exceed its timeout. A degraded response that returned something the principal may not see, or something outside the request's scope, is not retried away: it becomes the case's result and fails the gate. Three clean degraded answers in a row make the run invalid. The results measured until then are still written, with `status: invalid` and the reason in `run.json`, and the report says so. `run.json` records how many requests were repeated (`repeated_degraded_requests`), and each case record how many of its attempts were degraded.
 
 ## 4. Metrics
 
@@ -128,7 +128,7 @@ These are string and span comparisons. They do not judge whether a statement is 
 
 Each run writes `results/<run-id>/`:
 
-- `run.json` — dataset version, git SHA, `RetrievalPlan` and its hash, `policy_version`, `chunker_version`, embedding and reranker model with revision, hardware, date, seed, warmup count;
+- `run.json` — `status` (`complete` or `invalid`, with the reason), dataset version and `dataset_digest` (a SHA-256 over the cases, visibility labels, principals, manifests and corpus files), `metrics_version`, the evaluator's git SHA, each strategy's `RetrievalPlan` and hash, policy and chunker versions, repeated requests, CPU, platform, date and bootstrap seed. It does not record the embedding or reranker revision, the server's own commit or a warmup; there is no warmup. The git SHA is that of the checkout the evaluator ran from, which is the server's commit only when both come from the same checkout, as in CI;
 - `cases.jsonl` — per-case ranks, metrics and any degraded flags;
 - `report.md` — rendered from the two files above, never edited by hand.
 
@@ -137,6 +137,10 @@ Each run writes `results/<run-id>/`:
 Published runs are produced by the CI runner (Linux x86_64). Keyword and BM25 rankings are bit-identical across machines; dense rankings can swap near-tied candidates between CPUs because ONNX Runtime uses different vector kernels. Across architectures that can move a case; between hosted x86_64 runners it has only reordered near-ties without changing a metric. `run.json` records the CPU model. `benchmarks/README.md` records the observed size of that effect.
 
 Rules: no case is removed after a failure, all configurations are published rather than just the best one, and every number in the README links to a committed or released report. Runs on the demo corpus are labelled "demo benchmark" and make no claim about production quality.
+
+### Comparing two runs
+
+`ga-eval compare <before> <after>` pairs the same strategy on the same cases across two runs. What an experiment changes may differ between the runs: the index, the chunker, the models, the retrieval plans. What must not differ is checked, and the comparison is refused otherwise: the dataset version, the `dataset_digest` and `metrics_version` when both runs record them, `k`, and the set of cases of each strategy in the split. A case recorded twice, a case present in one run only, an empty split, and a run that is invalid or failed its security or scope gate are all refused. `--allow-subset` compares only the shared cases, lists the others and marks the result as a subset, which is not a full result. A run made before `dataset_digest` and `metrics_version` were recorded is compared and named as legacy in the output; the missing values are not assumed.
 
 ## 7. CI
 
