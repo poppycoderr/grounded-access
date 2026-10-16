@@ -180,10 +180,10 @@ Evidence is labelled as a **document version plus a quote**, not a chunk id, so 
 
 | Capability | Today | Planned |
 |---|---|---|
-| Authorization in the retrieval query | Tenant, clearance, department and project rules compiled once per request into the SQL of every channel; region and validity scope compiled separately; both property-tested against a reference evaluator | A uniform "no answer" on the answering path (M3) |
+| Authorization in the retrieval query | Tenant, clearance, department and project rules compiled once per request into the SQL of every channel; region and validity scope compiled separately; both property-tested against a reference evaluator | – |
 | Retrieval | `sparse-only` (PostgreSQL FTS), `dense-only` (exact pgvector), `hybrid-rrf` (reciprocal rank fusion with overlap deduplication) and `hybrid-rrf-rerank` (a cross-encoder over the top fused candidates, falling back to the fused order); every response carries a plan hash | – |
 | Ingestion | Asynchronous jobs (`202` + poll) with a `SKIP LOCKED` worker, bounded retry and resume; content-hash versioning; Markdown and plain-text chunking with sentence-level splitting and overlap; disable and delete apply to the next query, with background cleanup | – |
-| Evaluation | 128 cases over 35 labelled documents: paraphrases, hard negatives, 31 authorization negatives, 13 scope cases and 6 prompt-injection cases; a BM25 reference row, bootstrap intervals and paired comparisons; a security gate in CI that checks every returned chunk and every principal's full listing | Answer metrics: citation validity, abstention (M3) |
+| Evaluation | 128 cases over 35 labelled documents: paraphrases, hard negatives, 31 authorization negatives, 13 scope cases and 6 prompt-injection cases; a BM25 reference row, bootstrap intervals and paired comparisons; a security gate in CI that checks every returned chunk and every principal's full listing | A check that each statement is supported by the passage it cites (after v0.1) |
 | Answers | `/api/v1/query`: statements that cite authorized evidence, a refusal when the evidence does not answer, or evidence alone when no chat model is configured. Generation is optional and uses any OpenAI-compatible endpoint. Answer metrics come from local runs that name their model | A check that each statement is supported by the passage it cites (after v0.1) |
 | Operations | Docker Compose, CI on every PR; one OpenTelemetry trace per request with an attribute allow-list enforced at export, JSON logs with trace ids and no exception messages, an `observability` compose profile with a Grafana dashboard, audit events and execution records written synchronously and failing closed; failure tests over the real HTTP clients and a concurrent load smoke test in CI; secret, vulnerability and license scans with an SBOM per image | – |
 
@@ -238,7 +238,7 @@ Not in the first phase: knowledge graphs or GraphRAG, autonomous agents, extra v
 - [Heading context analysis](./docs/evaluation/heading-context-analysis.md) — an indexing change after v0.1 that shows no detectable gain, and why
 - [Answer analysis](./docs/evaluation/m3-answers-analysis.md) — what generated answers got right and wrong in a local run
 - [Evaluation strategy](./docs/evaluation/strategy.md) — case schema, metrics, CI gates, reproducibility rules
-- [Architecture decisions](./docs/adr/) — modular monolith, PostgreSQL FTS + pgvector, retrieval-time authorization, the Python model service, what `asOf` means
+- [Architecture decisions](./docs/adr/) — modular monolith, PostgreSQL FTS + pgvector, retrieval-time authorization, the Python model service, what `asOf` means, what a document version is
 - [v0.1 benchmark report](./benchmarks/reports/v0.1.md) — every measurement in one place, with ten failure cases read one by one
 - [Known limitations](./docs/project/known-limitations.md) — what v0.1 does not do, does badly, or was measured to get wrong
 - [Milestones](./docs/project/milestones.md), [release checklist](./docs/project/release-checklist.md) and [open questions](./docs/project/open-questions.md)

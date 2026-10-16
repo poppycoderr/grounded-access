@@ -1,6 +1,6 @@
 # ADR-0003: Enforce authorization at candidate retrieval time
 
-- Status: Proposed
+- Status: Accepted (implemented in M0–M4, released in v0.1.0)
 - Date: 2026-09-18
 
 ## Context
@@ -14,7 +14,7 @@ Many RAG systems retrieve top-k first and filter unauthorized results in the app
 
 - A pure policy compiler turns the verified principal into one parameterized SQL predicate. The sparse and dense queries both embed that same predicate object.
 - Only `AuthorizedChunkQuery` may query the `chunk` table, and an architecture test enforces this.
-- Downstream stages accept only `AuthorizedCandidate`, a type that only the retrieval package can construct.
+- Downstream stages accept only `AuthorizedCandidate`, a type that only the retrieval package can construct. (Implemented differently: downstream stages receive `RetrievedChunk` rows from `RetrievalService`, which only returns rows the predicate admitted. That is a calling convention, not a type guarantee; see the architecture overview.)
 - The rules are those in the decision table in [authorization.md](../architecture/authorization.md). Authorization filters and scope filters are kept apart.
 - Policies are code with versioned tests. There is no external policy engine in v0.1.
 - A document that is not visible looks the same as one that does not exist: 404, `no_answer`, no filtered counts.
