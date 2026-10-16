@@ -1,5 +1,6 @@
 """Evaluation dataset: manifests, documents, cases and visibility labels, plus validation against the corpus text."""
 
+import hashlib
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -208,3 +209,19 @@ def validate(dataset: Dataset) -> list[str]:
         tenant = dataset.principals.get(principal, {}).get("tenant_id")
         problems += [f"visibility {principal}: {doc} belongs to another tenant" for doc in sorted(docs) if dataset.tenant_of.get(doc) != tenant]
     return problems
+
+
+def digest(dataset: Dataset) -> str:
+    """A SHA-256 over every file that decides what a case expects: the cases and visibility labels of this dataset version, the principals,
+    the manifests and every corpus file they name. Two runs with the same digest were scored against the same labels and the same texts."""
+    files = [
+        *sorted((dataset.root / "eval" / dataset.version).glob("*")),
+        dataset.root / "principals.yaml",
+        *sorted((dataset.root / "manifests").glob("*.yaml")),
+        *sorted({dataset.root / v.file for m in dataset.manifests for d in m.documents for v in d.versions()}),
+    ]
+    combined = hashlib.sha256()
+    for path in files:
+        if path.is_file():
+            combined.update(f"{path.relative_to(dataset.root).as_posix()}\0{hashlib.sha256(path.read_bytes()).hexdigest()}\n".encode())
+    return combined.hexdigest()

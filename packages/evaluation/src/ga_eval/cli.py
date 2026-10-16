@@ -40,6 +40,9 @@ def main(argv: list[str] | None = None) -> int:
     compare_parser.add_argument("after", type=Path)
     compare_parser.add_argument("--split", choices=["dev", "test"], default="test")
     compare_parser.add_argument("--out", type=Path, help="write comparison.json and comparison.md into this directory")
+    compare_parser.add_argument(
+        "--allow-subset", action="store_true", help="compare only the cases both runs have, list the others, and mark the result as a subset"
+    )
     demo_parser = commands.add_parser("demo", help="a guided tour: identities, hidden documents, answers, traces")
     demo_parser.add_argument("--pause", action="store_true", help="wait for Enter between the steps")
     search_parser = commands.add_parser("search", help="search as a demo principal and print the ranked results")
@@ -54,7 +57,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "compare":
         try:
-            comparison = between.compare(args.before, args.after, args.split)
+            comparison = between.compare(args.before, args.after, args.split, allow_subset=args.allow_subset)
         except between.IncomparableRunsError as incomparable:
             print(f"error: {incomparable}", file=sys.stderr)
             return 1
@@ -89,25 +92,38 @@ def main(argv: list[str] | None = None) -> int:
         return _search(dataset, client, args.principal, args.query, args.strategy, args.k)
     if _validate(dataset) != 0:
         return 1
+    out_dir = args.out or Path("results") / datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     try:
         output = runner.run(
             dataset, client, args.strategy or [*runner.SYSTEM_STRATEGIES, runner.REFERENCE], args.k, set(args.split or ["dev", "test"])
         )
-    except (runner.MixedChunkerError, runner.ReloadedCorpusError, runner.DegradedRunError, runner.VisibilityMismatchError) as invalid:
+    except runner.DegradedRunError as invalid:
+        # What was measured before the run became invalid is kept: it may hold the evidence of what went wrong.
+        print(f"error: {invalid}", file=sys.stderr)
+        if invalid.output is None:
+            return 1
+        runner.write(invalid.output, out_dir)
+        print(f"partial results of the invalid run: {out_dir}", file=sys.stderr)
+        return _gate_exit(invalid.output["run"], 1)
+    except (runner.MixedChunkerError, runner.ReloadedCorpusError, runner.VisibilityMismatchError) as invalid:
         print(f"error: {invalid}", file=sys.stderr)
         return 1
-    out_dir = args.out or Path("results") / datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     runner.write(output, out_dir)
     print((out_dir / "report.md").read_text())
-    violations = output["run"]["security_violations"]
+    return _gate_exit(output["run"], 0)
+
+
+def _gate_exit(run: dict, otherwise: int) -> int:
+    """The exit code of a run that produced results: 2 for any security violation, 3 for any scope failure, `otherwise` if neither."""
+    violations = run["security_violations"]
     if violations:
         print(f"SECURITY GATE FAILED: {violations} unauthorized results", file=sys.stderr)
         return 2
-    scope_failures = output["run"]["scope_failures"]
+    scope_failures = run["scope_failures"]
     if scope_failures:
         print(f"SCOPE CHECK FAILED: {scope_failures} results outside the scope of their request", file=sys.stderr)
         return 3
-    return 0
+    return otherwise
 
 
 def _validate(dataset: ds.Dataset) -> int:
@@ -186,10 +202,7 @@ def _answers(dataset: ds.Dataset, client: ApiClient, args: argparse.Namespace) -
     out_dir = args.out or Path("results") / ("answers-" + datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ"))
     answers.write(output, out_dir)
     print((out_dir / "answers-report.md").read_text())
-    if output["run"]["security_violations"]:
-        print(f"SECURITY GATE FAILED: {output['run']['security_violations']} unauthorized evidence items", file=sys.stderr)
-        return 2
-    return 0
+    return _gate_exit(output["run"], 0)
 
 
 def _document(dataset: ds.Dataset, document: ds.ManifestDocument, version: ds.ManifestVersion) -> dict:

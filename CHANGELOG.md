@@ -18,6 +18,10 @@ Notable changes per release. Versions before `v0.1.0` are pre-releases. Before `
 
 ### Evaluation
 
+- **Fixed:** a degraded response was retried before it was checked, so an unauthorized result in a retried response was not counted. Every response is now checked first; a violation or scope failure in any attempt fails the gate.
+- **Fixed:** `ga-eval answers` exited with 0 when there were scope failures. It now exits with 3, as `ga-eval run` does.
+- An invalid run (three degraded answers in a row) writes what it measured, marked invalid, before failing.
+- New runs record `dataset_digest` and `metrics_version`. `ga-eval compare` refuses runs that cover different cases, record a case twice, use a different `k`, labels or metric version, or failed a gate; `--allow-subset` compares the shared cases and says so.
 - `ga-eval compare <before> <after>` pairs two runs case by case and lists the cases whose rank changed.
 - The BM25 reference row indexes heading paths when the keyword channel does.
 
