@@ -25,6 +25,10 @@ Notable changes per release. Versions before `v0.1.0` are pre-releases. Before `
 - `ga-eval compare <before> <after>` pairs two runs case by case and lists the cases whose rank changed.
 - The BM25 reference row indexes heading paths when the keyword channel does.
 
+### Documentation
+
+- Corrected statements that did not match the code: ADR-0001 to 0004 are accepted, the model-service contract is the generated `.openapi.json`, `answering` receives `RetrievedChunk` rows by convention rather than a restricted type, the architecture tests are described by what they check, the query flow is sequential, and CI gates security and scope but no quality metric.
+
 ## v0.1.0
 
 Milestone M4: operations and release. The first release that is not a pre-release. It is a reference system and has not been hardened for production; read the [known limitations](./docs/project/known-limitations.md) first.

@@ -36,7 +36,7 @@ Trust boundaries:
 
 ## 3. Control-plane modules
 
-v0.1 is one Maven module with package boundaries checked by architecture tests (ADR-0001).
+v0.1 is one Maven module (ADR-0001). Some package boundaries are checked by architecture tests; the rules below say which.
 
 ```text
 io.groundedaccess
@@ -55,9 +55,11 @@ io.groundedaccess
 Dependency rules, enforced by tests:
 
 - `authorization` depends only on `identity` types and has no Spring web dependencies.
-- `retrieval` gets its predicate from `authorization`. Any query against `chunk` must go through `AuthorizedChunkQuery`, and a test checks that no other class references the chunk table.
-- `answering` receives `AuthorizedCandidate` objects only. They cannot be built outside `retrieval`.
-- No module other than `modelclient` knows the model-service wire format.
+- `authorization` does not depend on web, retrieval or persistence classes. Tested.
+- `retrieval` gets its predicate from `authorization`. Any query against `chunk` must go through `AuthorizedChunkQuery`. A test searches the main source for SQL that reads from or joins the `chunk` table outside that class and outside the writer. It is a regression guard on the code as written, not a proof: it does not see SQL assembled from fragments, schema-qualified names or SQL in resource files.
+- Controllers do not touch the database. Tested.
+- No module other than `modelclient` knows the model-service wire format. Tested.
+- `answering` receives `RetrievedChunk` rows from `RetrievalService`, which only returns rows the predicate admitted. That is a calling convention, not a type guarantee: `RetrievedChunk` is a public record, and nothing prevents other code from constructing one.
 
 ## 4. Data model
 
@@ -174,17 +176,14 @@ sequenceDiagram
     C->>API: POST /query {query, asOf?, plan?}
     API->>AZ: principal from verified JWT
     AZ-->>R: compiled predicate + policy_version
-    par sparse
-        R->>DB: FTS with predicate, top k_s
-    and dense
-        R->>MS: embed(query)
-        R->>DB: vector search with predicate, top k_d
-    end
+    R->>DB: FTS with predicate, top k_s
+    R->>MS: embed(query)
+    R->>DB: vector search with predicate, top k_d
     R->>R: RRF fuse, dedupe overlapping chunks
     opt rerank enabled
         R->>MS: rerank(query, top N authorized texts)
     end
-    R-->>A: AuthorizedCandidate list
+    R-->>A: RetrievedChunk list (rows the predicate admitted)
     A->>A: build context within token budget, assign S1..Sn
     opt generation configured
         A->>L: prompt (evidence as data), structured output

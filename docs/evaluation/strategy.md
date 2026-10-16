@@ -95,7 +95,7 @@ Every configuration is a serialized `RetrievalPlan`. `run.json` stores each stra
 | Layer | Metrics | Gate in CI? |
 |---|---|---|
 | Security | unauthorized candidates, unauthorized citations, cross-tenant candidates | **yes, must be 0** |
-| Retrieval | Recall@5, Recall@10, MRR@10, nDCG@10 | yes, no regression beyond threshold on the CI subset |
+| Retrieval | Recall@5, Recall@10, MRR@10, nDCG@10 | no. Reported with intervals; a change is compared with `ga-eval compare` and reviewed. There is no automated quality threshold: with 70 test cases and runner-dependent near-ties, no fixed threshold would separate a regression from noise |
 | Hard negatives | rank of the first tempting wrong document; how often it ranks above the first correct evidence | reported |
 | Rerank | paired metric difference against `hybrid-rrf` and `dense-only`; p50 and p95 request latency per strategy, measured by the evaluation client on the machine named in the report | reported |
 | Context | gold evidence coverage, duplicate ratio, context tokens | reported |
@@ -144,5 +144,5 @@ Rules: no case is removed after a failure, all configurations are published rath
 
 ## 7. CI
 
-- **Every PR:** schema validation of the dataset, a deterministic retrieval eval on a small fixed subset (precomputed corpus embeddings; the CPU model-service container embeds queries), and the security gate on every authorization case.
+- **Every PR:** schema validation of the dataset, then the README quick start against the full stack: the demo corpus is embedded by the real model service and all 128 cases are evaluated on every strategy, with the security gate (exit code 2) and the scope check (exit code 3). A concurrent load smoke test checks every result again. No quality metric gates the build.
 - **Local only:** answer metrics, with `ga-eval answers` against a control plane that has a chat model configured. CI has no chat model. It tests the deterministic parts of the answering path (context building, citation validation, refusal) with a scripted model, and the scoring functions with fabricated responses.

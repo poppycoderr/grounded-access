@@ -1,6 +1,6 @@
 # ADR-0001: Modular monolith first
 
-- Status: Proposed
+- Status: Accepted (implemented in M0–M4, released in v0.1.0)
 - Date: 2026-09-18
 
 ## Context

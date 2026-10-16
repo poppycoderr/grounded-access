@@ -180,10 +180,10 @@ curl -s localhost:8080/api/v1/retrieval/search -H "Authorization: Bearer $TOKEN"
 
 | 能力 | 当前可用 | 计划中 |
 |---|---|---|
-| 检索查询内的授权 | 租户、密级、部门、项目四条规则，每次请求编译一次，写进每条通道的 SQL；region 与有效期作为适用范围单独编译；两者都用基于属性的测试对照参考实现验证 | 回答链路上一致的「无法回答」（M3） |
+| 检索查询内的授权 | 租户、密级、部门、项目四条规则，每次请求编译一次，写进每条通道的 SQL；region 与有效期作为适用范围单独编译；两者都用基于属性的测试对照参考实现验证 | – |
 | 检索 | `sparse-only`（PostgreSQL FTS）、`dense-only`（pgvector 精确检索）、`hybrid-rrf`（RRF 融合并去除重叠 chunk）与 `hybrid-rrf-rerank`（用 cross-encoder 重排融合后的前若干候选，失败时退回融合顺序）；每个响应带检索配置哈希 | – |
 | 入库 | 异步任务（`202` + 轮询），`SKIP LOCKED` worker、有限重试与断点续跑；内容哈希版本管理；Markdown 与纯文本切分，按句拆分长段落并带重叠；停用与删除对下一次查询生效，后台清理 | – |
-| 评测 | 35 篇带标签的文档、128 条用例：改写、hard negatives、31 条授权负例、13 条适用范围用例与 6 条提示注入用例；BM25 参考行、bootstrap 置信区间与配对比较；CI 安全门禁逐个检查返回的 chunk 和每个身份的完整可见列表 | 回答指标：引用有效性、拒答（M3） |
+| 评测 | 35 篇带标签的文档、128 条用例：改写、hard negatives、31 条授权负例、13 条适用范围用例与 6 条提示注入用例；BM25 参考行、bootstrap 置信区间与配对比较；CI 安全门禁逐个检查返回的 chunk 和每个身份的完整可见列表 | 检查每句话是否被它引用的段落支持（v0.1 之后） |
 | 回答 | `/api/v1/query`：每句话都引用已授权证据的回答；证据不足以回答时拒答；没有配置对话模型时只返回证据。生成是可选的，支持任何兼容 OpenAI 接口的端点。回答指标来自注明了模型的本地运行 | 检查每句话是否被它引用的段落支持（v0.1 之后） |
 | 运维 | Docker Compose、每个 PR 的 CI；每个请求一条 OpenTelemetry trace，属性白名单在导出时强制执行；带 trace id、不含异常消息的 JSON 日志；带 Grafana dashboard 的 `observability` compose profile；审计事件与执行记录同步写入，写失败则拒绝请求；基于真实 HTTP 客户端的故障测试，以及 CI 里的并发压力冒烟测试；密钥、漏洞与许可证扫描，每个镜像一份 SBOM | – |
 
@@ -238,7 +238,7 @@ io.groundedaccess
 - [标题上下文分析](./docs/evaluation/heading-context-analysis.md)——v0.1 之后的一次索引改动：没有测出可检测的提升，以及原因
 - [回答分析](./docs/evaluation/m3-answers-analysis.md)——一次本地运行里，生成的回答哪些对了、哪些错了
 - [评测策略](./docs/evaluation/strategy.md)——用例格式、指标、CI 门禁、可复现规则
-- [架构决策记录](./docs/adr/)——模块化单体、PostgreSQL FTS + pgvector、检索时授权、Python 模型服务、`asOf` 的含义
+- [架构决策记录](./docs/adr/)——模块化单体、PostgreSQL FTS + pgvector、检索时授权、Python 模型服务、`asOf` 的含义、文档版本的定义
 - [v0.1 benchmark 报告](./benchmarks/reports/v0.1.md)——所有测量结果汇总，以及十个逐条分析的失败案例
 - [已知限制](./docs/project/known-limitations.md)——v0.1 不做的、做得不好的，以及测出来有问题的地方
 - [里程碑](./docs/project/milestones.md)、[发布清单](./docs/project/release-checklist.md)与[待决问题](./docs/project/open-questions.md)

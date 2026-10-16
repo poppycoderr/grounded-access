@@ -1,6 +1,6 @@
 # ADR-0004: One Python model service for embeddings and reranking
 
-- Status: Proposed
+- Status: Accepted (implemented in M0–M4, released in v0.1.0)
 - Date: 2026-09-18
 
 ## Context
@@ -15,9 +15,9 @@ Dense retrieval needs embeddings at ingestion time and at query time. The projec
   - `GET /v1/models` — loaded models, revisions, dimensions, max input length
 - It runs on CPU, with model weights baked into the image at build time. It never downloads anything at runtime.
 - Candidate models, to be confirmed at M0 after checking licenses and measuring CPU latency: a small English embedding model (about 384 dimensions) and a base-size cross-encoder. The eval `run.json` records each model's name and revision.
-- Contract: OpenAPI in `packages/contracts/model-service.yaml`, with contract tests on both sides. Each request carries `traceparent` and `x-request-id`. The service has no identities, no tenant IDs and no database access, and only receives text the control plane has already authorized.
+- Contract: OpenAPI in `packages/contracts/model-service.openapi.json`, generated from the service and checked in CI. Each request carries `traceparent` and `x-request-id`. The service has no identities, no tenant IDs and no database access, and only receives text the control plane has already authorized.
 - Only **one active embedding model** per deployment in v0.1. Changing it means a full re-index. `document_version.embedding_model` records which model produced each vector.
-- The demo corpus ships **precomputed embeddings** keyed by `(content hash, chunker_version, model@revision)`. The service still embeds queries.
+- Precomputed embeddings for the demo corpus were planned and then deferred: the corpus embeds in seconds, so a cache would add a moving part without saving time.
 
 ## Consequences
 
