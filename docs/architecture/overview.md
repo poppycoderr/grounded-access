@@ -73,14 +73,14 @@ document(
 
 document_version(
   id, document_id, tenant_id, version_no,
-  content_sha256,                          -- idempotency key together with labels hash
+  content_sha256,                          -- with format, decides whether content changed
   title, source_uri,
   classification,                          -- public | internal | confidential | restricted
   allowed_departments text[],              -- empty = no department restriction
   required_projects  text[],               -- empty = no project restriction
   applies_to_regions text[],               -- scope, NOT authorization
   valid_from, valid_to,                    -- scope, NOT authorization
-  labels_sha256, chunker_version, embedding_model,
+  chunker_version, embedding_model,
   created_at)
 
 chunk(
@@ -156,6 +156,7 @@ sequenceDiagram
 - **Chunking** (`markdown/3`, `text/3`): Markdown is split on headings first, and chunks never cross a heading. Within a section, whole paragraphs are packed up to 180 words. A longer paragraph is packed sentence by sentence (list items count as sentences), and code blocks stay whole. When a section needs several chunks, each later chunk starts with up to 30 words of whole trailing sentences from the previous one, counted inside the 180. Plain text (`"format": "text"` on ingestion) has no headings or fences, only paragraphs. Every chunk is one contiguous span of the normalized text, so evidence spans map to chunks by offset.
 - **What is indexed.** A chunk is stored as it appears in the document, and its offsets point into the document. What is embedded and what keyword search covers is the chunk together with its heading path, for example `Project Borealis: Launch Runbook > Launch gates`. A passage often depends on its headings, and a question tends to use the heading's words. The reranker sees the chunk alone. All three are switches (`GA_EMBEDDING_CONTEXT`, `GA_SPARSE_CONTEXT`, `GA_RERANK_CONTEXT`); the defaults were chosen on the `dev` split ([comparison](../../benchmarks/reports/context-dev/README.md)). Release 3 chunks exactly as release 2 did; the number changed because the embedding input did, and switching embedding context off records `markdown/2` again. Changing it needs a fresh index.
 - **Format and idempotency:** a submission is unchanged only when both its content hash and its format match the active version. The same text sent in another format is chunked differently, so it becomes a new version.
+- **What counts as a change.** A submission is compared with the active version field by field: content hash and format, then title, source link, classification, departments, projects, regions and validity window. Sets are compared as sets, so order does not matter, and no encoding of the values is involved. Changed content takes the full path: chunk, embed, new version. Anything else that changed (labels, scope, title or source link) creates a new version that takes over the existing chunks without calling the model service. An empty source link is the same as none. Validity bounds are compared at microsecond precision, which is what PostgreSQL stores. Label and region values must not be blank or contain control characters; the API and the ingestion code both reject them. What a version is, and what creates one, is decided in ADR-0006.
 - **Chunker releases re-index explicitly:** a new chunker release does not re-chunk existing documents on the next ingestion, because that would give unchanged content a new version number and break evaluation labels that name `key` + `version`. As with a new embedding model (ADR-0004), the corpus is re-indexed with a fresh load. `document_version.chunker_version` records which chunking produced each version, and the evaluation refuses to run on a corpus that mixes chunker releases.
 - **Precomputed embeddings:** deferred. The demo corpus embeds in seconds, so a cache would add a moving part without saving time (see milestones).
 

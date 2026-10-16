@@ -193,9 +193,8 @@ class AuthorizationPropertyIT {
         try (Connection connection = DATA_SOURCE.getConnection();
                 PreparedStatement version = connection.prepareStatement("""
                         insert into document_version (id, document_id, tenant_id, version_no, content_sha256, title, format, chunker_version,
-                            embedding_model, classification, allowed_departments, required_projects, labels_sha256, applies_to_regions, valid_from,
-                            valid_to, scope_sha256)
-                        values (?, ?, ?, 1, 'sha', 'title', 'markdown', 'markdown/2', 'model', ?, ?, ?, 'labels', ?, ?, ?, 'scope')
+                            embedding_model, classification, allowed_departments, required_projects, applies_to_regions, valid_from, valid_to)
+                        values (?, ?, ?, 1, 'sha', 'title', 'markdown', 'markdown/2', 'model', ?, ?, ?, ?, ?, ?)
                         """)) {
             List<UUID[]> ids = new ArrayList<>();
             for (int i = 0; i < corpus.size(); i++) {

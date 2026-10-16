@@ -52,19 +52,24 @@ public record IngestDocumentRequest(
 
         @Nullable
         @Size(max = 50)
-        List<@NotBlank @Size(max = 100) String> allowedDepartments,
+        List<@NotBlank @Size(max = 100) @Pattern(regexp = PLAIN, message = PLAIN_MESSAGE) String> allowedDepartments,
 
         @Nullable
         @Size(max = 50)
-        List<@NotBlank @Size(max = 100) String> requiredProjects,
+        List<@NotBlank @Size(max = 100) @Pattern(regexp = PLAIN, message = PLAIN_MESSAGE) String> requiredProjects,
 
         @Nullable
         @Size(max = 50)
-        List<@NotBlank @Size(max = 50) String> appliesToRegions,
+        List<@NotBlank @Size(max = 50) @Pattern(regexp = PLAIN, message = PLAIN_MESSAGE) String> appliesToRegions,
 
         @Nullable Instant validFrom,
 
         @Nullable Instant validTo) {
+
+    /** Label and region values: anything but control characters. */
+    static final String PLAIN = "\\P{Cntrl}+";
+
+    static final String PLAIN_MESSAGE = "must not contain control characters";
 
     @JsonIgnore
     @AssertTrue(message = "validFrom must be before validTo")
