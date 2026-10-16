@@ -160,6 +160,38 @@ class IngestionJobStore {
     }
 
     /**
+     * Locks the job row for the rest of the transaction if this worker still owns the job: the job is running, under the attempt this worker
+     * claimed, and the lease has not expired. Called first in the transaction that writes a document, so a worker that lost the job writes
+     * nothing, and no other worker can claim or finish the job until the document is committed. Jobs are always locked before documents.
+     */
+    boolean lockForCommit(ClaimedJob job) {
+        return jdbc.sql("""
+                        select 1 from ingestion_job
+                        where id = :id and status = 'running' and attempts = :attempt and lease_expires_at > clock_timestamp()
+                        for no key update
+                        """)
+                .param("id", job.id())
+                .param("attempt", job.attempt())
+                .query(Integer.class)
+                .optional()
+                .isPresent();
+    }
+
+    /**
+     * Extends a lease that is still valid. A lease that has already expired is not revived: another worker may have claimed the job.
+     */
+    boolean renewLease(ClaimedJob job, Duration lease) {
+        return jdbc.sql("""
+                        update ingestion_job set lease_expires_at = now() + make_interval(secs => :lease)
+                        where id = :id and status = 'running' and attempts = :attempt and lease_expires_at > clock_timestamp()
+                        """)
+                .param("lease", seconds(lease))
+                .param("id", job.id())
+                .param("attempt", job.attempt())
+                .update() == 1;
+    }
+
+    /**
      * Adds one processed document to the job's counts and renews the lease. Returns false if this worker no longer owns the job.
      */
     boolean recordProgress(ClaimedJob job, IngestionResult result, Duration lease) {

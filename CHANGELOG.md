@@ -14,6 +14,7 @@ Notable changes per release. Versions before `v0.1.0` are pre-releases. Before `
 
 - **Label and scope changes could be missed.** Whether a submission changed a document's labels or scope was decided by comparing fingerprints of a delimited encoding, and two different department sets could encode alike. A label change that narrowed access could then be taken as "unchanged". Metadata is now compared field by field, sets as sets; the fingerprint columns are dropped (migration V10, no version changes). Label and region values with control characters are rejected ([ADR-0006](./docs/adr/0006-what-a-document-version-is.md)).
 - **A title or source link change was ignored.** It now creates a new version that keeps the existing embeddings. An empty source link is the same as none.
+- **A worker that lost its job could still write.** A worker held up until its lease expired, or until another worker took the job over, could still write the document it was working on, for example an older text over a newer one. Each document is now committed in one transaction with the job's progress, after checking that the worker still owns the job, and leases are renewed in the background while a job runs.
 
 ### Evaluation
 
