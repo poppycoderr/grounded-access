@@ -21,7 +21,7 @@ A rebuilt model service, a changed `GA_EMBEDDING_CONTEXT` or a new chunker relea
 | | What it identifies | Where it lives | What changes it |
 |---|---|---|---|
 | **Document version** | what a document says and who may read it | `document_version.version_no` ([ADR-0006](./0006-what-a-document-version-is.md)) | content or metadata |
-| **Index profile** | how the stored chunks and vectors were made | new table `index_profile`, referenced by every version | model, revision, query prefix, embedding context, chunker release |
+| **Index profile** | how the stored chunks and vectors were made | new table `index_profile`, referenced by every version | model, revision, query prefix, embedding context, chunker release and chunk size |
 | **Retrieval plan** | how one query is run against the index | `query_execution.plan` and `plan_hash` | the request and the server defaults |
 
 They do not stand in for each other. A new profile does not create a document version, a new version does not change the profile, and the plan hash does not include the profile. The execution record names both the plan and the profile.
@@ -33,7 +33,7 @@ They do not stand in for each other. A new profile does not create a document ve
 - vector dimensions;
 - query prefix, and passage prefix (empty for every model so far);
 - whether chunks are embedded with their heading path (`GA_EMBEDDING_CONTEXT`);
-- chunker release, which includes text normalization.
+- chunker release, which includes text normalization, and the chunk size settings (maximum words per chunk and overlap words).
 
 The full-text index is not in the profile. It is a generated column, so a migration rebuilds it for every row at once (V9 did), and stored rows cannot disagree with it.
 
@@ -41,7 +41,7 @@ A profile is stored once and referenced by `document_version.index_profile_id`. 
 
 ### The expected profile
 
-The control plane builds the profile it expects from two sources: the model service's `/v1/models` (name, revision, dimensions, query prefix) and its own configuration (embedding context, chunker release). The model name it is configured with must equal the name the service reports.
+The control plane builds the profile it expects from two sources: the model service (name, revision, dimensions, query and passage prefix) and its own configuration (embedding context, chunker release, chunk size). The model name it is configured with must equal the name the service reports.
 
 **The index is compatible** when every active version references a profile equal to the expected one. An empty corpus is compatible with any profile; its first ingestion records the profile.
 
@@ -58,6 +58,7 @@ An embedding response is accepted only if:
 
 - the model name is the expected one, and the revision is the expected one and not `unknown`;
 - the dimensions are the profile's and the vector column's;
+- the prefix it reports having applied is the profile's query or passage prefix (the response contract gains this field);
 - there is exactly one vector per input text, each with that many values;
 - every value is finite and no vector is all zeros, because a cosine distance with such a vector is not a number.
 
@@ -82,6 +83,7 @@ A migration creates profiles from what each existing version recorded:
 - name and revision from `embedding_model` (`name@revision`);
 - dimensions from the vector column (384);
 - embedding context from the chunker release: release 3 is the context release, and the code that wrote these rows set it only with context on;
+- chunk size from the defaults, 180 and 30 words, which have not changed since overlap was introduced (`b34cfee`) and were never exposed as environment variables;
 - query prefix from the model name, using the table the model service has used since it was written (`b8ba65a`), which has not changed. This is what the code that wrote the vectors did, not a guess.
 
 A version whose revision was recorded as `unknown` gets a profile with that revision. It never equals an expected profile, so the control plane refuses to start against it and asks for a rebuild. No data is deleted.
@@ -98,4 +100,4 @@ Rebuilding an index next to the live one and switching to it atomically, with a 
 - Changing the pinned revision is a profile change. The pull request that does it must also say how the index is rebuilt.
 - The evaluation can record the profile of the index it measured; the run manifest (R8) uses it.
 - Rolling the migration back drops the table and the column. No other data changes.
-- Tests to add: the same name with a different revision, the same revision with a different context or chunker release, mixed revisions across batches, wrong dimensions, a wrong vector count, non-finite values, a zero vector, a service replaced while running, startup with the service down, and existing rows with a known and an `unknown` revision.
+- Tests to add: the same name with a different revision, the same revision with a different context, chunker release or chunk size, mixed revisions across batches, wrong dimensions, a wrong vector count, non-finite values, a zero vector, a service replaced while running, startup with the service down, and existing rows with a known and an `unknown` revision.
