@@ -18,11 +18,11 @@ This file lists only decisions that the maintainer has to make. Each one has a r
 | Q7 | Identity: demo JWT for v0.1, with the trust boundary documented | OIDC is the first item of any real pilot; see the known limitations |
 | Q9 | No runtime dependency on Domain Driven Kit; conventions only | Architecture rules are plain ArchUnit tests in this repository |
 | Q10 | No demo UI in v0.1 | `./scripts/demo` and the Grafana dashboard cover the demo |
+| Q13 | An index is identified by a persisted index profile (model name and exact revision, dimensions, query and passage prefix, embedding context, chunker release), separate from a document's version and from a query's plan; checked at startup and on every model response ([ADR-0007](../adr/0007-what-identifies-an-index.md)) | Two indexes made differently put vectors in different spaces, and search would return wrong neighbours without an error. Building a new index next to the live one and switching to it is a later decision |
 
 ## Open for v0.2
 
 | # | Question | Recommendation | Impact if changed |
 |---|---|---|---|
 | Q12 | A second retrieval backend (for example Elasticsearch) as a comparison? | Not before the PostgreSQL baseline is measured at a larger scale. First write a backend capability contract: authorization and scope predicates pushed into the query, exact-vector baseline, stable candidate ids, model revision, version and deletion visibility, and refusal to serve a strategy it cannot filter safely. A backend that cannot enforce the predicate must fail to start rather than fall back to filtering in the application. Near-real-time indexing makes revocation consistency the hard part. | A new ADR, an evaluation dimension, operational scope |
-| Q13 | What identifies an index? | A persisted index profile (model name and exact revision, dimensions, query prefix, embedding context, chunker release), checked at startup and on every model response, separate from a document's business version and from a query's retrieval plan. Needs an ADR before code. | Re-index rules, startup behaviour when the model service changes |
 | Q14 | How are very long sentences and code blocks handled? | Today a chunk can exceed the model service's input limit and the document then fails to ingest. Either split such text at a hard limit with stable offsets, or reject it with a clear error when the job is submitted. A chunker change needs a dev-split decision and a test-split measurement. | Chunker version, ingestion errors |
