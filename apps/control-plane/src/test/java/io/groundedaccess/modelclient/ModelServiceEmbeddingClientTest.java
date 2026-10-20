@@ -31,6 +31,14 @@ class ModelServiceEmbeddingClientTest {
     /** The response to each request, given the number of texts in it and the request's position, starting at 0. */
     private volatile BiFunction<Integer, Integer, String> answer = (texts, call) -> response("m", "r1", "\"\"", 2, String.join(",", Collections.nCopies(texts, "[0.6,0.8]")));
 
+    private volatile int status = 200;
+
+    /** The tokenize response, given the texts of the request. */
+    private volatile java.util.function.Function<List<String>, String> tokenized = texts -> "{\"max_tokens\":512,\"fitting_chars\":"
+            + texts.stream().map(t -> Integer.toString(t.length())).toList() + "}";
+
+    private final List<String> tokenizeRequests = new CopyOnWriteArrayList<>();
+
     private HttpServer server;
 
     @BeforeEach
@@ -41,6 +49,16 @@ class ModelServiceEmbeddingClientTest {
             requests.add(exchange.getRequestHeaders().getFirst("Upgrade") + "|" + body);
             int texts = body.substring(body.indexOf("\"texts\":[")).split("\",\"", -1).length;
             byte[] response = answer.apply(texts, requests.size() - 1).getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(status, response.length);
+            exchange.getResponseBody().write(response);
+            exchange.close();
+        });
+        server.createContext("/v1/tokenize", exchange -> {
+            String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            tokenizeRequests.add(body);
+            List<String> texts = List.of(body.substring(body.indexOf("[\"") + 2, body.indexOf("\"]")).split("\",\"", -1));
+            byte[] response = tokenized.apply(texts).getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().add("Content-Type", "application/json");
             exchange.sendResponseHeaders(200, response.length);
             exchange.getResponseBody().write(response);
@@ -113,5 +131,36 @@ class ModelServiceEmbeddingClientTest {
             assertThatThrownBy(() -> client().embed(List.of("a", "b", "c"), InputType.PASSAGE)).isInstanceOf(InvalidModelResponseException.class)
                     .hasMessageContaining("the batches of one call came from");
         }
+    }
+
+    @Test
+    void aTextRefusedAsTooLongIsNamedAsSuchAndOtherRefusalsAreNot() {
+        status = 422;
+        answer = (texts, call) -> "{\"code\":\"TEXT_TOO_LONG\",\"message\":\"text 0 has 600 tokens; the model accepts at most 512 per text\"}";
+
+        assertThatThrownBy(() -> client().embed(List.of("a"), InputType.QUERY)).isInstanceOf(TextTooLongException.class)
+                .hasMessageContaining("text 0 has 600 tokens; the model accepts at most 512 per text");
+
+        answer = (texts, call) -> "{\"code\":\"MODEL_MISMATCH\",\"message\":\"requested m, loaded n\"}";
+        assertThatThrownBy(() -> client().embed(List.of("a"), InputType.QUERY)).isInstanceOf(org.springframework.web.client.HttpClientErrorException.class);
+    }
+
+    @Test
+    void asksHowMuchOfEachTextFitsTheBudgetInBatches() {
+        tokenized = texts -> "{\"max_tokens\":512,\"fitting_chars\":" + texts.stream().map(t -> Integer.toString(t.length() - 1)).toList() + "}";
+
+        assertThat(client().fittingChars(List.of("aa", "bbb", "cccc"), 384)).containsExactly(1, 2, 3);
+        assertThat(tokenizeRequests).containsExactly("{\"texts\":[\"aa\",\"bbb\"],\"budget\":384}", "{\"texts\":[\"cccc\"],\"budget\":384}");
+    }
+
+    @Test
+    void refusesFittingLengthsThatDoNotMatchTheTexts() {
+        tokenized = texts -> "{\"max_tokens\":512,\"fitting_chars\":[1]}";
+        assertThatThrownBy(() -> client().fittingChars(List.of("aa", "bb"), 384)).isInstanceOf(InvalidModelResponseException.class)
+                .hasMessageContaining("expected 2 fitting lengths, got 1");
+
+        tokenized = texts -> "{\"max_tokens\":512,\"fitting_chars\":[3]}";
+        assertThatThrownBy(() -> client().fittingChars(List.of("aa"), 384)).isInstanceOf(InvalidModelResponseException.class)
+                .hasMessageContaining("outside its text");
     }
 }

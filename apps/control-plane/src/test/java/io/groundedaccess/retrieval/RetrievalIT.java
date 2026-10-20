@@ -156,14 +156,14 @@ class RetrievalIT {
 
         search("alice", "northstar", "query", "paid volunteer days", "sparse-only")
                 .andExpect(jsonPath("$.results[0].sectionPath").value(""))
-                .andExpect(jsonPath("$.results[0].chunkerVersion").value("text/3"));
+                .andExpect(jsonPath("$.results[0].chunkerVersion").value("text/4"));
 
         // The same text in another format is chunked differently, so it is a new version rather than unchanged.
         ingest("northstar", "volunteer-faq", faq, "markdown").andExpect(jsonPath("$.updated").value(1));
         ingest("northstar", "volunteer-faq", faq, "markdown").andExpect(jsonPath("$.unchanged").value(1));
         mvc.perform(get("/api/v1/retrieval/chunks").header("Authorization", "Bearer " + DemoTokens.token("eval", "northstar", "query debug")))
                 .andExpect(jsonPath("$.chunks[0].sectionPath").value("Volunteer FAQ"))
-                .andExpect(jsonPath("$.chunks[0].chunkerVersion").value("markdown/3"));
+                .andExpect(jsonPath("$.chunks[0].chunkerVersion").value("markdown/4"));
     }
 
     @Test

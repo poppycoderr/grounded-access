@@ -267,6 +267,11 @@
             "title": "Model",
             "type": "string"
           },
+          "query_truncated": {
+            "description": "The query was cut so that it fits together with the longest passage in the reranker's token limit; passages are never cut.",
+            "title": "Query Truncated",
+            "type": "boolean"
+          },
           "revision": {
             "title": "Revision",
             "type": "string"
@@ -283,9 +288,79 @@
         "required": [
           "model",
           "revision",
+          "query_truncated",
           "scores"
         ],
         "title": "RerankResponse",
+        "type": "object"
+      },
+      "TokenizeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "budget": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Token budget for fitting_chars; special tokens included.",
+            "title": "Budget"
+          },
+          "texts": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Texts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "texts"
+        ],
+        "title": "TokenizeRequest",
+        "type": "object"
+      },
+      "TokenizeResponse": {
+        "properties": {
+          "counts": {
+            "description": "Tokens per text as a passage, the larger count of the two tokenizers.",
+            "items": {
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "array"
+          },
+          "fitting_chars": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Leading characters of each text that fit in the budget under both tokenizers; present when a budget is given.",
+            "title": "Fitting Chars"
+          },
+          "max_tokens": {
+            "description": "The smaller of the two models' input limits, special tokens included.",
+            "title": "Max Tokens",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "max_tokens",
+          "counts"
+        ],
+        "title": "TokenizeResponse",
         "type": "object"
       }
     }
@@ -411,6 +486,45 @@
           }
         },
         "summary": "Rerank"
+      }
+    },
+    "/v1/tokenize": {
+      "post": {
+        "description": "Token counts as passages under both models' tokenizers, so the control plane can make chunks that fit both. No text, token or\nvector is returned.",
+        "operationId": "tokenize_v1_tokenize_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenizeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenizeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Tokenize"
       }
     }
   }

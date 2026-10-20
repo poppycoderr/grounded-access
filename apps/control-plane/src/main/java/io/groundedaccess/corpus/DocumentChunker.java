@@ -1,24 +1,40 @@
 package io.groundedaccess.corpus;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * Splits normalized text into chunks that never cross a Markdown heading. Whole paragraphs of one section are packed together up to
- * {@code maxWords}; a paragraph longer than that is packed sentence by sentence (list items count as sentences) and code blocks stay whole. When a section needs several chunks, each chunk after
- * the first starts with up to {@code overlapWords} of whole sentences from the end of the previous one, so a fact stated across the boundary is
- * still found in one chunk. The overlap counts towards {@code maxWords}. A single sentence longer than the limit stays whole.
+ * {@code maxWords}; a paragraph longer than that is packed sentence by sentence (list items count as sentences) and code blocks stay whole. When a
+ * section needs several chunks, each chunk after the first starts with up to {@code overlapWords} of whole sentences from the end of the previous
+ * one, so a fact stated across the boundary is still found in one chunk. The overlap counts towards {@code maxWords}.
  *
- * <p>Every chunk is one contiguous span of the normalized text, overlap included, so evaluation can map evidence quotes to chunks by offsets.
+ * <p>
+ * Release 4 bounds every chunk (ADR-0009). A sentence, code block or space-free run longer than {@link #MAX_CHARS} is cut at its last line
+ * break, else its last whitespace, else at the limit, and no chunk packs more than that many characters. {@link #fit} then splits, the same way,
+ * every chunk whose embedding input exceeds the models' token budget. Pieces cut from one oversized span do not overlap each other.
+ *
+ * <p>
+ * Every chunk is one contiguous span of the normalized text, overlap included, so evaluation can map evidence quotes to chunks by offsets.
  */
 public final class DocumentChunker {
 
-    private static final String RELEASE = "2";
+    private static final String RELEASE = "4";
 
-    /** Chunks as in release 2, embedded together with their heading path. */
-    private static final String CONTEXT_RELEASE = "3";
+    /** No chunk is longer than this, before any token is counted. */
+    public static final int MAX_CHARS = 2_000;
+
+    /** Tokens of an embedding input, special tokens included; the rest of the models' 512 is the reranker's room for a query. */
+    public static final int MAX_TOKENS = 384;
+
+    /** Characters of the heading path that are embedded with a chunk; outer headings are dropped first. */
+    public static final int HEADING_MAX_CHARS = 200;
+
+    private static final String SEPARATOR = " > ";
 
     private static final Pattern HEADING = Pattern.compile("^(#{1,6})\\s+(.+?)\\s*#*\\s*$");
 
@@ -38,17 +54,18 @@ public final class DocumentChunker {
     }
 
     /**
-     * The version recorded with every document version, so evaluation results say which chunking and which embedding input produced them.
+     * The version recorded with every document version, so evaluation results say which chunking produced them. Whether chunks were embedded
+     * with their heading path is part of the index profile.
      */
-    public static String version(DocumentFormat format, boolean embeddedWithContext) {
-        return format.column() + "/" + release(embeddedWithContext);
+    public static String version(DocumentFormat format) {
+        return format.column() + "/" + RELEASE;
     }
 
     /**
      * The release part of {@link #version}, the same for every format; part of the index profile.
      */
-    static String release(boolean embeddedWithContext) {
-        return embeddedWithContext ? CONTEXT_RELEASE : RELEASE;
+    static String release() {
+        return RELEASE;
     }
 
     int maxWords() {
@@ -65,7 +82,115 @@ public final class DocumentChunker {
      * offsets do not change; only the text handed to the embedding model does.
      */
     public static String withContext(String sectionPath, String content) {
-        return sectionPath.isEmpty() ? content : sectionPath + "\n\n" + content;
+        String path = embeddedPath(sectionPath);
+        return path.isEmpty() ? content : path + "\n\n" + content;
+    }
+
+    /**
+     * The heading path as it is embedded: at most {@link #HEADING_MAX_CHARS} characters, keeping the innermost headings, which say most about
+     * the chunk. A single heading longer than that is cut. The stored path is not changed.
+     */
+    static String embeddedPath(String sectionPath) {
+        List<String> headings = new ArrayList<>(List.of(sectionPath.split(SEPARATOR, -1)));
+        while (headings.size() > 1 && String.join(SEPARATOR, headings).length() > HEADING_MAX_CHARS) {
+            headings.removeFirst();
+        }
+        String path = String.join(SEPARATOR, headings);
+        return path.length() > HEADING_MAX_CHARS ? path.substring(0, HEADING_MAX_CHARS) : path;
+    }
+
+    /**
+     * The fitting prefix, in characters, of each text within a token budget, as the models' tokenizers count it.
+     */
+    @FunctionalInterface
+    public interface TokenFitter {
+
+        List<Integer> fittingChars(List<String> texts, int budget);
+    }
+
+    /**
+     * Splits every chunk whose embedding input does not fit {@link #MAX_TOKENS} where its fitting prefix ends, at the last line break, else the
+     * last whitespace, and checks the remainder again. Tokenizers are deterministic, so the same document always gets the same chunks.
+     */
+    public static List<ChunkDraft> fit(List<ChunkDraft> chunks, String text, boolean embeddingContext, TokenFitter fitter) {
+        List<ChunkDraft> done = new ArrayList<>();
+        List<ChunkDraft> pending = chunks;
+        Map<ChunkDraft, List<ChunkDraft>> replaced = new IdentityHashMap<>();
+        while (!pending.isEmpty()) {
+            List<String> inputs = pending.stream().map(c -> embeddingContext ? withContext(c.sectionPath(), c.content()) : c.content()).toList();
+            List<Integer> fitting = fitter.fittingChars(inputs, MAX_TOKENS);
+            List<ChunkDraft> next = new ArrayList<>();
+            for (int i = 0; i < pending.size(); i++) {
+                ChunkDraft chunk = pending.get(i);
+                String input = inputs.get(i);
+                int fits = fitting.get(i);
+                if (fits >= input.length()) {
+                    continue;
+                }
+                int prefix = input.length() - chunk.content().length();
+                int cut = cut(text, chunk.charStart(), chunk.charStart() + Math.max(1, fits - prefix));
+                int rest = skipWhitespace(text, cut, chunk.charEnd());
+                ChunkDraft head = draft(chunk.ordinal(), chunk.sectionPath(), text, chunk.charStart(), trimEnd(text, chunk.charStart(), cut));
+                next.add(head);
+                if (rest < chunk.charEnd()) {
+                    ChunkDraft tail = draft(chunk.ordinal(), chunk.sectionPath(), text, rest, chunk.charEnd());
+                    replaced.put(chunk, List.of(head, tail));
+                    next.add(tail);
+                } else {
+                    replaced.put(chunk, List.of(head));
+                }
+            }
+            pending = next;
+        }
+        for (ChunkDraft chunk : chunks) {
+            expand(chunk, replaced, done);
+        }
+        List<ChunkDraft> numbered = new ArrayList<>(done.size());
+        for (ChunkDraft chunk : done) {
+            numbered.add(new ChunkDraft(numbered.size(), chunk.sectionPath(), chunk.charStart(), chunk.charEnd(), chunk.content(), chunk.tokenCount()));
+        }
+        return numbered;
+    }
+
+    private static void expand(ChunkDraft chunk, Map<ChunkDraft, List<ChunkDraft>> replaced, List<ChunkDraft> into) {
+        List<ChunkDraft> parts = replaced.get(chunk);
+        if (parts == null) {
+            into.add(chunk);
+        } else {
+            parts.forEach(part -> expand(part, replaced, into));
+        }
+    }
+
+    /**
+     * Where to cut a span that must end at or before {@code limit}: after its last line break, else at its last whitespace, else at the limit.
+     */
+    private static int cut(String text, int start, int limit) {
+        int newline = text.lastIndexOf('\n', limit - 1);
+        if (newline > start) {
+            return newline + 1;
+        }
+        for (int i = limit - 1; i > start; i--) {
+            if (Character.isWhitespace(text.charAt(i))) {
+                return i;
+            }
+        }
+        return limit;
+    }
+
+    private static int skipWhitespace(String text, int from, int end) {
+        int position = from;
+        while (position < end && Character.isWhitespace(text.charAt(position))) {
+            position++;
+        }
+        return position;
+    }
+
+    private static int trimEnd(String text, int start, int end) {
+        int position = end;
+        while (position > start + 1 && Character.isWhitespace(text.charAt(position - 1))) {
+            position--;
+        }
+        return position;
     }
 
     public static String normalize(String text) {
@@ -117,14 +242,21 @@ public final class DocumentChunker {
     }
 
     /**
-     * A span of the normalized text. {@code atomic} spans, paragraphs containing a code fence, are never split into sentences.
+     * A span of the normalized text. {@code atomic} spans, paragraphs containing a code fence, are never split into sentences. {@code cut} spans
+     * are pieces of a span longer than {@link #MAX_CHARS}; no chunk overlaps into one.
      */
     private record Span(
             int start,
 
             int end,
 
-            boolean atomic) {
+            boolean atomic,
+
+            boolean cut) {
+
+        Span(int start, int end, boolean atomic) {
+            this(start, end, atomic, false);
+        }
     }
 
     private static int close(List<Span> paragraphs, int start, int end, String text, boolean atomic) {
@@ -141,30 +273,31 @@ public final class DocumentChunker {
         String sectionPath = String.join(" > ", headings.stream().filter(h -> !h.isEmpty()).toList());
         List<Span> pieces = new ArrayList<>();
         for (Span paragraph : paragraphs) {
-            if (paragraph.atomic() || words(text, paragraph) <= maxWords) {
-                pieces.add(paragraph);
-            } else {
-                pieces.addAll(sentences(text, paragraph));
+            List<Span> split = paragraph.atomic() || words(text, paragraph) <= maxWords ? List.of(paragraph) : sentences(text, paragraph);
+            for (Span piece : split) {
+                pieces.addAll(piece.end() - piece.start() > MAX_CHARS ? cutToSize(text, piece) : List.of(piece));
             }
         }
         paragraphs.clear();
 
         int start = -1;
         int end = -1;
+        boolean endsInCut = false;
         Span previous = null;
         for (Span piece : pieces) {
-            if (start >= 0 && countWords(text.substring(start, piece.end())) > maxWords) {
-                previous = new Span(start, end, false);
+            if (start >= 0 && (countWords(text.substring(start, piece.end())) > maxWords || piece.end() - start > MAX_CHARS)) {
+                previous = new Span(start, end, false, endsInCut);
                 chunks.add(draft(chunks.size(), sectionPath, text, start, end));
                 start = -1;
             }
             if (start < 0) {
-                start = previous == null ? piece.start() : overlapStart(text, previous, piece.start());
-                if (countWords(text.substring(start, piece.end())) > maxWords) {
+                start = previous == null || previous.cut() || piece.cut() ? piece.start() : overlapStart(text, previous, piece.start());
+                if (countWords(text.substring(start, piece.end())) > maxWords || piece.end() - start > MAX_CHARS) {
                     start = piece.start();
                 }
             }
             end = piece.end();
+            endsInCut = piece.cut();
         }
         if (start >= 0) {
             chunks.add(draft(chunks.size(), sectionPath, text, start, end));
@@ -188,6 +321,24 @@ public final class DocumentChunker {
             start = sentence.start();
         }
         return start;
+    }
+
+    /**
+     * Pieces of at most {@link #MAX_CHARS} characters: each ends after its last line break, else at its last whitespace, else at the limit.
+     * Whitespace between two pieces belongs to neither.
+     */
+    private static List<Span> cutToSize(String text, Span span) {
+        List<Span> pieces = new ArrayList<>();
+        int start = span.start();
+        while (span.end() - start > MAX_CHARS) {
+            int end = cut(text, start, start + MAX_CHARS);
+            pieces.add(new Span(start, trimEnd(text, start, end), true, true));
+            start = skipWhitespace(text, end, span.end());
+        }
+        if (start < span.end()) {
+            pieces.add(new Span(start, span.end(), true, true));
+        }
+        return pieces;
     }
 
     private static List<Span> sentences(String text, Span span) {

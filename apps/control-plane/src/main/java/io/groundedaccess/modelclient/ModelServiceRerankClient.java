@@ -101,7 +101,11 @@ public class ModelServiceRerankClient implements RerankClient {
             }
             values.add(score.score());
         }
-        return new RerankScores(properties.rerankerModel(), revision, values);
+        Boolean truncated = response.query_truncated();
+        if (truncated == null) {
+            throw new InvalidModelResponseException("the model service did not say whether it cut the query");
+        }
+        return new RerankScores(properties.rerankerModel(), revision, values, truncated);
     }
 
     record Passage(
@@ -128,6 +132,8 @@ public class ModelServiceRerankClient implements RerankClient {
             @Nullable String model,
 
             @Nullable String revision,
+
+            @Nullable Boolean query_truncated,
 
             @Nullable List<@Nullable Score> scores) {
     }

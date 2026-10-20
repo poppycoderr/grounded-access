@@ -195,9 +195,104 @@ class DocumentChunkerTest {
 
     @Test
     void recordsTheFormatInTheChunkerVersion() {
-        assertThat(DocumentChunker.version(DocumentFormat.MARKDOWN, false)).isEqualTo("markdown/2");
-        assertThat(DocumentChunker.version(DocumentFormat.TEXT, false)).isEqualTo("text/2");
-        assertThat(DocumentChunker.version(DocumentFormat.MARKDOWN, true)).isEqualTo("markdown/3");
+        assertThat(DocumentChunker.version(DocumentFormat.MARKDOWN)).isEqualTo("markdown/4");
+        assertThat(DocumentChunker.version(DocumentFormat.TEXT)).isEqualTo("text/4");
+    }
+
+    // Release 4: every chunk is bounded (ADR-0009)
+
+    private final DocumentChunker defaults = new DocumentChunker(180, 30);
+
+    @Test
+    void cutsASentenceLongerThanTheCharacterCapAtWhitespaceWithoutOverlap() {
+        String sentence = ("verylongword ".repeat(800)).strip() + ".";
+        String text = DocumentChunker.normalize(sentence);
+
+        List<ChunkDraft> chunks = defaults.chunk(text, DocumentFormat.TEXT);
+
+        assertThat(chunks).hasSizeGreaterThan(5).allSatisfy(c -> assertThat(c.content().length()).isLessThanOrEqualTo(DocumentChunker.MAX_CHARS));
+        assertCoversWithoutOverlap(text, chunks);
+        assertThat(chunks).allSatisfy(c -> assertThat(c.content()).doesNotStartWith(" ").doesNotEndWith(" ").startsWith("verylongword"));
+    }
+
+    @Test
+    void cutsALongCodeBlockAfterLineBreaks() {
+        String code = "```\n" + "let value = compute(input);\n".repeat(200) + "```";
+        String text = DocumentChunker.normalize("# Code\n\n" + code);
+
+        List<ChunkDraft> chunks = defaults.chunk(text, DocumentFormat.MARKDOWN);
+
+        assertThat(chunks).hasSizeGreaterThan(2).allSatisfy(c -> assertThat(c.content().length()).isLessThanOrEqualTo(DocumentChunker.MAX_CHARS));
+        assertThat(chunks.subList(0, chunks.size() - 1)).allSatisfy(c -> assertThat(c.content()).endsWith(";"));
+        assertCoversWithoutOverlap(text, chunks);
+    }
+
+    @Test
+    void cutsARunWithoutWhitespaceAtTheCap() {
+        String text = DocumentChunker.normalize("x".repeat(5_000));
+
+        List<ChunkDraft> chunks = defaults.chunk(text, DocumentFormat.TEXT);
+
+        assertThat(chunks).extracting(c -> c.content().length()).containsExactly(2_000, 2_000, 1_000);
+        assertCoversWithoutOverlap(text, chunks);
+    }
+
+    @Test
+    void packsNoMoreThanTheCharacterCapEvenWithinTheWordLimit() {
+        String paragraphs = String.join("\n\n", java.util.Collections.nCopies(30, "a".repeat(120) + " b."));
+        String text = DocumentChunker.normalize(paragraphs);
+
+        assertThat(defaults.chunk(text, DocumentFormat.TEXT)).allSatisfy(c -> assertThat(c.content().length()).isLessThanOrEqualTo(DocumentChunker.MAX_CHARS));
+    }
+
+    @Test
+    void embedsTheInnermostHeadingsWithinTheHeadingLimit() {
+        String outer = "Outer " + "o".repeat(190);
+        String path = outer + " > Middle section > Inner";
+
+        assertThat(DocumentChunker.withContext(path, "Body.")).isEqualTo("Middle section > Inner\n\nBody.");
+        assertThat(DocumentChunker.embeddedPath("h".repeat(300))).hasSize(DocumentChunker.HEADING_MAX_CHARS);
+        assertThat(DocumentChunker.embeddedPath("Short > Path")).isEqualTo("Short > Path");
+    }
+
+    @Test
+    void splitsAChunkWhoseEmbeddingInputDoesNotFitTheTokenBudgetWhereItStopsFitting() {
+        // 150 words of 20 characters: within 180 words and 2,000 characters per piece, but over budget for a tokenizer that counts characters
+        String text = DocumentChunker.normalize(String.join(" ", java.util.Collections.nCopies(150, "abcdefghijklmnopqrs.")));
+        DocumentChunker.TokenFitter oneTokenPerCharacter = (inputs, budget) -> inputs.stream().map(i -> Math.min(i.length(), budget - 2)).toList();
+
+        List<ChunkDraft> fitted = DocumentChunker.fit(defaults.chunk(text, DocumentFormat.TEXT), text, true, oneTokenPerCharacter);
+
+        assertThat(fitted).hasSizeGreaterThan(1)
+                .allSatisfy(c -> assertThat(c.content().length() + 2).isLessThanOrEqualTo(DocumentChunker.MAX_TOKENS))
+                .extracting(ChunkDraft::ordinal)
+                .containsExactlyElementsOf(java.util.stream.IntStream.range(0, fitted.size()).boxed().toList());
+        assertThat(fitted).allSatisfy(c -> assertThat(c.content()).startsWith("abcdefghijklmnopqrs."));
+        assertCoversWithoutOverlap(text, fitted);
+    }
+
+    @Test
+    void leavesChunksThatFitUntouched() {
+        String text = DocumentChunker.normalize("# Title\n\nShort paragraph.\n\nAnother one.");
+        List<ChunkDraft> chunks = defaults.chunk(text, DocumentFormat.MARKDOWN);
+
+        assertThat(DocumentChunker.fit(chunks, text, true, (inputs, budget) -> inputs.stream().map(String::length).toList())).isEqualTo(chunks);
+    }
+
+    /**
+     * Consecutive chunks follow each other: whatever lies between them is whitespace, and they never overlap. Offsets match the content.
+     */
+    private static void assertCoversWithoutOverlap(String text, List<ChunkDraft> chunks) {
+        assertThat(text.substring(0, chunks.getFirst().charStart()).replaceAll("(?m)^#+ .*$", "")).isBlank();
+        for (int i = 0; i < chunks.size(); i++) {
+            ChunkDraft chunk = chunks.get(i);
+            assertThat(text.substring(chunk.charStart(), chunk.charEnd())).isEqualTo(chunk.content());
+            if (i > 0) {
+                assertThat(chunk.charStart()).isGreaterThanOrEqualTo(chunks.get(i - 1).charEnd());
+                assertThat(text.substring(chunks.get(i - 1).charEnd(), chunk.charStart())).isBlank();
+            }
+        }
+        assertThat(text.substring(chunks.getLast().charEnd())).isBlank();
     }
 
     @Test

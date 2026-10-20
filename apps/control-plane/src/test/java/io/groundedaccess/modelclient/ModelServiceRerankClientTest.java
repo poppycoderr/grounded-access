@@ -64,7 +64,7 @@ class ModelServiceRerankClientTest {
 
     @Test
     void sendsNumberedPassagesAndReturnsTheScoresInRequestOrder() {
-        response.set("{\"model\":\"m\",\"revision\":\"r7\",\"scores\":[{\"id\":\"0\",\"score\":-2.5},{\"id\":\"1\",\"score\":4.0}]}");
+        response.set("{\"model\":\"m\",\"revision\":\"r7\",\"query_truncated\":false,\"scores\":[{\"id\":\"0\",\"score\":-2.5},{\"id\":\"1\",\"score\":4.0}]}");
 
         RerankScores scores = client(Duration.ofSeconds(2)).score("paid volunteer days", List.of("travel policy", "volunteer policy"));
 
@@ -76,7 +76,7 @@ class ModelServiceRerankClientTest {
 
     @Test
     void givesUpAfterTheRerankTimeoutInsteadOfTheLongEmbeddingTimeout() {
-        response.set("{\"model\":\"m\",\"revision\":\"r7\",\"scores\":[{\"id\":\"0\",\"score\":1.0}]}");
+        response.set("{\"model\":\"m\",\"revision\":\"r7\",\"query_truncated\":false,\"scores\":[{\"id\":\"0\",\"score\":1.0}]}");
         delayMillis = 1500;
         long started = System.nanoTime();
 
@@ -87,7 +87,7 @@ class ModelServiceRerankClientTest {
 
     @Test
     void aCallThatFindsNoFreeSlotWithinTheTimeoutIsNotSent() throws Exception {
-        response.set("{\"model\":\"m\",\"revision\":\"r7\",\"scores\":[{\"id\":\"0\",\"score\":1.0}]}");
+        response.set("{\"model\":\"m\",\"revision\":\"r7\",\"query_truncated\":false,\"scores\":[{\"id\":\"0\",\"score\":1.0}]}");
         delayMillis = 700;
         ModelServiceRerankClient client = client(Duration.ofMillis(1000));
 
@@ -111,19 +111,28 @@ class ModelServiceRerankClientTest {
     }
 
     @Test
+    void reportsAQueryTheModelServiceCut() {
+        response.set("{\"model\":\"m\",\"revision\":\"r7\",\"query_truncated\":true,\"scores\":[{\"id\":\"0\",\"score\":1.0}]}");
+
+        assertThat(client(Duration.ofSeconds(2)).score("a long question", List.of("p")).queryTruncated()).isTrue();
+    }
+
+    @Test
     void rejectsAResponseThatBreaksTheContract() {
         List<String[]> broken = List.of(
-                new String[] {"expected 2 scores, got 1", "{\"model\":\"m\",\"revision\":\"r7\",\"scores\":[{\"id\":\"0\",\"score\":1.0}]}"},
+                new String[] {"expected 2 scores, got 1", "{\"model\":\"m\",\"revision\":\"r7\",\"query_truncated\":false,\"scores\":[{\"id\":\"0\",\"score\":1.0}]}"},
                 new String[] {"score 1 is not for passage 1",
-                        "{\"model\":\"m\",\"revision\":\"r7\",\"scores\":[{\"id\":\"0\",\"score\":1.0},{\"id\":\"0\",\"score\":2.0}]}"},
+                        "{\"model\":\"m\",\"revision\":\"r7\",\"query_truncated\":false,\"scores\":[{\"id\":\"0\",\"score\":1.0},{\"id\":\"0\",\"score\":2.0}]}"},
                 new String[] {"score 0 is not for passage 0",
-                        "{\"model\":\"m\",\"revision\":\"r7\",\"scores\":[{\"id\":\"1\",\"score\":1.0},{\"id\":\"0\",\"score\":2.0}]}"},
+                        "{\"model\":\"m\",\"revision\":\"r7\",\"query_truncated\":false,\"scores\":[{\"id\":\"1\",\"score\":1.0},{\"id\":\"0\",\"score\":2.0}]}"},
                 new String[] {"score 1 is not finite",
-                        "{\"model\":\"m\",\"revision\":\"r7\",\"scores\":[{\"id\":\"0\",\"score\":1.0},{\"id\":\"1\",\"score\":1e400}]}"},
+                        "{\"model\":\"m\",\"revision\":\"r7\",\"query_truncated\":false,\"scores\":[{\"id\":\"0\",\"score\":1.0},{\"id\":\"1\",\"score\":1e400}]}"},
                 new String[] {"did not report the revision",
-                        "{\"model\":\"m\",\"revision\":\"unknown\",\"scores\":[{\"id\":\"0\",\"score\":1.0},{\"id\":\"1\",\"score\":2.0}]}"},
+                        "{\"model\":\"m\",\"revision\":\"unknown\",\"query_truncated\":false,\"scores\":[{\"id\":\"0\",\"score\":1.0},{\"id\":\"1\",\"score\":2.0}]}"},
+                new String[] {"did not say whether it cut the query",
+                        "{\"model\":\"m\",\"revision\":\"r7\",\"scores\":[{\"id\":\"0\",\"score\":1.0},{\"id\":\"1\",\"score\":2.0}]}"},
                 new String[] {"expected model m, got other",
-                        "{\"model\":\"other\",\"revision\":\"r7\",\"scores\":[{\"id\":\"0\",\"score\":1.0},{\"id\":\"1\",\"score\":2.0}]}"});
+                        "{\"model\":\"other\",\"revision\":\"r7\",\"query_truncated\":false,\"scores\":[{\"id\":\"0\",\"score\":1.0},{\"id\":\"1\",\"score\":2.0}]}"});
         for (String[] each : broken) {
             response.set(each[1]);
             assertThatThrownBy(() -> client(Duration.ofSeconds(2)).score("q", List.of("a", "b"))).as(each[0])

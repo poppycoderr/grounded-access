@@ -24,6 +24,8 @@ public record QueryExecutionResponse(
 
         @Nullable String rerankerModel,
 
+        @Nullable Boolean rerankQueryTruncated,
+
         String status,
 
         List<String> degraded,
@@ -35,7 +37,7 @@ public record QueryExecutionResponse(
         Instant createdAt) {
 
     static QueryExecutionResponse from(QueryExecution execution) {
-        return new QueryExecutionResponse(execution.id(), execution.traceId(), execution.planHash(), execution.policyVersion(), execution.embeddingModel(), execution.rerankerModel(),
+        return new QueryExecutionResponse(execution.id(), execution.traceId(), execution.planHash(), execution.policyVersion(), execution.embeddingModel(), execution.rerankerModel(), execution.rerankQueryTruncated(),
                 execution.status(), execution.degradedReasons(), execution.resultCount(), execution.totalMs(), execution.createdAt());
     }
 }

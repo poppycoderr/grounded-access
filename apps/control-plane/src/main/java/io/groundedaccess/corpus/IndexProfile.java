@@ -21,14 +21,20 @@ public record IndexProfile(
 
         int chunkMaxWords,
 
-        int chunkOverlapWords) {
+        int chunkOverlapWords,
+
+        int chunkMaxTokens,
+
+        int chunkMaxChars,
+
+        int headingMaxChars) {
 
     /**
      * For error messages and logs. The prefixes are instructions written by the model authors, not user text.
      */
     public String describe() {
-        return "%s@%s, %d dimensions, query prefix \"%s\", passage prefix \"%s\", embedding context %s, chunker release %s, %d/%d words".formatted(
-                embeddingModel, embeddingRevision, dimensions, queryPrefix, passagePrefix, embeddingContext ? "on" : "off", chunkerRelease, chunkMaxWords,
-                chunkOverlapWords);
+        return ("%s@%s, %d dimensions, query prefix \"%s\", passage prefix \"%s\", embedding context %s, chunker release %s, %d/%d words, "
+                + "%d tokens, %d characters, heading %d characters").formatted(embeddingModel, embeddingRevision, dimensions, queryPrefix, passagePrefix,
+                        embeddingContext ? "on" : "off", chunkerRelease, chunkMaxWords, chunkOverlapWords, chunkMaxTokens, chunkMaxChars, headingMaxChars);
     }
 }

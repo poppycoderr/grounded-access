@@ -47,7 +47,7 @@ public class IndexProfiles implements ApplicationRunner {
 
     private static final String COLUMNS = """
             embedding_model, embedding_revision, dimensions, query_prefix, passage_prefix, embedding_context, chunker_release, chunk_max_words,
-            chunk_overlap_words""";
+            chunk_overlap_words, chunk_max_tokens, chunk_max_chars, heading_max_chars""";
 
     private final JdbcClient jdbc;
 
@@ -84,8 +84,9 @@ public class IndexProfiles implements ApplicationRunner {
     void checkAtStartup() {
         for (IndexProfile stored : stored()) {
             if (!stored.embeddingModel().equals(embeddings.modelName()) || stored.embeddingContext() != embeddingContext
-                    || !stored.chunkerRelease().equals(DocumentChunker.release(embeddingContext)) || stored.chunkMaxWords() != chunker.maxWords()
-                    || stored.chunkOverlapWords() != chunker.overlapWords()) {
+                    || !stored.chunkerRelease().equals(DocumentChunker.release()) || stored.chunkMaxWords() != chunker.maxWords()
+                    || stored.chunkOverlapWords() != chunker.overlapWords() || stored.chunkMaxTokens() != DocumentChunker.MAX_TOKENS
+                    || stored.chunkMaxChars() != DocumentChunker.MAX_CHARS || stored.headingMaxChars() != DocumentChunker.HEADING_MAX_CHARS) {
                 throw refusal("Active documents were indexed with " + stored.describe() + ", which this configuration cannot produce");
             }
         }
@@ -176,7 +177,8 @@ public class IndexProfiles implements ApplicationRunner {
                     "The model service changed from %s to %s between two calls".formatted(query.modelId(), passage.modelId()));
         }
         IndexProfile observed = new IndexProfile(query.model(), query.revision(), query.dimensions(), query.prefix(), passage.prefix(), embeddingContext,
-                DocumentChunker.release(embeddingContext), chunker.maxWords(), chunker.overlapWords());
+                DocumentChunker.release(), chunker.maxWords(), chunker.overlapWords(), DocumentChunker.MAX_TOKENS, DocumentChunker.MAX_CHARS,
+                DocumentChunker.HEADING_MAX_CHARS);
         int column = vectorColumnDimensions();
         if (observed.dimensions() != column) {
             throw new IndexProfileMismatchException(
@@ -204,7 +206,8 @@ public class IndexProfiles implements ApplicationRunner {
     private UUID save(IndexProfile profile) {
         jdbc.sql("""
                         insert into index_profile (id, %s)
-                        values (:id, :model, :revision, :dimensions, :queryPrefix, :passagePrefix, :context, :release, :maxWords, :overlap)
+                        values (:id, :model, :revision, :dimensions, :queryPrefix, :passagePrefix, :context, :release, :maxWords, :overlap, :maxTokens,
+                            :maxChars, :headingChars)
                         on conflict do nothing
                         """.formatted(COLUMNS))
                 .param("id", UUID.randomUUID())
@@ -217,12 +220,16 @@ public class IndexProfiles implements ApplicationRunner {
                 .param("release", profile.chunkerRelease())
                 .param("maxWords", profile.chunkMaxWords())
                 .param("overlap", profile.chunkOverlapWords())
+                .param("maxTokens", profile.chunkMaxTokens())
+                .param("maxChars", profile.chunkMaxChars())
+                .param("headingChars", profile.headingMaxChars())
                 .update();
         return jdbc.sql("""
                         select id from index_profile
                         where embedding_model = :model and embedding_revision = :revision and dimensions = :dimensions and query_prefix = :queryPrefix
                             and passage_prefix = :passagePrefix and embedding_context = :context and chunker_release = :release
-                            and chunk_max_words = :maxWords and chunk_overlap_words = :overlap
+                            and chunk_max_words = :maxWords and chunk_overlap_words = :overlap and chunk_max_tokens = :maxTokens
+                            and chunk_max_chars = :maxChars and heading_max_chars = :headingChars
                         """)
                 .param("model", profile.embeddingModel())
                 .param("revision", profile.embeddingRevision())
@@ -233,6 +240,9 @@ public class IndexProfiles implements ApplicationRunner {
                 .param("release", profile.chunkerRelease())
                 .param("maxWords", profile.chunkMaxWords())
                 .param("overlap", profile.chunkOverlapWords())
+                .param("maxTokens", profile.chunkMaxTokens())
+                .param("maxChars", profile.chunkMaxChars())
+                .param("headingChars", profile.headingMaxChars())
                 .query(UUID.class)
                 .single();
     }
@@ -246,6 +256,6 @@ public class IndexProfiles implements ApplicationRunner {
     private static IndexProfile profile(ResultSet rs) throws SQLException {
         return new IndexProfile(rs.getString("embedding_model"), rs.getString("embedding_revision"), rs.getInt("dimensions"), rs.getString("query_prefix"),
                 rs.getString("passage_prefix"), rs.getBoolean("embedding_context"), rs.getString("chunker_release"), rs.getInt("chunk_max_words"),
-                rs.getInt("chunk_overlap_words"));
+                rs.getInt("chunk_overlap_words"), rs.getInt("chunk_max_tokens"), rs.getInt("chunk_max_chars"), rs.getInt("heading_max_chars"));
     }
 }

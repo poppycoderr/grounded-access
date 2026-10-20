@@ -1,6 +1,7 @@
 package io.groundedaccess.modelclient;
 
 import java.net.http.HttpClient;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -11,6 +12,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
 import org.springframework.boot.http.client.HttpClientSettings;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
 /**
@@ -53,6 +55,13 @@ public class ModelServiceEmbeddingClient implements EmbeddingClient {
                     .uri("/v1/embed")
                     .body(new EmbedRequest(model, inputType.name().toLowerCase(Locale.ROOT), batch))
                     .retrieve()
+                    .onStatus(status -> status.value() == 422, (request, refused) -> {
+                        String body = new String(refused.getBody().readAllBytes(), StandardCharsets.UTF_8);
+                        if (body.contains("\"TEXT_TOO_LONG\"")) {
+                            throw new TextTooLongException("the model service refused a text as too long: " + message(body));
+                        }
+                        throw new HttpClientErrorException(refused.getStatusCode(), body);
+                    })
                     .body(EmbedResponse.class));
             Embeddings checked = check(response, batch.size());
             if (first == null) {
@@ -65,6 +74,36 @@ public class ModelServiceEmbeddingClient implements EmbeddingClient {
         }
         Embeddings checked = Objects.requireNonNull(first);
         return new Embeddings(checked.model(), checked.revision(), checked.prefix(), checked.dimensions(), vectors);
+    }
+
+    @Override
+    public List<Integer> fittingChars(List<String> texts, int budget) {
+        List<Integer> fitting = new ArrayList<>(texts.size());
+        for (int from = 0; from < texts.size(); from += properties.batchSize()) {
+            List<String> batch = texts.subList(from, Math.min(from + properties.batchSize(), texts.size()));
+            TokenizeResponse response = Objects.requireNonNull(
+                    http.post().uri("/v1/tokenize").body(new TokenizeRequest(batch, budget)).retrieve().body(TokenizeResponse.class));
+            List<@Nullable Integer> counted = response.fittingChars();
+            if (counted == null || counted.size() != batch.size()) {
+                throw new InvalidModelResponseException("expected %d fitting lengths, got %s".formatted(batch.size(), counted == null ? "none" : counted.size()));
+            }
+            for (int i = 0; i < batch.size(); i++) {
+                Integer value = counted.get(i);
+                if (value == null || value < 0 || value > batch.get(i).length()) {
+                    throw new InvalidModelResponseException("fitting length %d is outside its text".formatted(i));
+                }
+                fitting.add(value);
+            }
+        }
+        return fitting;
+    }
+
+    /**
+     * The message of a model-service error body; it names counts and limits only.
+     */
+    private static String message(String body) {
+        int start = body.indexOf("\"message\":\"");
+        return start < 0 ? "no message" : body.substring(start + 11, Math.max(start + 11, body.indexOf('"', start + 11)));
     }
 
     private Embeddings check(EmbedResponse response, int texts) {
@@ -114,6 +153,22 @@ public class ModelServiceEmbeddingClient implements EmbeddingClient {
             String input_type,
 
             List<String> texts) {
+    }
+
+    record TokenizeRequest(
+            List<String> texts,
+
+            int budget) {
+    }
+
+    record TokenizeResponse(
+            int max_tokens,
+
+            @Nullable List<@Nullable Integer> fitting_chars) {
+
+        @Nullable List<@Nullable Integer> fittingChars() {
+            return fitting_chars;
+        }
     }
 
     record EmbedResponse(

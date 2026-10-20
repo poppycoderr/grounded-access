@@ -53,12 +53,19 @@ public record SystemResponse(
 
             int chunkMaxWords,
 
-            int chunkOverlapWords) {
+            int chunkOverlapWords,
+
+            int chunkMaxTokens,
+
+            int chunkMaxChars,
+
+            int headingMaxChars) {
 
         static IndexProfile from(IndexProfiles.Established established) {
             var p = established.profile();
             return new IndexProfile(established.id(), p.embeddingModel(), p.embeddingRevision(), p.dimensions(), p.queryPrefix(), p.passagePrefix(),
-                    p.embeddingContext(), p.chunkerRelease(), p.chunkMaxWords(), p.chunkOverlapWords());
+                    p.embeddingContext(), p.chunkerRelease(), p.chunkMaxWords(), p.chunkOverlapWords(), p.chunkMaxTokens(), p.chunkMaxChars(),
+                    p.headingMaxChars());
         }
     }
 

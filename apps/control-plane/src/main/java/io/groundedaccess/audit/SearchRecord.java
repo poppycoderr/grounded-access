@@ -33,6 +33,8 @@ public record SearchRecord(
 
         @Nullable String rerankerModel,
 
+        @Nullable Boolean rerankQueryTruncated,
+
         List<String> degradedReasons,
 
         List<String> documents,

@@ -108,7 +108,7 @@ class TracingIT {
                         throw HttpClientErrorException.create("422 Unprocessable: \"" + query + " " + passages + "\"", HttpStatus.UNPROCESSABLE_CONTENT, "Unprocessable",
                                 HttpHeaders.EMPTY, body, StandardCharsets.UTF_8);
                     }
-                    return new RerankScores("test-reranker", "test", passages.stream().map(passage -> 1.0).toList());
+                    return new RerankScores("test-reranker", "test", passages.stream().map(passage -> 1.0).toList(), false);
                 }
             };
         }

@@ -75,8 +75,10 @@ public class IngestionService {
                 return relabelled.get();
             }
         }
-        List<ChunkDraft> chunks = chunker.chunk(normalized, source.format());
         IndexProfiles.Established index = profiles.establish();
+        List<ChunkDraft> planned = chunker.chunk(normalized, source.format());
+        // Tokenized before embedding, so that no chunk is embedded from a cut input (ADR-0009)
+        List<ChunkDraft> chunks = planned.isEmpty() ? planned : DocumentChunker.fit(planned, normalized, embeddingContext, embeddings::fittingChars);
         List<float[]> vectors = List.of();
         if (!chunks.isEmpty()) {
             Embeddings embedded = embeddings.embed(chunks.stream()
@@ -86,7 +88,7 @@ public class IngestionService {
             vectors = embedded.vectors();
         }
         var version = new CorpusWriter.NewVersion(tenantId, source, sha, chunks, vectors, index.profile().embeddingModel() + "@"
-                + index.profile().embeddingRevision(), index.id(), DocumentChunker.version(source.format(), embeddingContext));
+                + index.profile().embeddingRevision(), index.id(), DocumentChunker.version(source.format()));
         return commit(fence, () -> write(version, sha), chunks.size()).orElseThrow();
     }
 

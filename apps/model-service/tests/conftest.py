@@ -1,3 +1,5 @@
+import re
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -17,8 +19,26 @@ SETTINGS = Settings(
 )
 
 
+class WordTokens:
+    """One token per whitespace-separated word, plus [CLS] and [SEP] (and one more [SEP] for a pair)."""
+
+    def __init__(self, max_tokens: int) -> None:
+        self.max_tokens = max_tokens
+
+    def count(self, text: str, pair: str | None = None) -> int:
+        return len(text.split()) + 2 + (len(pair.split()) + 1 if pair is not None else 0)
+
+    def fitting_chars(self, text: str, budget: int) -> int:
+        words = list(re.finditer(r"\S+", text))
+        if len(words) + 2 <= budget:
+            return len(text)
+        allowed = budget - 2
+        return words[allowed - 1].end() if allowed > 0 else 0
+
+
 class FakeEmbedder:
     info = ModelInfo(name="fake", task="embedding", revision="r1", dimensions=2, query_prefix="q: ", passage_prefix="", license="none")
+    tokens = WordTokens(8)
 
     def __init__(self) -> None:
         self.calls: list[tuple[list[str], str]] = []
@@ -37,6 +57,7 @@ class FakeReranker:
     """Scores a passage by how many of the query's words it contains."""
 
     info = ModelInfo(name="fake-reranker", task="rerank", revision="r2", license="none")
+    tokens = WordTokens(10)
 
     def __init__(self) -> None:
         self.calls: list[tuple[str, list[str]]] = []

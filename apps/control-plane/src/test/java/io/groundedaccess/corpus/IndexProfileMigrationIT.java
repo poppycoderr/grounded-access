@@ -77,6 +77,9 @@ class IndexProfileMigrationIT {
                 List.of("text-plain", "BAAI/bge-small-en-v1.5", revision, 384, prefix, "", false, "2", 180, 30),
                 List.of("unrecorded", "other-model", "unknown", 384, "", "", true, "3", 180, 30));
         assertThat(jdbc.sql("select count(*) from index_profile").query(Integer.class).single()).isEqualTo(3);
+        assertThat(jdbc.sql("select distinct chunk_max_tokens + chunk_max_chars + heading_max_chars from index_profile").query(Integer.class).list())
+                .as("profiles of releases before 4 had no length limits")
+                .containsExactly(0);
         assertThat(jdbc.sql("select count(*) from document_version where embedding_model like 'BAAI/%'").query(Integer.class).single()).isEqualTo(3);
     }
 }
