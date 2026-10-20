@@ -256,6 +256,7 @@ POST   /api/v1/retrieval/search               # ranked candidates + debug fields
 GET    /api/v1/retrieval/chunks               # every authorized chunk in scope, keyset-paged; debug scope; includeOutOfScope drops the scope only
 POST   /api/v1/query                          # answered | no_answer | evidence_only; statements cite evidence ids
 GET    /api/v1/query-executions/{id}          # own executions only; versions, counts and timings, never the query
+GET    /api/v1/system                         # build commit, index profile, reranker revision, retrieval settings, host CPU; debug scope; no tenant data
 ```
 
 - Admin endpoints (ingestion, delete) need an `admin` scope in the token. Query endpoints need `query`.

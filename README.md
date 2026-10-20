@@ -160,6 +160,8 @@ Dataset v4, `test` split, 70 answerable cases, 95% bootstrap intervals, produced
 | `hybrid-rrf-rerank` (cross-encoder over the fused top 20) | 0.986 [0.96, 1.00] | **0.971 [0.94, 1.00]** | **0.970 [0.93, 0.99]** | **0** | **0** |
 | `bm25-reference` (offline, same authorized chunks) | 0.943 [0.89, 0.99] | 0.772 [0.69, 0.85] | 0.812 [0.74, 0.88] | **0** | **0** |
 
+nDCG@10 is from metrics version 1. Later runs report evidence coverage (EC@10) instead, because nDCG scored a chunk that covers two evidence spans below two chunks that cover them ([ADR-0008](./docs/adr/0008-what-an-evaluation-run-records-and-measures.md)); the two are not comparable.
+
 **Security.** Zero violations across 128 cases, 31 of which try to reach a document the principal may not see: in another tenant, above its clearance, in a project it is not on, or in another department. Every returned chunk is checked for document and version, and before any query runs each principal's full chunk listing is compared with its hand-labelled visible set.
 
 **Scope.** 13 cases ask about a region or a date, or name documents that are readable but do not apply: the other region's holiday calendar, last year's travel policy, a benefit that has not started. No strategy returned one. Scope failures are counted apart from security violations and never added to them.

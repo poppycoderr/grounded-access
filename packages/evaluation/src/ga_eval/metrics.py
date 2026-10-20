@@ -32,9 +32,25 @@ def reciprocal_rank(results: list[Result], spans: list[Span], k: int = 10) -> fl
     return 0.0
 
 
+def evidence_coverage_at(k: int, results: list[Result], spans: list[Span]) -> float:
+    """EC@k (metrics version 2, ADR-0008): every evidence span earns 1 / log2(1 + r), where r is the rank of the first result that covers it,
+    or 0 if none in the top k does; the mean over the spans. A later result covering the same span adds nothing. The value is 1 only when the
+    first result covers every span, so a case whose evidence lies in two documents cannot reach 1: compare EC between runs of the same cases,
+    never against a perfect score."""
+    first: dict[int, int] = {}
+    for result in sorted(results, key=lambda r: r.rank):
+        if result.rank > k:
+            break
+        for i, span in enumerate(spans):
+            if i not in first and covers(result, span):
+                first[i] = result.rank
+    return sum(1 / math.log2(rank + 1) for rank in first.values()) / len(spans)
+
+
 def ndcg_at(k: int, results: list[Result], spans: list[Span]) -> float:
-    """Binary-gain nDCG: a result earns gain only for evidence spans no higher-ranked result has covered yet, so three chunks of the same
-    paragraph do not count as three relevant results."""
+    """Metrics version 1 only, kept so version 1 runs can still be recomputed: binary-gain nDCG, where a result earns gain only for evidence
+    spans no higher-ranked result has covered yet. Its ideal assumes one result per span, so one chunk covering two spans scores below two
+    chunks covering them (ADR-0008); version 2 reports evidence_coverage_at instead."""
     covered: set[int] = set()
     dcg = 0.0
     for result in sorted(results, key=lambda r: r.rank):

@@ -4,7 +4,7 @@ from ga_eval import runner
 def record(case, strategy, split, recall, violations=(), hard=None):
     row = {"case": case, "strategy": strategy, "split": split, "tags": ["x"], "violations": list(violations), "scoped": False, "scope_failures": []}
     if recall is not None:
-        row |= {"recall@5": recall, "recall@10": recall, "mrr@10": recall, "ndcg@10": recall}
+        row |= {"recall@5": recall, "recall@10": recall, "mrr@10": recall, "ec@10": recall}
     if hard is not None:
         row |= {"hard_negative_rank": 1 if hard else None, "hard_negative_above_evidence": hard}
     return row

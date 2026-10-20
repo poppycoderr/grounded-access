@@ -4,11 +4,13 @@ Committed evaluation runs. Each directory is one run and holds exactly what the 
 
 | File | Contents |
 |---|---|
-| `run.json` | Dataset version, git commit, strategies, `k`, policy and chunker versions, retrieval plans and their hashes, platform, CPU model, date, summary metrics |
-| `cases.jsonl` | Per case and per strategy: ranked results, metrics, security violations |
+| `run.json` | Dataset version and digest, metrics version, strategies, `k`, policy and chunker versions, retrieval plans and their hashes, date, summary metrics, the keyword ranking check, and (from metrics version 2) the manifest: server commit, index profile, reranker revision, server and evaluator CPU, corpus digest, warmup and attempt limit ([ADR-0008](../docs/adr/0008-what-an-evaluation-run-records-and-measures.md)) |
+| `cases.jsonl` | Per case and per strategy: ranked results, metrics, security violations, every attempt of a retried request |
 | `report.md` | Rendered from the two files above, never edited by hand |
 
-Numbers quoted in the README or in articles must link to a directory here. Regenerate a run against a locally running stack:
+Numbers quoted in the README or in articles must link to a directory here. `expected/keyword-rankings.json` is not a run: it holds the keyword rankings every run must reproduce (see the [evaluation strategy](../docs/evaluation/strategy.md#expected-keyword-rankings)).
+
+Regenerate a run against a locally running stack. A local image reports its commit as `unknown` unless it is built with `GA_BUILD_COMMIT` set, for example `GA_BUILD_COMMIT=$(git rev-parse HEAD) docker compose up -d --build --wait`:
 
 ```bash
 docker compose up -d --build --wait

@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import fake_system
 import pytest
 
 from ga_eval import answers
@@ -117,6 +118,12 @@ def test_summary_separates_refusals_that_were_right_from_those_that_were_wrong(d
 
 def test_a_run_without_a_chat_model_is_refused(data):
     class EvidenceOnlyClient:
+        def list_chunks(self, *args: object, **kwargs: object) -> tuple[str, list[dict]]:
+            return "abac/1", []
+
+        def system(self, token: str) -> dict:
+            return fake_system.system()
+
         def query(self, *args: object) -> dict:
             return {
                 "status": "evidence_only",

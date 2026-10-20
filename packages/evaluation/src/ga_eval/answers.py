@@ -12,11 +12,12 @@ import time
 from datetime import UTC, datetime
 from pathlib import Path
 
-from ga_eval import metrics, stats, tokens
+from ga_eval import metrics, provenance, stats, tokens
 from ga_eval.client import ApiClient
-from ga_eval.dataset import Case, Dataset
+from ga_eval.dataset import Case, Dataset, digest
 from ga_eval.metrics import Result
-from ga_eval.runner import _git_sha, _interval, cpu_model
+from ga_eval.provenance import cpu_model
+from ga_eval.runner import DriftError, _git_sha, _interval, _measured
 
 INJECTION_TAG = "prompt-injection"
 RISK_FLAG = "instruction_like"
@@ -70,6 +71,14 @@ def run(dataset: Dataset, client: ApiClient, splits: set[str]) -> dict:
     records = []
     models: set[str] = set()
     prompts: set[str] = set()
+    # Reading the system and listing the corpus need the debug scope; the questions themselves are asked with plain query tokens.
+    observers = {p: tokens.mint(dataset.root, p, dataset.principals[p], scope="query debug") for p in sorted({c.principal for c in cases})}
+    system_token = next(iter(observers.values()))
+
+    def observe() -> dict:
+        return provenance.snapshot(client, system_token, {p: client.list_chunks(t, include_out_of_scope=True) for p, t in observers.items()})
+
+    observed = observe()
     for case in cases:
         token = tokens.mint(dataset.root, case.principal, dataset.principals[case.principal], scope="query")
         as_of = case.as_of.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ") if case.as_of else None
@@ -82,11 +91,26 @@ def run(dataset: Dataset, client: ApiClient, splits: set[str]) -> dict:
             models.add(response["chatModel"])
         prompts.add(response["promptVersion"])
         records.append(score(case, response, dataset, latency_ms))
-    return {
+    output = {
         "run": {
+            "status": "complete",
+            "invalid_reason": None,
             "dataset_version": dataset.version,
             "git_sha": _git_sha(dataset.root),
             "created_at": datetime.now(UTC).isoformat(timespec="seconds"),
+            "manifest": provenance.manifest(
+                observed,
+                dataset.version,
+                digest(dataset),
+                dataset.root,
+                {
+                    "splits": sorted(splits),
+                    "attempt_limit": 1,
+                    "warmup_requests": 0,
+                    "chat_models": sorted(models),
+                    "prompt_versions": sorted(prompts),
+                },
+            ),
             "chat_models": sorted(models),
             "prompt_versions": sorted(prompts),
             "splits": sorted(splits),
@@ -100,6 +124,13 @@ def run(dataset: Dataset, client: ApiClient, splits: set[str]) -> dict:
         },
         "cases": records,
     }
+    changed = provenance.drift(observed, observe())
+    if changed:
+        drifted = DriftError(f"{', '.join(changed)} changed during the run; the run is invalid")
+        output["run"] |= {"status": "invalid", "invalid_reason": f"drift: {drifted}"}
+        drifted.output = output
+        raise drifted
+    return output
 
 
 def summarize(records: list[dict]) -> dict:
@@ -168,6 +199,10 @@ def render(output: dict) -> str:
         "They do not judge whether a statement is faithful to the passage it cites.",
         "",
     ]
+    if info.get("manifest"):
+        lines += [_measured(info["manifest"]), ""]
+    if info.get("status") == "invalid":
+        lines += [f"**This run is invalid:** {info.get('invalid_reason')}. It is kept as evidence, not as a result.", ""]
     for split in info["splits"]:
         s = info["summary"][split]
         heading = "## Results (test split)" if split == "test" else f"## Tuning split ({split}) — not a result"

@@ -16,6 +16,10 @@ spring:
         size: 2
 
 ga:
+  build:
+    version: "@project.version@"
+    # Set by the image build (GA_BUILD_COMMIT); a build that does not pass it reports unknown
+    commit: ${GA_BUILD_COMMIT:unknown}
   identity:
     issuer: ${GA_JWT_ISSUER:grounded-access-demo}
     audience: ${GA_JWT_AUDIENCE:grounded-access}

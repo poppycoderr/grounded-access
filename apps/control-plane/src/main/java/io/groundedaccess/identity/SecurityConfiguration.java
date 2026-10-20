@@ -43,6 +43,7 @@ public class SecurityConfiguration {
                         .requestMatchers("/api/v1/retrieval/**").hasAuthority("SCOPE_query")
                         .requestMatchers(HttpMethod.POST, "/api/v1/query").hasAuthority("SCOPE_query")
                         .requestMatchers(HttpMethod.GET, "/api/v1/query-executions/*").hasAuthority("SCOPE_query")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/system").hasAuthority("SCOPE_debug")
                         .anyRequest().denyAll())
                 .oauth2ResourceServer(server -> server.jwt(jwt -> { }));
         return http.build();

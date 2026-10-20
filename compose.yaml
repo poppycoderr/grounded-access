@@ -26,6 +26,9 @@ services:
     build:
       context: .
       dockerfile: apps/control-plane/Dockerfile
+      args:
+        # The commit the image is built from, reported by GET /api/v1/system; CI sets it, a local build reports unknown
+        GA_BUILD_COMMIT: ${GA_BUILD_COMMIT:-unknown}
     environment:
       GA_DB_URL: jdbc:postgresql://postgres:5432/grounded_access
       GA_MODEL_SERVICE_URL: http://model-service:8000

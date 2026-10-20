@@ -20,7 +20,8 @@ from ga_eval import metrics, tokens
 from ga_eval.client import ApiClient
 from ga_eval.dataset import Case, Dataset
 from ga_eval.metrics import Result
-from ga_eval.runner import _git_sha, cpu_model
+from ga_eval.provenance import cpu_model
+from ga_eval.runner import _git_sha
 
 
 def run(dataset: Dataset, client: ApiClient, strategies: list[str], workers: int, requests: int, k: int) -> dict:

@@ -21,6 +21,10 @@ Notable changes per release. Versions before `v0.1.0` are pre-releases. Before `
 
 ### Evaluation
 
+- **Run manifest.** `run.json` records what was measured: the server's build commit, index profile, reranker revision, retrieval settings and CPU (from the new `GET /api/v1/system`, debug scope), a digest of the corpus as listed, the evaluator's commit and whether it had uncommitted changes, the attempt limit and `warmup_requests: 0`. Every attempt of a retried request is kept. The server and corpus are read again after the last request, and a run during which any of them changed is invalid (`drift`). `ga-eval answers` records the same ([ADR-0008](./docs/adr/0008-what-an-evaluation-run-records-and-measures.md)).
+- **Evidence coverage replaces nDCG@10** (metrics version 2). nDCG's ideal ranking assumed one result per evidence span, so one chunk covering two spans scored 0.613 and two chunks covering them scored 1.0. EC@10 scores each span by the rank of its first hit. Version 1 reports are unchanged; comparing the two versions is refused.
+- **`ga-eval compare`** lists every manifest field that differs between the two runs and compares latency only when both were served by the same CPU.
+- **Expected keyword rankings.** The top 10 of `sparse-only` and `bm25-reference` for every case are committed in `benchmarks/expected/keyword-rankings.json`; a run that ranks differently exits with code 4. `ga-eval rankings` regenerates the file from a run, on purpose and in the pull request that changes ranking.
 - **Fixed:** a degraded response was retried before it was checked, so an unauthorized result in a retried response was not counted. Every response is now checked first; a violation or scope failure in any attempt fails the gate.
 - **Fixed:** `ga-eval answers` exited with 0 when there were scope failures. It now exits with 3, as `ga-eval run` does.
 - An invalid run (three degraded answers in a row) writes what it measured, marked invalid, before failing.
