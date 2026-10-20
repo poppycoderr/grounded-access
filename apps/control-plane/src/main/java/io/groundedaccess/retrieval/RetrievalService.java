@@ -1,6 +1,8 @@
 package io.groundedaccess.retrieval;
 
 import io.groundedaccess.corpus.DocumentChunker;
+import io.groundedaccess.corpus.IndexProfileMismatchException;
+import io.groundedaccess.corpus.IndexProfiles;
 import io.groundedaccess.audit.AuditTrail;
 import io.groundedaccess.audit.SearchRecord;
 import io.groundedaccess.authorization.AuthorizationPredicate;
@@ -9,6 +11,7 @@ import io.groundedaccess.identity.Principal;
 import io.groundedaccess.modelclient.EmbeddingClient;
 import io.groundedaccess.modelclient.Embeddings;
 import io.groundedaccess.modelclient.InputType;
+import io.groundedaccess.modelclient.InvalidModelResponseException;
 import io.groundedaccess.modelclient.RerankClient;
 import io.groundedaccess.modelclient.RerankScores;
 import io.groundedaccess.telemetry.Failures;
@@ -41,6 +44,12 @@ public class RetrievalService {
 
     public static final String DENSE_UNAVAILABLE = "dense_unavailable";
 
+    /** The model service answered the query embedding with a response that breaks its contract. */
+    public static final String DENSE_INVALID_RESPONSE = "dense_invalid_response";
+
+    /** The model service embeds with another index profile than the stored vectors were made with (ADR-0007). */
+    public static final String DENSE_INDEX_MISMATCH = "dense_index_mismatch";
+
     public static final String RERANK_UNAVAILABLE = "rerank_unavailable";
 
     private static final Logger log = LoggerFactory.getLogger(RetrievalService.class);
@@ -50,6 +59,8 @@ public class RetrievalService {
     private final AuthorizedChunkQuery chunks;
 
     private final EmbeddingClient embeddings;
+
+    private final IndexProfiles profiles;
 
     private final RerankClient reranker;
 
@@ -61,16 +72,17 @@ public class RetrievalService {
 
     private final Clock clock = Clock.systemUTC();
 
-    public RetrievalService(PolicyCompiler policyCompiler, AuthorizedChunkQuery chunks, EmbeddingClient embeddings, RerankClient reranker,
-            RetrievalProperties properties, AuditTrail audit, Spans spans) {
+    public RetrievalService(PolicyCompiler policyCompiler, AuthorizedChunkQuery chunks, EmbeddingClient embeddings, IndexProfiles profiles,
+            RerankClient reranker, RetrievalProperties properties, AuditTrail audit, Spans spans) {
         this.policyCompiler = policyCompiler;
         this.chunks = chunks;
         this.embeddings = embeddings;
+        this.profiles = profiles;
         this.reranker = reranker;
         this.properties = properties;
         this.audit = audit;
         this.spans = spans;
-        spans.expect(List.of(DENSE_UNAVAILABLE, RERANK_UNAVAILABLE), List.of());
+        spans.expect(List.of(DENSE_UNAVAILABLE, DENSE_INVALID_RESPONSE, DENSE_INDEX_MISMATCH, RERANK_UNAVAILABLE), List.of());
     }
 
     public ChunkPage list(Principal principal, Scope scope, @Nullable ChunkCursor after, int limit) {
@@ -141,6 +153,7 @@ public class RetrievalService {
         long sparseDone = System.nanoTime();
         List<RetrievedChunk> dense = List.of();
         String embeddingModel = null;
+        UUID indexProfile = null;
         boolean denseAvailable = strategy.usesDense();
         if (strategy.usesDense()) {
             try {
@@ -150,12 +163,21 @@ public class RetrievalService {
                         model.set(SpanAttribute.MODEL_NAME, vectors.modelId());
                         return vectors;
                     });
-                    List<RetrievedChunk> rows = chunks.dense(embedded.vectors().getFirst(), predicate, scope, plan.candidates());
+                    UUID profile = profiles.checkQuery(embedded);
+                    List<RetrievedChunk> rows = chunks.dense(embedded.vectors().getFirst(), profile, predicate, scope, plan.candidates());
                     span.set(SpanAttribute.RETRIEVAL_CANDIDATES, rows.size());
-                    return new DenseCandidates(embedded.modelId(), rows);
+                    return new DenseCandidates(embedded.modelId(), profile, rows);
                 });
                 embeddingModel = found.model();
+                indexProfile = found.indexProfile();
                 dense = found.rows();
+            } catch (InvalidModelResponseException | IndexProfileMismatchException e) {
+                if (!strategy.usesSparse()) {
+                    throw e;
+                }
+                log.warn("The query embedding cannot be used, answering from the sparse channel only: {}", Failures.describe(e));
+                degraded.add(e instanceof IndexProfileMismatchException ? DENSE_INDEX_MISMATCH : DENSE_INVALID_RESPONSE);
+                denseAvailable = false;
             } catch (RestClientException e) {
                 if (!strategy.usesSparse() || e instanceof HttpClientErrorException) {
                     throw e;
@@ -213,13 +235,15 @@ public class RetrievalService {
         String traceId = TraceContext.current();
         List<String> documents = results.stream().map(chunk -> chunk.documentKey() + "@v" + chunk.versionNo()).distinct().toList();
         UUID executionId = audit.recordSearch(new SearchRecord(principal.tenantId(), principal.subject(), traceId, strategy.wireName(), k, plan.hash(),
-                plan.canonical(), predicate.policyVersion(), embeddingModel, rerankerModel, degraded, documents, results.size(), scope.asOf(),
+                plan.canonical(), predicate.policyVersion(), embeddingModel, indexProfile, rerankerModel, degraded, documents, results.size(), scope.asOf(),
                 scope.region(), millis(finished - started), millis(sparseDone - started), millis(denseDone - sparseDone), millis(finished - denseDone)));
         return new RetrievalResult(plan, predicate.policyVersion(), results, List.copyOf(degraded), scope, executionId, traceId);
     }
 
     private record DenseCandidates(
             String model,
+
+            UUID indexProfile,
 
             List<RetrievedChunk> rows) {
     }

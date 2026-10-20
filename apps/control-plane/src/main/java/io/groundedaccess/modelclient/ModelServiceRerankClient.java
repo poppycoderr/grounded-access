@@ -7,11 +7,11 @@ import java.util.Objects;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import org.jspecify.annotations.Nullable;
 import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
 import org.springframework.boot.http.client.HttpClientSettings;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientException;
 
 /**
  * {@link RerankClient} over the model-service HTTP contract. Reranking sits on the query path, so it has its own, much shorter read timeout
@@ -72,10 +72,36 @@ public class ModelServiceRerankClient implements RerankClient {
                 .body(new RerankRequest(properties.rerankerModel(), query, numbered))
                 .retrieve()
                 .body(RerankResponse.class));
-        if (response.scores().size() != passages.size()) {
-            throw new RestClientException("the model service returned " + response.scores().size() + " scores for " + passages.size() + " passages");
+        return check(response, numbered);
+    }
+
+    /**
+     * One finite score per passage, for the ids that were sent, in request order, from the configured model at a known revision.
+     */
+    private RerankScores check(RerankResponse response, List<Passage> sent) {
+        String revision = response.revision();
+        List<@Nullable Score> scores = response.scores();
+        if (!properties.rerankerModel().equals(response.model())) {
+            throw new InvalidModelResponseException("expected model %s, got %s".formatted(properties.rerankerModel(), response.model()));
         }
-        return new RerankScores(response.model(), response.revision(), response.scores().stream().map(Score::score).toList());
+        if (revision == null || revision.isBlank() || "unknown".equals(revision)) {
+            throw new InvalidModelResponseException("the model service did not report the revision of %s".formatted(response.model()));
+        }
+        if (scores == null || scores.size() != sent.size()) {
+            throw new InvalidModelResponseException("expected %d scores, got %s".formatted(sent.size(), scores == null ? "none" : scores.size()));
+        }
+        List<Double> values = new ArrayList<>(sent.size());
+        for (int i = 0; i < sent.size(); i++) {
+            Score score = scores.get(i);
+            if (score == null || !sent.get(i).id().equals(score.id())) {
+                throw new InvalidModelResponseException("score %d is not for passage %d".formatted(i, i));
+            }
+            if (!Double.isFinite(score.score())) {
+                throw new InvalidModelResponseException("score %d is not finite".formatted(i));
+            }
+            values.add(score.score());
+        }
+        return new RerankScores(properties.rerankerModel(), revision, values);
     }
 
     record Passage(
@@ -93,16 +119,16 @@ public class ModelServiceRerankClient implements RerankClient {
     }
 
     record Score(
-            String id,
+            @Nullable String id,
 
             double score) {
     }
 
     record RerankResponse(
-            String model,
+            @Nullable String model,
 
-            String revision,
+            @Nullable String revision,
 
-            List<Score> scores) {
+            @Nullable List<@Nullable Score> scores) {
     }
 }

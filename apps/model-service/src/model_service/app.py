@@ -59,7 +59,8 @@ def create_app(embedder: Embedder, reranker: Reranker, settings: Settings) -> Fa
         if any(len(t) > settings.max_chars_per_text for t in request.texts):
             raise ModelServiceError(422, "TEXT_TOO_LONG", f"each text must be at most {settings.max_chars_per_text} characters")
         vectors = embedder.embed(request.texts, request.input_type)
-        return EmbedResponse(model=info.name, revision=info.revision, dimensions=info.dimensions, vectors=vectors)
+        prefix = info.query_prefix if request.input_type == "query" else info.passage_prefix
+        return EmbedResponse(model=info.name, revision=info.revision, dimensions=info.dimensions, prefix=prefix or "", vectors=vectors)
 
     @app.post("/v1/rerank", responses={422: {"model": ErrorResponse}})
     def rerank(request: RerankRequest) -> RerankResponse:
@@ -89,7 +90,7 @@ def app() -> FastAPI:
     """Factory for uvicorn: `uvicorn model_service.app:app --factory`."""
     settings = Settings.from_env()
     return create_app(
-        FastEmbedEmbedder(settings.embedding_model, settings.model_cache_dir),
-        FastEmbedReranker(settings.reranker_model, settings.model_cache_dir),
+        FastEmbedEmbedder(settings.embedding_model, settings.embedding_revision, settings.model_cache_dir),
+        FastEmbedReranker(settings.reranker_model, settings.reranker_revision, settings.model_cache_dir),
         settings,
     )

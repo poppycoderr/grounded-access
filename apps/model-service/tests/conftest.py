@@ -7,7 +7,9 @@ from model_service.settings import Settings
 
 SETTINGS = Settings(
     embedding_model="fake",
+    embedding_revision="r1",
     reranker_model="fake-reranker",
+    reranker_revision="r2",
     model_cache_dir="/nonexistent",
     max_texts_per_request=3,
     max_chars_per_text=20,
@@ -16,7 +18,7 @@ SETTINGS = Settings(
 
 
 class FakeEmbedder:
-    info = ModelInfo(name="fake", task="embedding", revision="r1", dimensions=2, query_prefix="q: ", license="none")
+    info = ModelInfo(name="fake", task="embedding", revision="r1", dimensions=2, query_prefix="q: ", passage_prefix="", license="none")
 
     def __init__(self) -> None:
         self.calls: list[tuple[list[str], str]] = []

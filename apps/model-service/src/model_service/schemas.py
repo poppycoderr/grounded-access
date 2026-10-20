@@ -17,6 +17,7 @@ class EmbedResponse(BaseModel):
     model: str
     revision: str
     dimensions: int
+    prefix: str = Field(description="Instruction prepended to every text of this request before encoding; empty when there is none.")
     vectors: list[list[float]]
 
 
@@ -52,6 +53,7 @@ class ModelInfo(BaseModel):
     revision: str
     dimensions: int | None = Field(default=None, description="Vector size; embedding models only.")
     query_prefix: str | None = Field(default=None, description="Instruction prepended to queries; embedding models only.")
+    passage_prefix: str | None = Field(default=None, description="Instruction prepended to passages; embedding models only.")
     license: str
 
 

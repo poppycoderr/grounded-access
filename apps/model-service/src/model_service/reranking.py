@@ -2,7 +2,7 @@
 
 from typing import Protocol
 
-from model_service.embedding import snapshot_revision
+from model_service.embedding import pinned_snapshot
 from model_service.schemas import ModelInfo
 
 
@@ -14,18 +14,20 @@ class Reranker(Protocol):
 
 
 class FastEmbedReranker:
-    """An ONNX cross-encoder through fastembed; CPU only, weights resolved from a local cache directory. A cross-encoder reads the query and a
-    passage together, so its cost grows with the number of passages; callers send only the candidates they intend to rerank."""
+    """An ONNX cross-encoder through fastembed; CPU only, weights loaded from the pinned revision in a local cache directory. A cross-encoder
+    reads the query and a passage together, so its cost grows with the number of passages; callers send only the candidates they intend to
+    rerank."""
 
-    def __init__(self, model_name: str, cache_dir: str) -> None:
+    def __init__(self, model_name: str, revision: str, cache_dir: str) -> None:
         from fastembed.rerank.cross_encoder import TextCrossEncoder
 
-        self._model = TextCrossEncoder(model_name=model_name, cache_dir=cache_dir)
         description = next(m for m in TextCrossEncoder.list_supported_models() if m["model"] == model_name)
+        path = pinned_snapshot(cache_dir, description["sources"]["hf"], revision)
+        self._model = TextCrossEncoder(model_name=model_name, cache_dir=cache_dir, specific_model_path=str(path))
         self._info = ModelInfo(
             name=model_name,
             task="rerank",
-            revision=snapshot_revision(cache_dir, description["sources"]["hf"]),
+            revision=revision,
             license=description.get("license", "unknown"),
         )
 

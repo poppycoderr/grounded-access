@@ -111,11 +111,25 @@ class ModelServiceRerankClientTest {
     }
 
     @Test
-    void rejectsAResponseThatDoesNotScoreEveryPassage() {
-        response.set("{\"model\":\"m\",\"revision\":\"r7\",\"scores\":[{\"id\":\"0\",\"score\":1.0}]}");
-
-        assertThatThrownBy(() -> client(Duration.ofSeconds(2)).score("q", List.of("a", "b"))).isInstanceOf(RestClientException.class)
-                .hasMessageContaining("1 scores for 2 passages");
+    void rejectsAResponseThatBreaksTheContract() {
+        List<String[]> broken = List.of(
+                new String[] {"expected 2 scores, got 1", "{\"model\":\"m\",\"revision\":\"r7\",\"scores\":[{\"id\":\"0\",\"score\":1.0}]}"},
+                new String[] {"score 1 is not for passage 1",
+                        "{\"model\":\"m\",\"revision\":\"r7\",\"scores\":[{\"id\":\"0\",\"score\":1.0},{\"id\":\"0\",\"score\":2.0}]}"},
+                new String[] {"score 0 is not for passage 0",
+                        "{\"model\":\"m\",\"revision\":\"r7\",\"scores\":[{\"id\":\"1\",\"score\":1.0},{\"id\":\"0\",\"score\":2.0}]}"},
+                new String[] {"score 1 is not finite",
+                        "{\"model\":\"m\",\"revision\":\"r7\",\"scores\":[{\"id\":\"0\",\"score\":1.0},{\"id\":\"1\",\"score\":1e400}]}"},
+                new String[] {"did not report the revision",
+                        "{\"model\":\"m\",\"revision\":\"unknown\",\"scores\":[{\"id\":\"0\",\"score\":1.0},{\"id\":\"1\",\"score\":2.0}]}"},
+                new String[] {"expected model m, got other",
+                        "{\"model\":\"other\",\"revision\":\"r7\",\"scores\":[{\"id\":\"0\",\"score\":1.0},{\"id\":\"1\",\"score\":2.0}]}"});
+        for (String[] each : broken) {
+            response.set(each[1]);
+            assertThatThrownBy(() -> client(Duration.ofSeconds(2)).score("q", List.of("a", "b"))).as(each[0])
+                    .isInstanceOf(InvalidModelResponseException.class)
+                    .hasMessageContaining(each[0]);
+        }
     }
 
     private ModelServiceRerankClient client(Duration rerankTimeout) {

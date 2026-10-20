@@ -130,7 +130,8 @@ public final class StubModelServer {
                 List<String> texts = new ArrayList<>();
                 request.path("texts").forEach(text -> texts.add(text.asString()));
                 List<float[]> vectors = hashing.embed(texts, InputType.QUERY).vectors();
-                yield JSON.writeValueAsString(Map.of("model", request.path("model").asString(), "revision", "stub", "dimensions", 384, "vectors", vectors));
+                yield JSON.writeValueAsString(
+                        Map.of("model", request.path("model").asString(), "revision", "stub", "prefix", "", "dimensions", 384, "vectors", vectors));
             }
             case RERANK -> {
                 List<Map<String, Object>> scores = new ArrayList<>();

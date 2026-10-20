@@ -1,5 +1,6 @@
 package io.groundedaccess.api;
 
+import io.groundedaccess.corpus.IndexProfileMismatchException;
 import io.groundedaccess.telemetry.Failures;
 import io.groundedaccess.audit.AuditUnavailableException;
 
@@ -39,6 +40,15 @@ public class ApiExceptionHandler {
         log.error("Audit write failed, request refused: {}", Failures.describe(cause != null ? cause : exception));
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, "The request could not be audited and was not carried out");
         problem.setProperty("code", "AUDIT_UNAVAILABLE");
+        return problem;
+    }
+
+    @ExceptionHandler(IndexProfileMismatchException.class)
+    ProblemDetail indexProfileMismatch(IndexProfileMismatchException exception) {
+        log.error("Dense search refused: {}", exception.getMessage());
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE,
+                "The model service embeds differently from the stored index; dense search is unavailable");
+        problem.setProperty("code", "INDEX_PROFILE_MISMATCH");
         return problem;
     }
 

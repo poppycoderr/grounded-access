@@ -21,20 +21,22 @@ class Embedder(Protocol):
 
 
 class FastEmbedEmbedder:
-    """ONNX Runtime embeddings through fastembed; CPU only, weights resolved from a local cache directory."""
+    """ONNX Runtime embeddings through fastembed; CPU only, weights loaded from the pinned revision in a local cache directory."""
 
-    def __init__(self, model_name: str, cache_dir: str) -> None:
+    def __init__(self, model_name: str, revision: str, cache_dir: str) -> None:
         from fastembed import TextEmbedding
 
-        self._model = TextEmbedding(model_name=model_name, cache_dir=cache_dir)
         description = next(m for m in TextEmbedding.list_supported_models() if m["model"] == model_name)
+        path = pinned_snapshot(cache_dir, description["sources"]["hf"], revision)
+        self._model = TextEmbedding(model_name=model_name, cache_dir=cache_dir, specific_model_path=str(path))
         self._prefix = QUERY_PREFIXES.get(model_name, "")
         self._info = ModelInfo(
             name=model_name,
             task="embedding",
-            revision=snapshot_revision(cache_dir, description["sources"]["hf"]),
+            revision=revision,
             dimensions=description["dim"],
             query_prefix=self._prefix,
+            passage_prefix="",
             license=description.get("license", "unknown"),
         )
 
@@ -47,8 +49,10 @@ class FastEmbedEmbedder:
         return [vector.tolist() for vector in self._model.embed(inputs)]
 
 
-def snapshot_revision(cache_dir: str, hf_repo: str) -> str:
-    """Hugging Face cache layout: models--<org>--<name>/snapshots/<commit sha>/."""
-    snapshots = Path(cache_dir) / f"models--{hf_repo.replace('/', '--')}" / "snapshots"
-    revisions = sorted(p.name for p in snapshots.iterdir()) if snapshots.is_dir() else []
-    return revisions[-1] if len(revisions) == 1 else "unknown"
+def pinned_snapshot(cache_dir: str, hf_repo: str, revision: str) -> Path:
+    """The weights of exactly this revision, in the Hugging Face cache layout models--<org>--<name>/snapshots/<commit sha>/. The service
+    loads from this directory only, so it cannot run on weights other than the pinned ones."""
+    path = Path(cache_dir) / f"models--{hf_repo.replace('/', '--')}" / "snapshots" / revision
+    if not path.is_dir():
+        raise RuntimeError(f"{hf_repo} at revision {revision} is not in {cache_dir}; run python -m model_service.download")
+    return path
