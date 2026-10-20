@@ -2,6 +2,7 @@ package io.groundedaccess.audit;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
 
@@ -27,6 +28,8 @@ public record SearchRecord(
         String policyVersion,
 
         @Nullable String embeddingModel,
+
+        @Nullable UUID indexProfileId,
 
         @Nullable String rerankerModel,
 

@@ -31,4 +31,4 @@ The scans can be run locally with the commands in `.github/workflows/build.yml`;
 
 ## Not done for v0.1
 
-Images are not published to a registry and not signed, base images are referenced by tag and not by digest, model weights are not pinned by revision, and external links in the docs are not checked. These are listed in the [known limitations](./known-limitations.md).
+Images are not published to a registry and not signed, base images are referenced by tag and not by digest, model weight files are not checked against a digest, and external links in the docs are not checked. These are listed in the [known limitations](./known-limitations.md).

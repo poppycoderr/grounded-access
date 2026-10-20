@@ -6,6 +6,7 @@ import io.groundedaccess.corpus.Vectors;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -51,17 +52,18 @@ public class AuthorizedChunkQuery {
         String document = withContext ? "c.content_tsv" : "to_tsvector('english', c.content)";
         String sql = SELECT.formatted("ts_rank_cd(" + document + ", " + tsquery + ")", predicate.sql(), scope.sql())
                 + " and " + document + " @@ " + tsquery + " order by score desc, " + TIE_BREAK + " limit :limit";
-        return run(sql, predicate, scope, true, limit, "query", query);
+        return run(sql, predicate, scope, true, limit, Map.of("query", query));
     }
 
     /**
-     * Exact cosine search over authorized rows; there is deliberately no ANN index in v0.1, so filtering cannot reduce recall (ADR-0002).
+     * Exact cosine search over authorized rows; there is deliberately no ANN index in v0.1, so filtering cannot reduce recall (ADR-0002). Only
+     * rows of the index profile the query vector was made with are compared with it (ADR-0007).
      */
-    public List<RetrievedChunk> dense(float[] queryVector, AuthorizationPredicate predicate, Scope scope, int limit) {
+    public List<RetrievedChunk> dense(float[] queryVector, UUID indexProfileId, AuthorizationPredicate predicate, Scope scope, int limit) {
         String distance = "(c.embedding <=> cast(:vector as vector))";
-        String sql = SELECT.formatted("1 - " + distance, predicate.sql(), scope.sql()) + " and c.embedding is not null order by " + distance + ", " + TIE_BREAK
-                + " limit :limit";
-        return run(sql, predicate, scope, false, limit, "vector", Vectors.toLiteral(queryVector));
+        String sql = SELECT.formatted("1 - " + distance, predicate.sql(), scope.sql()) + " and c.embedding is not null and v.index_profile_id = :profile order by "
+                + distance + ", " + TIE_BREAK + " limit :limit";
+        return run(sql, predicate, scope, false, limit, Map.of("vector", Vectors.toLiteral(queryVector), "profile", indexProfileId));
     }
 
     /**
@@ -107,12 +109,11 @@ public class AuthorizedChunkQuery {
                 .optional();
     }
 
-    private List<RetrievedChunk> run(String sql, AuthorizationPredicate predicate, Scope scope, boolean sparse, int limit, String name,
-            String value) {
+    private List<RetrievedChunk> run(String sql, AuthorizationPredicate predicate, Scope scope, boolean sparse, int limit, Map<String, Object> search) {
         return jdbc.sql(sql)
                 .params(predicate.parameters())
                 .params(scope.parameters())
-                .param(name, value)
+                .params(search)
                 .param("limit", limit)
                 .query((rs, rowNum) -> map(rs, sparse, rowNum + 1))
                 .list();

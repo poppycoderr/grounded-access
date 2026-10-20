@@ -47,6 +47,9 @@ class IngestionIT {
 
                 @Override
                 public Embeddings embed(List<String> texts, InputType inputType) {
+                    if (texts.equals(List.of(IndexProfiles.PROBE))) {
+                        return super.embed(texts, inputType);
+                    }
                     try {
                         RACE.await();
                     } catch (Exception e) {
@@ -60,9 +63,6 @@ class IngestionIT {
 
     @Autowired
     private IngestionService ingestion;
-
-    @Autowired
-    private EmbeddingModelGuard guard;
 
     @Autowired
     private JdbcClient jdbc;
@@ -106,23 +106,6 @@ class IngestionIT {
         assertThat(results).extracting(IngestionResult::updated).containsExactly(1, 1);
         assertThat(versionNumbers()).containsExactly(1, 2, 3);
         assertThat(chunkVersions()).hasSize(1);
-    }
-
-    @Test
-    void refusesToStartWhenActiveDocumentsUseAnotherEmbeddingModel() throws Exception {
-        inParallel(document("EU employees receive two paid volunteer days."), document("EU employees receive two paid volunteer days."));
-        jdbc.sql("update document_version set embedding_model = 'other-model@rev'").update();
-
-        assertThat(catchThrowable(guard::check)).hasMessageContaining("other-model@rev").hasMessageContaining("Re-ingest");
-    }
-
-    private static Throwable catchThrowable(Runnable runnable) {
-        try {
-            runnable.run();
-            return null;
-        } catch (Throwable thrown) {
-            return thrown;
-        }
     }
 
     private List<IngestionResult> inParallel(SourceDocument first, SourceDocument second) throws Exception {

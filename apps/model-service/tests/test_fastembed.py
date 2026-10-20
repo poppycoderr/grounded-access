@@ -14,16 +14,16 @@ pytestmark = pytest.mark.skipif(os.getenv("GA_RUN_MODEL_TESTS") != "1", reason="
 @pytest.fixture(scope="module")
 def embedder() -> FastEmbedEmbedder:
     settings = Settings.from_env()
-    return FastEmbedEmbedder(settings.embedding_model, settings.model_cache_dir)
+    return FastEmbedEmbedder(settings.embedding_model, settings.embedding_revision, settings.model_cache_dir)
 
 
 def cosine(a: list[float], b: list[float]) -> float:
     return sum(x * y for x, y in zip(a, b, strict=True)) / (math.hypot(*a) * math.hypot(*b))
 
 
-def test_reports_dimensions_and_a_pinned_revision(embedder):
+def test_reports_dimensions_and_the_pinned_revision(embedder):
     assert embedder.info.dimensions == 384
-    assert embedder.info.revision != "unknown"
+    assert embedder.info.revision == Settings.from_env().embedding_revision
 
 
 def test_vectors_are_normalized_and_deterministic(embedder):
@@ -49,12 +49,12 @@ def reranker():
     from model_service.reranking import FastEmbedReranker
 
     settings = Settings.from_env()
-    return FastEmbedReranker(settings.reranker_model, settings.model_cache_dir)
+    return FastEmbedReranker(settings.reranker_model, settings.reranker_revision, settings.model_cache_dir)
 
 
-def test_the_reranker_reports_a_pinned_revision(reranker):
+def test_the_reranker_reports_the_pinned_revision(reranker):
     assert reranker.info.task == "rerank"
-    assert reranker.info.revision != "unknown"
+    assert reranker.info.revision == Settings.from_env().reranker_revision
 
 
 def test_the_reranker_prefers_the_passage_that_answers_the_question(reranker):

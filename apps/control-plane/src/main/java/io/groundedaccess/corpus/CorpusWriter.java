@@ -94,6 +94,8 @@ class CorpusWriter {
 
             String embeddingModel,
 
+            UUID indexProfileId,
+
             String chunkerVersion) {
     }
 
@@ -153,8 +155,9 @@ class CorpusWriter {
         DocumentScope scope = version.source().scope();
         jdbc.sql("""
                         insert into document_version (id, document_id, tenant_id, version_no, content_sha256, title, source_uri, format, chunker_version,
-                            embedding_model, classification, allowed_departments, required_projects, applies_to_regions, valid_from, valid_to)
-                        values (:id, :document, :tenant, :versionNo, :sha, :title, :sourceUri, :format, :chunker, :model, :classification,
+                            embedding_model, index_profile_id, classification, allowed_departments, required_projects, applies_to_regions, valid_from,
+                            valid_to)
+                        values (:id, :document, :tenant, :versionNo, :sha, :title, :sourceUri, :format, :chunker, :model, :profile, :classification,
                             cast(:departments as text[]), cast(:projects as text[]), cast(:regions as text[]),
                             cast(:validFrom as timestamptz), cast(:validTo as timestamptz))
                         """)
@@ -174,6 +177,7 @@ class CorpusWriter {
                 .param("validFrom", timestamp(scope.validFrom()))
                 .param("validTo", timestamp(scope.validTo()))
                 .param("model", version.embeddingModel())
+                .param("profile", version.indexProfileId())
                 .update();
         for (int i = 0; i < version.chunks().size(); i++) {
             ChunkDraft chunk = version.chunks().get(i);
@@ -219,9 +223,10 @@ class CorpusWriter {
         DocumentScope scope = source.scope();
         jdbc.sql("""
                         insert into document_version (id, document_id, tenant_id, version_no, content_sha256, title, source_uri, format, chunker_version,
-                            embedding_model, classification, allowed_departments, required_projects, applies_to_regions, valid_from, valid_to)
+                            embedding_model, index_profile_id, classification, allowed_departments, required_projects, applies_to_regions, valid_from,
+                            valid_to)
                         select :id, document_id, tenant_id, :versionNo, content_sha256, :title, :sourceUri, format, chunker_version, embedding_model,
-                            :classification, cast(:departments as text[]), cast(:projects as text[]), cast(:regions as text[]),
+                            index_profile_id, :classification, cast(:departments as text[]), cast(:projects as text[]), cast(:regions as text[]),
                             cast(:validFrom as timestamptz), cast(:validTo as timestamptz)
                         from document_version where id = :previous
                         """)

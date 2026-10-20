@@ -222,7 +222,7 @@
       "id": 5,
       "type": "timeseries",
       "title": "Degraded results by reason",
-      "description": "Results returned without part of their plan, per minute: dense_unavailable, rerank_unavailable, generation_unavailable, generation_invalid.",
+      "description": "Results returned without part of their plan, per minute: dense_unavailable, dense_invalid_response, dense_index_mismatch, rerank_unavailable, generation_unavailable, generation_invalid.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"

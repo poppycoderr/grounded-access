@@ -117,7 +117,7 @@ flowchart LR
 
 ## 6. Out of scope
 
-Transport security and secrets management of the deployment, the host and container runtime, supply-chain attacks on dependencies and model weights (CI scans the history for secrets and both images for fixable high and critical vulnerabilities, checks dependency licenses and publishes SBOMs; model weights are not verified, see the [known limitations](../project/known-limitations.md)), and the security of whatever chat model is plugged in later.
+Transport security and secrets management of the deployment, the host and container runtime, supply-chain attacks on dependencies and model weights (CI scans the history for secrets and both images for fixable high and critical vulnerabilities, checks dependency licenses and publishes SBOMs; model weights are pinned by revision but their files are not checked against a digest, see the [known limitations](../project/known-limitations.md)), and the security of whatever chat model is plugged in later.
 
 ## 7. Reporting
 

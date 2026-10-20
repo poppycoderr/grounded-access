@@ -47,7 +47,7 @@ Grounded Access v0.1 is a reference system: it shows one way to put authorizatio
 
 ## Supply chain
 
-- CI scans both images for high and critical vulnerabilities that have a fix, scans the history for secrets, checks dependency licenses and publishes an SBOM per image. It does not verify model weights: the embedding model and the reranker are downloaded at image build time by name. The revision that was downloaded is recorded in every response and execution record, but it is not pinned in this repository, so a rebuild can pick up a newer revision.
+- CI scans both images for high and critical vulnerabilities that have a fix, scans the history for secrets, checks dependency licenses and publishes an SBOM per image. Model weights are pinned by Hugging Face commit in this repository and downloaded by that commit at image build time; the files themselves are not checked against a digest kept here, so the pin trusts the hub to serve what a commit names.
 - Base images are referenced by tag, not by digest, so two builds of the same commit can differ.
 - Two vulnerabilities in a base-image binary that is never executed are accepted and listed with the reason in `ops/supply-chain/trivyignore.yaml`.
 - Images are not signed and not published to a registry; they are built locally from source.

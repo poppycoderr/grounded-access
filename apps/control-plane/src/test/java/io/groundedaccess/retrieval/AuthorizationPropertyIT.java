@@ -78,8 +78,15 @@ class AuthorizationPropertyIT {
 
     private static final float[] VECTOR = new float[384];
 
+    private static final UUID PROFILE = UUID.randomUUID();
+
     static {
         Arrays.fill(VECTOR, 0.05f);
+        JDBC.sql("""
+                insert into index_profile (id, embedding_model, embedding_revision, dimensions, query_prefix, passage_prefix, embedding_context,
+                    chunker_release, chunk_max_words, chunk_overlap_words)
+                values (:id, 'model', 'test', 384, '', '', false, '2', 180, 30)
+                """).param("id", PROFILE).update();
     }
 
     private final PolicyCompiler compiler = new PolicyCompiler();
@@ -123,7 +130,7 @@ class AuthorizationPropertyIT {
                 .containsExactlyInAnyOrderElementsOf(expected);
         assertThat(chunks.sparse("volunteer", predicate, scope, 1000, true)).extracting(RetrievedChunk::documentKey)
                 .containsExactlyInAnyOrderElementsOf(expected);
-        assertThat(chunks.dense(VECTOR, predicate, scope, 1000)).extracting(RetrievedChunk::documentKey).containsExactlyInAnyOrderElementsOf(expected);
+        assertThat(chunks.dense(VECTOR, PROFILE, predicate, scope, 1000)).extracting(RetrievedChunk::documentKey).containsExactlyInAnyOrderElementsOf(expected);
         assertThat(chunks.list(predicate, Scope.ANY, null, 1000)).extracting(AuthorizedChunk::documentKey)
                 .as("without a scope, exactly the authorized documents")
                 .containsExactlyInAnyOrderElementsOf(authorized);
@@ -193,8 +200,9 @@ class AuthorizationPropertyIT {
         try (Connection connection = DATA_SOURCE.getConnection();
                 PreparedStatement version = connection.prepareStatement("""
                         insert into document_version (id, document_id, tenant_id, version_no, content_sha256, title, format, chunker_version,
-                            embedding_model, classification, allowed_departments, required_projects, applies_to_regions, valid_from, valid_to)
-                        values (?, ?, ?, 1, 'sha', 'title', 'markdown', 'markdown/2', 'model', ?, ?, ?, ?, ?, ?)
+                            embedding_model, index_profile_id, classification, allowed_departments, required_projects, applies_to_regions, valid_from,
+                            valid_to)
+                        values (?, ?, ?, 1, 'sha', 'title', 'markdown', 'markdown/2', 'model@test', ?, ?, ?, ?, ?, ?, ?)
                         """)) {
             List<UUID[]> ids = new ArrayList<>();
             for (int i = 0; i < corpus.size(); i++) {
@@ -210,12 +218,13 @@ class AuthorizationPropertyIT {
                 version.setObject(1, versionId);
                 version.setObject(2, documentId);
                 version.setString(3, document.tenant());
-                version.setString(4, document.classification());
-                version.setArray(5, connection.createArrayOf("text", document.departments().toArray()));
-                version.setArray(6, connection.createArrayOf("text", document.projects().toArray()));
-                version.setArray(7, connection.createArrayOf("text", document.regions().toArray()));
-                version.setObject(8, document.validFrom() == null ? null : document.validFrom().atOffset(ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE);
-                version.setObject(9, document.validTo() == null ? null : document.validTo().atOffset(ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE);
+                version.setObject(4, PROFILE);
+                version.setString(5, document.classification());
+                version.setArray(6, connection.createArrayOf("text", document.departments().toArray()));
+                version.setArray(7, connection.createArrayOf("text", document.projects().toArray()));
+                version.setArray(8, connection.createArrayOf("text", document.regions().toArray()));
+                version.setObject(9, document.validFrom() == null ? null : document.validFrom().atOffset(ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE);
+                version.setObject(10, document.validTo() == null ? null : document.validTo().atOffset(ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE);
                 version.executeUpdate();
                 JDBC.sql("""
                                 insert into chunk (id, tenant_id, document_id, version_id, ordinal, char_start, char_end, content, embedding, token_count)

@@ -41,7 +41,22 @@ public final class DocumentChunker {
      * The version recorded with every document version, so evaluation results say which chunking and which embedding input produced them.
      */
     public static String version(DocumentFormat format, boolean embeddedWithContext) {
-        return format.column() + "/" + (embeddedWithContext ? CONTEXT_RELEASE : RELEASE);
+        return format.column() + "/" + release(embeddedWithContext);
+    }
+
+    /**
+     * The release part of {@link #version}, the same for every format; part of the index profile.
+     */
+    static String release(boolean embeddedWithContext) {
+        return embeddedWithContext ? CONTEXT_RELEASE : RELEASE;
+    }
+
+    int maxWords() {
+        return maxWords;
+    }
+
+    int overlapWords() {
+        return overlapWords;
     }
 
     /**

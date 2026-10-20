@@ -10,14 +10,15 @@ def test_embed_returns_one_vector_per_text_with_model_metadata(client, embedder)
     response = client.post("/v1/embed", json={"input_type": "passage", "texts": ["abc", "de"]})
 
     assert response.status_code == 200
-    assert response.json() == {"model": "fake", "revision": "r1", "dimensions": 2, "vectors": [[3.0, 1.0], [2.0, 1.0]]}
+    assert response.json() == {"model": "fake", "revision": "r1", "dimensions": 2, "prefix": "", "vectors": [[3.0, 1.0], [2.0, 1.0]]}
     assert embedder.calls == [(["abc", "de"], "passage")]
 
 
-def test_embed_passes_the_input_type_to_the_model(client, embedder):
-    client.post("/v1/embed", json={"input_type": "query", "texts": ["abc"]})
+def test_embed_passes_the_input_type_to_the_model_and_reports_its_prefix(client, embedder):
+    response = client.post("/v1/embed", json={"input_type": "query", "texts": ["abc"]})
 
     assert embedder.calls == [(["abc"], "query")]
+    assert response.json()["prefix"] == "q: "
 
 
 def test_embed_rejects_a_model_other_than_the_loaded_one(client, embedder):

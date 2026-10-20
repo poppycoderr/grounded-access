@@ -13,14 +13,14 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Ingests documents into one tenant. A document whose normalized content is unchanged is skipped; otherwise it gets a new version. Embedding
  * happens before the transaction so no database connection is held during model calls, and the write decision is repeated under a document lock so
- * concurrent ingestions of the same key stay consistent.
+ * concurrent ingestions of the same key stay consistent. Embeddings of another index profile than the stored one are refused before anything
+ * is written (ADR-0007).
  */
 @Service
 public class IngestionService {
@@ -31,18 +31,19 @@ public class IngestionService {
 
     private final TransactionTemplate transactions;
 
+    private final IndexProfiles profiles;
+
     private final DocumentChunker chunker;
 
     private final boolean embeddingContext;
 
-    public IngestionService(CorpusWriter writer, EmbeddingClient embeddings, TransactionTemplate transactions,
-            @Value("${ga.corpus.chunk-max-words:180}") int chunkMaxWords, @Value("${ga.corpus.chunk-overlap-words:30}") int chunkOverlapWords,
-            @Value("${ga.corpus.embedding-context:true}") boolean embeddingContext) {
-        this.embeddingContext = embeddingContext;
+    public IngestionService(CorpusWriter writer, EmbeddingClient embeddings, TransactionTemplate transactions, IndexProfiles profiles) {
         this.writer = writer;
         this.embeddings = embeddings;
         this.transactions = transactions;
-        this.chunker = new DocumentChunker(chunkMaxWords, chunkOverlapWords);
+        this.profiles = profiles;
+        this.chunker = profiles.chunker();
+        this.embeddingContext = profiles.embeddingContext();
     }
 
     public IngestionResult ingest(String tenantId, List<SourceDocument> documents) {
@@ -75,11 +76,17 @@ public class IngestionService {
             }
         }
         List<ChunkDraft> chunks = chunker.chunk(normalized, source.format());
-        Embeddings vectors = embeddings.embed(chunks.stream()
-                .map(chunk -> embeddingContext ? DocumentChunker.withContext(chunk.sectionPath(), chunk.content()) : chunk.content())
-                .toList(), InputType.PASSAGE);
-        var version = new CorpusWriter.NewVersion(tenantId, source, sha, chunks, vectors.vectors(), vectors.modelId(),
-                DocumentChunker.version(source.format(), embeddingContext));
+        IndexProfiles.Established index = profiles.establish();
+        List<float[]> vectors = List.of();
+        if (!chunks.isEmpty()) {
+            Embeddings embedded = embeddings.embed(chunks.stream()
+                    .map(chunk -> embeddingContext ? DocumentChunker.withContext(chunk.sectionPath(), chunk.content()) : chunk.content())
+                    .toList(), InputType.PASSAGE);
+            profiles.checkPassages(embedded);
+            vectors = embedded.vectors();
+        }
+        var version = new CorpusWriter.NewVersion(tenantId, source, sha, chunks, vectors, index.profile().embeddingModel() + "@"
+                + index.profile().embeddingRevision(), index.id(), DocumentChunker.version(source.format(), embeddingContext));
         return commit(fence, () -> write(version, sha), chunks.size()).orElseThrow();
     }
 

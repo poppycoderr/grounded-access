@@ -46,8 +46,8 @@ public class AuditTrail {
         guarded(() -> transactions.executeWithoutResult(status -> {
             jdbc.sql("""
                             insert into query_execution (id, tenant_id, principal_id, trace_id, plan_hash, plan, policy_version, embedding_model,
-                                reranker_model, status, degraded_reasons, result_count, latency_ms)
-                            values (:id, :tenant, :principal, :trace, :planHash, cast(:plan as jsonb), :policyVersion, :model, :reranker, :status,
+                                index_profile_id, reranker_model, status, degraded_reasons, result_count, latency_ms)
+                            values (:id, :tenant, :principal, :trace, :planHash, cast(:plan as jsonb), :policyVersion, :model, :profile, :reranker, :status,
                                 cast(:degraded as text[]), :count,
                                 jsonb_build_object('total', cast(:totalMs as bigint), 'sparse', cast(:sparseMs as bigint), 'dense', cast(:denseMs as bigint),
                                     'rerank', cast(:rerankMs as bigint)))
@@ -60,6 +60,7 @@ public class AuditTrail {
                     .param("plan", search.planJson())
                     .param("policyVersion", search.policyVersion())
                     .param("model", search.embeddingModel())
+                    .param("profile", search.indexProfileId())
                     .param("reranker", search.rerankerModel())
                     .param("rerankMs", search.rerankMs())
                     .param("status", search.degradedReasons().isEmpty() ? "ok" : "degraded")

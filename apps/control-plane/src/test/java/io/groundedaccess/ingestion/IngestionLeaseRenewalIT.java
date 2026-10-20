@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.groundedaccess.HashingEmbeddingClient;
 import io.groundedaccess.TestcontainersConfiguration;
 import io.groundedaccess.authorization.AccessLabels;
+import io.groundedaccess.corpus.IndexProfiles;
 import io.groundedaccess.corpus.DocumentFormat;
 import io.groundedaccess.corpus.DocumentScope;
 import io.groundedaccess.corpus.SourceDocument;
@@ -52,6 +53,9 @@ class IngestionLeaseRenewalIT {
 
                 @Override
                 public Embeddings embed(List<String> texts, InputType inputType) {
+                    if (texts.equals(List.of(IndexProfiles.PROBE))) {
+                        return super.embed(texts, inputType);
+                    }
                     ENTERED.countDown();
                     try {
                         RESUME.await(60, TimeUnit.SECONDS);

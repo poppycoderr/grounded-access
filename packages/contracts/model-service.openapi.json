@@ -51,6 +51,11 @@
             "title": "Model",
             "type": "string"
           },
+          "prefix": {
+            "description": "Instruction prepended to every text of this request before encoding; empty when there is none.",
+            "title": "Prefix",
+            "type": "string"
+          },
           "revision": {
             "title": "Revision",
             "type": "string"
@@ -70,6 +75,7 @@
           "model",
           "revision",
           "dimensions",
+          "prefix",
           "vectors"
         ],
         "title": "EmbedResponse",
@@ -114,6 +120,18 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "passage_prefix": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Instruction prepended to passages; embedding models only.",
+            "title": "Passage Prefix"
           },
           "query_prefix": {
             "anyOf": [

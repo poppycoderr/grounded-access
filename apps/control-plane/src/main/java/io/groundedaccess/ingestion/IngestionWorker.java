@@ -2,9 +2,11 @@ package io.groundedaccess.ingestion;
 
 import io.groundedaccess.telemetry.Failures;
 import io.groundedaccess.corpus.IngestionResult;
+import io.groundedaccess.corpus.IndexProfileMismatchException;
 import io.groundedaccess.corpus.IngestionService;
 import io.groundedaccess.corpus.SourceDocument;
 import io.groundedaccess.corpus.WriteFence;
+import io.groundedaccess.modelclient.InvalidModelResponseException;
 
 import jakarta.annotation.PreDestroy;
 
@@ -157,10 +159,11 @@ public class IngestionWorker {
 
     /**
      * Failures that may pass on their own: the model service being down or slow, or a transient database error. A 4xx from the model service
-     * means the request itself is wrong and will fail again.
+     * means the request itself is wrong and will fail again; a response that breaks the contract or comes from another index profile means the
+     * deployment is wrong, and retrying would only fail again.
      */
     private static @Nullable String retryableCode(RuntimeException cause) {
-        if (cause instanceof RestClientException && !(cause instanceof HttpClientErrorException)) {
+        if (cause instanceof RestClientException && !(cause instanceof HttpClientErrorException) && !(cause instanceof InvalidModelResponseException)) {
             return "MODEL_SERVICE_UNAVAILABLE";
         }
         if (cause instanceof TransientDataAccessException) {
@@ -170,6 +173,11 @@ public class IngestionWorker {
     }
 
     private static String permanentCode(RuntimeException cause) {
-        return cause instanceof HttpClientErrorException ? "MODEL_SERVICE_REJECTED" : "INTERNAL_ERROR";
+        return switch (cause) {
+            case HttpClientErrorException rejected -> "MODEL_SERVICE_REJECTED";
+            case InvalidModelResponseException invalid -> "MODEL_RESPONSE_INVALID";
+            case IndexProfileMismatchException mismatch -> "INDEX_PROFILE_MISMATCH";
+            default -> "INTERNAL_ERROR";
+        };
     }
 }

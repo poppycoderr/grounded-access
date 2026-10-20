@@ -19,7 +19,7 @@ public class HashingEmbeddingClient implements EmbeddingClient {
 
     @Override
     public Embeddings embed(List<String> texts, InputType inputType) {
-        return new Embeddings("hashing", "test", texts.stream().map(HashingEmbeddingClient::vector).toList());
+        return new Embeddings("hashing", "test", "", 384, texts.stream().map(HashingEmbeddingClient::vector).toList());
     }
 
     private static float[] vector(String text) {
