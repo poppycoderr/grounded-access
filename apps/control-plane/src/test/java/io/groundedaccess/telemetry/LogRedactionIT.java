@@ -111,7 +111,7 @@ class LogRedactionIT {
                     if (RERANKER_REJECTS.get()) {
                         throw rejected(query + " " + passages);
                     }
-                    return new RerankScores("test-reranker", "test", passages.stream().map(passage -> 1.0).toList());
+                    return new RerankScores("test-reranker", "test", passages.stream().map(passage -> 1.0).toList(), false);
                 }
             };
         }

@@ -1,6 +1,7 @@
 package io.groundedaccess.api;
 
 import io.groundedaccess.corpus.IndexProfileMismatchException;
+import io.groundedaccess.modelclient.TextTooLongException;
 import io.groundedaccess.telemetry.Failures;
 import io.groundedaccess.audit.AuditUnavailableException;
 
@@ -40,6 +41,14 @@ public class ApiExceptionHandler {
         log.error("Audit write failed, request refused: {}", Failures.describe(cause != null ? cause : exception));
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, "The request could not be audited and was not carried out");
         problem.setProperty("code", "AUDIT_UNAVAILABLE");
+        return problem;
+    }
+
+    @ExceptionHandler(TextTooLongException.class)
+    ProblemDetail queryTooLong(TextTooLongException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+                "The query is longer than the embedding model accepts: " + exception.getMessage());
+        problem.setProperty("code", "QUERY_TOO_LONG");
         return problem;
     }
 

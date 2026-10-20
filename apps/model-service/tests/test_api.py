@@ -66,6 +66,7 @@ def test_rerank_scores_every_passage_in_request_order_without_sorting(client, re
     assert response.json() == {
         "model": "fake-reranker",
         "revision": "r2",
+        "query_truncated": False,
         "scores": [{"id": "c", "score": 1.0}, {"id": "a", "score": 1.0}, {"id": "b", "score": 2.0}],
     }
     assert reranker.calls == [("paid volunteer", ["paid leave", "volunteer days", "paid volunteer days"])]
@@ -101,3 +102,43 @@ def test_committed_contract_matches_the_implementation():
     committed = json.loads(CONTRACT.read_text())
 
     assert committed == openapi_document(), "regenerate with: uv run python -m model_service.contract > packages/contracts/model-service.openapi.json"
+
+
+def test_embed_refuses_a_text_over_the_token_limit_instead_of_cutting_it(client, embedder):
+    # Eight tokens at most, [CLS] and [SEP] included; a query also carries its one-word prefix.
+    fits = client.post("/v1/embed", json={"input_type": "passage", "texts": ["a b c d e f"]})
+    over = client.post("/v1/embed", json={"input_type": "query", "texts": ["ok", "a b c d e f"]})
+
+    assert fits.status_code == 200
+    assert over.status_code == 422
+    assert over.json() == {
+        "code": "TEXT_TOO_LONG",
+        "message": "text 1 has 9 tokens; the model accepts at most 8 per text, special tokens included",
+    }
+    assert embedder.calls == [(["a b c d e f"], "passage")]
+
+
+def test_tokenize_counts_under_the_stricter_tokenizer_without_returning_text(client):
+    response = client.post("/v1/tokenize", json={"texts": ["one two three", "a b c d e f g h i j"], "budget": 5})
+
+    assert response.status_code == 200
+    assert response.json() == {"max_tokens": 8, "counts": [5, 12], "fitting_chars": [13, 5]}
+    assert client.post("/v1/tokenize", json={"texts": ["x"]}).json()["fitting_chars"] is None
+
+
+def test_rerank_cuts_a_query_that_does_not_fit_with_the_longest_passage_and_says_so(client, reranker):
+    passages = [{"id": "p", "text": "one two three four"}, {"id": "q", "text": "five"}]
+
+    response = client.post("/v1/rerank", json={"query": "ab cd ef gh", "passages": passages})
+
+    assert response.json()["query_truncated"] is True
+    # Ten tokens: [CLS] query [SEP] four passage words [SEP] leaves three for the query.
+    assert reranker.calls == [("ab cd ef", ["one two three four", "five"])]
+
+
+def test_rerank_never_cuts_a_passage(client, reranker):
+    response = client.post("/v1/rerank", json={"query": "q", "passages": [{"id": "p", "text": "a b c d e f g"}]})
+
+    assert response.status_code == 422
+    assert response.json()["code"] == "TEXT_TOO_LONG"
+    assert reranker.calls == []

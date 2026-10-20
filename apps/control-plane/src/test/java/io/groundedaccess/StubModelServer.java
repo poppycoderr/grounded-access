@@ -29,6 +29,8 @@ public final class StubModelServer {
 
     public static final String RERANK = "/v1/rerank";
 
+    public static final String TOKENIZE = "/v1/tokenize";
+
     public static final String CHAT = "/v1/chat/completions";
 
     public enum Behaviour {
@@ -98,6 +100,7 @@ public final class StubModelServer {
             created.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
             created.createContext(EMBED, exchange -> handle(exchange, EMBED));
             created.createContext(RERANK, exchange -> handle(exchange, RERANK));
+            created.createContext(TOKENIZE, exchange -> handle(exchange, TOKENIZE));
             created.createContext(CHAT, exchange -> handle(exchange, CHAT));
             created.start();
             return created;
@@ -136,7 +139,12 @@ public final class StubModelServer {
             case RERANK -> {
                 List<Map<String, Object>> scores = new ArrayList<>();
                 request.path("passages").forEach(passage -> scores.add(Map.of("id", passage.path("id").asString(), "score", 1.0)));
-                yield JSON.writeValueAsString(Map.of("model", request.path("model").asString(), "revision", "stub", "scores", scores));
+                yield JSON.writeValueAsString(Map.of("model", request.path("model").asString(), "revision", "stub", "query_truncated", false, "scores", scores));
+            }
+            case TOKENIZE -> {
+                List<String> texts = new ArrayList<>();
+                request.path("texts").forEach(text -> texts.add(text.asString()));
+                yield JSON.writeValueAsString(Map.of("max_tokens", 512, "fitting_chars", hashing.fittingChars(texts, request.path("budget").asInt())));
             }
             default -> JSON.writeValueAsString(
                     Map.of("model", "stub-chat", "choices", List.of(Map.of("message", Map.of("role", "assistant", "content", chatContent)))));

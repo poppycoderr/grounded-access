@@ -6,6 +6,8 @@ import io.groundedaccess.modelclient.InputType;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Deterministic stand-in for the model service: hashes lowercase words into 384 buckets and normalizes, so texts sharing words are close.
@@ -21,6 +23,27 @@ public class HashingEmbeddingClient implements EmbeddingClient {
     public Embeddings embed(List<String> texts, InputType inputType) {
         return new Embeddings("hashing", "test", "", 384, texts.stream().map(HashingEmbeddingClient::vector).toList());
     }
+
+    /**
+     * One token per whitespace-separated word, plus two special tokens, the way a word-piece tokenizer counts plain English at best.
+     */
+    @Override
+    public List<Integer> fittingChars(List<String> texts, int budget) {
+        return texts.stream().map(text -> {
+            Matcher words = WORD.matcher(text);
+            int count = 2;
+            int end = 0;
+            while (words.find()) {
+                if (++count > budget) {
+                    return end;
+                }
+                end = words.end();
+            }
+            return text.length();
+        }).toList();
+    }
+
+    private static final Pattern WORD = Pattern.compile("\\S+");
 
     private static float[] vector(String text) {
         float[] vector = new float[384];

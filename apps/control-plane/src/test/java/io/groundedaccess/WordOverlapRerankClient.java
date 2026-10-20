@@ -24,7 +24,7 @@ public class WordOverlapRerankClient implements RerankClient {
         Set<String> wanted = words(query);
         return new RerankScores("word-overlap", "test", passages.stream()
                 .map(passage -> wanted.isEmpty() ? 0.0 : (double) words(passage).stream().filter(wanted::contains).count() / wanted.size())
-                .toList());
+                .toList(), false);
     }
 
     private static Set<String> words(String text) {

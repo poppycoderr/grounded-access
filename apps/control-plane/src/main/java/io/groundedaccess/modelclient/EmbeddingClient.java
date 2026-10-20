@@ -10,6 +10,12 @@ public interface EmbeddingClient {
     Embeddings embed(List<String> texts, InputType inputType);
 
     /**
+     * How many leading characters of each passage text fit in {@code budget} tokens under the tokenizers of both models, special tokens
+     * included (ADR-0009).
+     */
+    List<Integer> fittingChars(List<String> texts, int budget);
+
+    /**
      * Name of the model this client produces vectors with, without a revision. Vectors from two models are not comparable, so callers use it to
      * detect a corpus that was embedded with something else.
      */

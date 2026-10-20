@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Literal, Protocol
 
 from model_service.schemas import ModelInfo
+from model_service.tokens import HuggingFaceTokenCounter, TokenCounter
 
 InputType = Literal["query", "passage"]
 
@@ -17,6 +18,9 @@ class Embedder(Protocol):
     @property
     def info(self) -> ModelInfo: ...
 
+    @property
+    def tokens(self) -> TokenCounter: ...
+
     def embed(self, texts: list[str], input_type: InputType) -> list[list[float]]: ...
 
 
@@ -29,6 +33,7 @@ class FastEmbedEmbedder:
         description = next(m for m in TextEmbedding.list_supported_models() if m["model"] == model_name)
         path = pinned_snapshot(cache_dir, description["sources"]["hf"], revision)
         self._model = TextEmbedding(model_name=model_name, cache_dir=cache_dir, specific_model_path=str(path))
+        self._tokens = HuggingFaceTokenCounter(path)
         self._prefix = QUERY_PREFIXES.get(model_name, "")
         self._info = ModelInfo(
             name=model_name,
@@ -43,6 +48,10 @@ class FastEmbedEmbedder:
     @property
     def info(self) -> ModelInfo:
         return self._info
+
+    @property
+    def tokens(self) -> TokenCounter:
+        return self._tokens
 
     def embed(self, texts: list[str], input_type: InputType) -> list[list[float]]:
         inputs = [self._prefix + t for t in texts] if input_type == "query" else texts

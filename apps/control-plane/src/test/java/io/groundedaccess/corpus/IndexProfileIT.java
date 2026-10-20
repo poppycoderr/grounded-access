@@ -227,7 +227,7 @@ class IndexProfileIT {
         ingestion.ingest("northstar", List.of(document("handbook", "Employees receive two paid volunteer days.")));
         DOWN.set(true);
 
-        assertThatThrownBy(() -> fresh(180, 30, false).checkAtStartup()).hasMessageContaining("embedding context on, chunker release 3");
+        assertThatThrownBy(() -> fresh(180, 30, false).checkAtStartup()).hasMessageContaining("embedding context on, chunker release 4");
         assertThatThrownBy(() -> fresh(200, 30, true).checkAtStartup()).hasMessageContaining("180/30 words");
         assertThatThrownBy(() -> fresh(180, 20, true).checkAtStartup()).hasMessageContaining("180/30 words");
     }
@@ -261,8 +261,8 @@ class IndexProfileIT {
         UUID id = UUID.randomUUID();
         jdbc.sql("""
                 insert into index_profile (id, embedding_model, embedding_revision, dimensions, query_prefix, passage_prefix, embedding_context,
-                    chunker_release, chunk_max_words, chunk_overlap_words)
-                values (:id, :model, :revision, 384, :prefix, '', true, '3', 180, 30)
+                    chunker_release, chunk_max_words, chunk_overlap_words, chunk_max_tokens, chunk_max_chars, heading_max_chars)
+                values (:id, :model, :revision, 384, :prefix, '', true, '4', 180, 30, 384, 2000, 200)
                 on conflict do nothing
                 """).param("id", id).param("model", model).param("revision", revision).param("prefix", queryPrefix).update();
         return jdbc.sql("select id from index_profile where embedding_model = :model and embedding_revision = :revision and query_prefix = :prefix")

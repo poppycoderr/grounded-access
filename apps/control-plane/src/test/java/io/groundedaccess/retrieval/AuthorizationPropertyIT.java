@@ -84,8 +84,8 @@ class AuthorizationPropertyIT {
         Arrays.fill(VECTOR, 0.05f);
         JDBC.sql("""
                 insert into index_profile (id, embedding_model, embedding_revision, dimensions, query_prefix, passage_prefix, embedding_context,
-                    chunker_release, chunk_max_words, chunk_overlap_words)
-                values (:id, 'model', 'test', 384, '', '', false, '2', 180, 30)
+                    chunker_release, chunk_max_words, chunk_overlap_words, chunk_max_tokens, chunk_max_chars, heading_max_chars)
+                values (:id, 'model', 'test', 384, '', '', false, '4', 180, 30, 384, 2000, 200)
                 """).param("id", PROFILE).update();
     }
 

@@ -44,7 +44,25 @@ class PassageScore(BaseModel):
 class RerankResponse(BaseModel):
     model: str
     revision: str
+    query_truncated: bool = Field(
+        description="The query was cut so that it fits together with the longest passage in the reranker's token limit; passages are never cut."
+    )
     scores: list[PassageScore] = Field(description="One entry per passage, in request order.")
+
+
+class TokenizeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    texts: list[str] = Field(min_length=1)
+    budget: int | None = Field(default=None, ge=1, description="Token budget for fitting_chars; special tokens included.")
+
+
+class TokenizeResponse(BaseModel):
+    max_tokens: int = Field(description="The smaller of the two models' input limits, special tokens included.")
+    counts: list[int] = Field(description="Tokens per text as a passage, the larger count of the two tokenizers.")
+    fitting_chars: list[int] | None = Field(
+        default=None, description="Leading characters of each text that fit in the budget under both tokenizers; present when a budget is given."
+    )
 
 
 class ModelInfo(BaseModel):

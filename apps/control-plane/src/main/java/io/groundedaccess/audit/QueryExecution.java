@@ -30,5 +30,7 @@ public record QueryExecution(
 
         Instant createdAt,
 
-        @Nullable String rerankerModel) {
+        @Nullable String rerankerModel,
+
+        @Nullable Boolean rerankQueryTruncated) {
 }

@@ -81,7 +81,7 @@ class RerankIT {
                         throw new ResourceAccessException("model service unavailable");
                     }
                     SEEN.add(passages);
-                    return new RerankScores("reversing", "r9", IntStream.range(0, passages.size()).mapToObj(i -> (double) i).toList());
+                    return new RerankScores("reversing", "r9", IntStream.range(0, passages.size()).mapToObj(i -> (double) i).toList(), false);
                 }
             };
         }

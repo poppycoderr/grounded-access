@@ -16,8 +16,11 @@ from model_service.schemas import (
     PassageScore,
     RerankRequest,
     RerankResponse,
+    TokenizeRequest,
+    TokenizeResponse,
 )
 from model_service.settings import Settings
+from model_service.tokens import TokenCounter
 
 REQUEST_ID_HEADER = "x-request-id"
 
@@ -58,9 +61,33 @@ def create_app(embedder: Embedder, reranker: Reranker, settings: Settings) -> Fa
             raise ModelServiceError(422, "TOO_MANY_TEXTS", f"at most {settings.max_texts_per_request} texts per request")
         if any(len(t) > settings.max_chars_per_text for t in request.texts):
             raise ModelServiceError(422, "TEXT_TOO_LONG", f"each text must be at most {settings.max_chars_per_text} characters")
-        vectors = embedder.embed(request.texts, request.input_type)
         prefix = info.query_prefix if request.input_type == "query" else info.passage_prefix
+        # Counted before embedding: the model would silently cut a longer input and represent only its beginning.
+        limit = embedder.tokens.max_tokens
+        over = [(i, n) for i, n in enumerate(embedder.tokens.count((prefix or "") + t) for t in request.texts) if n > limit]
+        if over:
+            listed = ", ".join(f"text {i} has {n}" for i, n in over[:5])
+            raise ModelServiceError(422, "TEXT_TOO_LONG", f"{listed} tokens; the model accepts at most {limit} per text, special tokens included")
+        vectors = embedder.embed(request.texts, request.input_type)
         return EmbedResponse(model=info.name, revision=info.revision, dimensions=info.dimensions, prefix=prefix or "", vectors=vectors)
+
+    @app.post("/v1/tokenize", responses={422: {"model": ErrorResponse}})
+    def tokenize(request: TokenizeRequest) -> TokenizeResponse:
+        """Token counts as passages under both models' tokenizers, so the control plane can make chunks that fit both. No text, token or
+        vector is returned."""
+        if len(request.texts) > settings.max_texts_per_request:
+            raise ModelServiceError(422, "TOO_MANY_TEXTS", f"at most {settings.max_texts_per_request} texts per request")
+        if any(len(t) > settings.max_chars_per_text for t in request.texts):
+            raise ModelServiceError(422, "TEXT_TOO_LONG", f"each text must be at most {settings.max_chars_per_text} characters")
+        counters = (embedder.tokens, reranker.tokens)
+        prefix = embedder.info.passage_prefix or ""
+        return TokenizeResponse(
+            max_tokens=min(c.max_tokens for c in counters),
+            counts=[max(c.count(prefix + t) for c in counters) for t in request.texts],
+            fitting_chars=None
+            if request.budget is None
+            else [max(0, min(c.fitting_chars(prefix + t, request.budget) for c in counters) - len(prefix)) for t in request.texts],
+        )
 
     @app.post("/v1/rerank", responses={422: {"model": ErrorResponse}})
     def rerank(request: RerankRequest) -> RerankResponse:
@@ -76,14 +103,36 @@ def create_app(embedder: Embedder, reranker: Reranker, settings: Settings) -> Fa
         ids = [p.id for p in request.passages]
         if len(set(ids)) != len(ids):
             raise ModelServiceError(422, "DUPLICATE_PASSAGE_ID", "passage ids must be unique within a request")
-        scores = reranker.score(request.query, [p.text for p in request.passages])
+        query, truncated = _fit_query(reranker.tokens, request.query, [p.text for p in request.passages])
+        scores = reranker.score(query, [p.text for p in request.passages])
         return RerankResponse(
             model=info.name,
             revision=info.revision,
+            query_truncated=truncated,
             scores=[PassageScore(id=passage_id, score=score) for passage_id, score in zip(ids, scores, strict=True)],
         )
 
     return app
+
+
+def _fit_query(tokens: TokenCounter, query: str, passages: list[str]) -> tuple[str, bool]:
+    """Cuts the query so that it fits with the longest passage in the reranker's limit. Passages are never cut: the control plane's chunk budget
+    leaves room for a query, and a passage that does not leave room for any of it is refused."""
+    limit = tokens.max_tokens
+    longest = max(range(len(passages)), key=lambda i: tokens.count(passages[i]))
+    passage = passages[longest]
+    if tokens.count(query, passage) <= limit:
+        return query, False
+    # A one-token query with this passage: what is left of the limit is the query's room.
+    room = limit - tokens.count(passage) - 1
+    if room < 1:
+        raise ModelServiceError(422, "TEXT_TOO_LONG", f"passage {longest} leaves no room for a query within {limit} tokens")
+    cut = query[: tokens.fitting_chars(query, room + 2)]
+    while cut and tokens.count(cut, passage) > limit:
+        cut = cut[: tokens.fitting_chars(cut, tokens.count(cut) - 1)]
+    if not cut.strip():
+        raise ModelServiceError(422, "TEXT_TOO_LONG", f"passage {longest} leaves no room for a query within {limit} tokens")
+    return cut, True
 
 
 def app() -> FastAPI:

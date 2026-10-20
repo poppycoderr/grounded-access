@@ -74,3 +74,32 @@ def test_the_reranker_prefers_the_passage_that_answers_the_question(reranker):
             "Employees based in the EU receive two paid volunteer days per calendar year.",
         ],
     )
+
+
+def test_both_models_accept_512_tokens_and_a_fitting_prefix_fits(embedder, reranker):
+    long_text = " ".join(f"word{i} unbelievable" for i in range(400))
+
+    for counter in (embedder.tokens, reranker.tokens):
+        assert counter.max_tokens == 512
+        assert counter.count(long_text) > 512
+        prefix = long_text[: counter.fitting_chars(long_text, 384)]
+        assert 380 <= counter.count(prefix) <= 384
+        assert long_text.startswith(prefix)
+
+
+def test_the_real_service_refuses_an_input_it_would_have_cut(embedder, reranker):
+    from fastapi.testclient import TestClient
+
+    from model_service.app import create_app
+
+    client = TestClient(create_app(embedder, reranker, Settings.from_env()))
+    long_text = " ".join(f"word{i}" for i in range(600))
+
+    refused = client.post("/v1/embed", json={"input_type": "passage", "texts": [long_text]})
+    tokenized = client.post("/v1/tokenize", json={"texts": [long_text], "budget": 384}).json()
+
+    assert refused.status_code == 422
+    assert refused.json()["code"] == "TEXT_TOO_LONG"
+    assert tokenized["max_tokens"] == 512
+    accepted = client.post("/v1/embed", json={"input_type": "passage", "texts": [long_text[: tokenized["fitting_chars"][0]]]})
+    assert accepted.status_code == 200

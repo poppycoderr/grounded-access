@@ -7,6 +7,7 @@ import io.groundedaccess.corpus.IngestionService;
 import io.groundedaccess.corpus.SourceDocument;
 import io.groundedaccess.corpus.WriteFence;
 import io.groundedaccess.modelclient.InvalidModelResponseException;
+import io.groundedaccess.modelclient.TextTooLongException;
 
 import jakarta.annotation.PreDestroy;
 
@@ -163,7 +164,8 @@ public class IngestionWorker {
      * deployment is wrong, and retrying would only fail again.
      */
     private static @Nullable String retryableCode(RuntimeException cause) {
-        if (cause instanceof RestClientException && !(cause instanceof HttpClientErrorException) && !(cause instanceof InvalidModelResponseException)) {
+        if (cause instanceof RestClientException && !(cause instanceof HttpClientErrorException) && !(cause instanceof InvalidModelResponseException)
+                && !(cause instanceof TextTooLongException)) {
             return "MODEL_SERVICE_UNAVAILABLE";
         }
         if (cause instanceof TransientDataAccessException) {
@@ -176,6 +178,8 @@ public class IngestionWorker {
         return switch (cause) {
             case HttpClientErrorException rejected -> "MODEL_SERVICE_REJECTED";
             case InvalidModelResponseException invalid -> "MODEL_RESPONSE_INVALID";
+            // The chunk budget guarantees every input fits; a refusal means the two services disagree
+            case TextTooLongException tooLong -> "MODEL_RESPONSE_INVALID";
             case IndexProfileMismatchException mismatch -> "INDEX_PROFILE_MISMATCH";
             default -> "INTERNAL_ERROR";
         };

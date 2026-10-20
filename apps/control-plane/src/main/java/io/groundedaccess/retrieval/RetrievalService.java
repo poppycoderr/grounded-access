@@ -14,6 +14,7 @@ import io.groundedaccess.modelclient.InputType;
 import io.groundedaccess.modelclient.InvalidModelResponseException;
 import io.groundedaccess.modelclient.RerankClient;
 import io.groundedaccess.modelclient.RerankScores;
+import io.groundedaccess.modelclient.TextTooLongException;
 import io.groundedaccess.telemetry.Failures;
 import io.groundedaccess.telemetry.SpanAttribute;
 import io.groundedaccess.telemetry.Spans;
@@ -171,6 +172,9 @@ public class RetrievalService {
                 embeddingModel = found.model();
                 indexProfile = found.indexProfile();
                 dense = found.rows();
+            } catch (TextTooLongException e) {
+                // The query is longer than the embedding model accepts: the caller's error, not a degraded channel
+                throw e;
             } catch (InvalidModelResponseException | IndexProfileMismatchException e) {
                 if (!strategy.usesSparse()) {
                     throw e;
@@ -203,6 +207,7 @@ public class RetrievalService {
         }
         List<RetrievedChunk> results;
         String rerankerModel = null;
+        Boolean rerankQueryTruncated = null;
         Integer rerankCandidates = plan.rerankCandidates();
         if (rerankCandidates != null) {
             List<RetrievedChunk> pool = RankFusion.top(ordered, rerankCandidates, plan.dedupeOverlaps());
@@ -218,9 +223,10 @@ public class RetrievalService {
                             model.set(SpanAttribute.MODEL_NAME, scored.modelId());
                             return scored;
                         });
-                        return new Reranked(scores.modelId(), RankFusion.rerank(candidates, scores.scores()));
+                        return new Reranked(scores.modelId(), scores.queryTruncated(), RankFusion.rerank(candidates, scores.scores()));
                     });
                     rerankerModel = reranked.model();
+                    rerankQueryTruncated = reranked.queryTruncated();
                     pool = reranked.rows();
                 } catch (RestClientException e) {
                     log.warn("Reranking failed, answering in the fused order: {}", Failures.describe(e));
@@ -235,7 +241,7 @@ public class RetrievalService {
         String traceId = TraceContext.current();
         List<String> documents = results.stream().map(chunk -> chunk.documentKey() + "@v" + chunk.versionNo()).distinct().toList();
         UUID executionId = audit.recordSearch(new SearchRecord(principal.tenantId(), principal.subject(), traceId, strategy.wireName(), k, plan.hash(),
-                plan.canonical(), predicate.policyVersion(), embeddingModel, indexProfile, rerankerModel, degraded, documents, results.size(), scope.asOf(),
+                plan.canonical(), predicate.policyVersion(), embeddingModel, indexProfile, rerankerModel, rerankQueryTruncated, degraded, documents, results.size(), scope.asOf(),
                 scope.region(), millis(finished - started), millis(sparseDone - started), millis(denseDone - sparseDone), millis(finished - denseDone)));
         return new RetrievalResult(plan, predicate.policyVersion(), results, List.copyOf(degraded), scope, executionId, traceId);
     }
@@ -250,6 +256,8 @@ public class RetrievalService {
 
     private record Reranked(
             String model,
+
+            boolean queryTruncated,
 
             List<RetrievedChunk> rows) {
     }
