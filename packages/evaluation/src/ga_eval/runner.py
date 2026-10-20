@@ -12,7 +12,7 @@ from collections import defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
 
-from ga_eval import metrics, stats, tokens
+from ga_eval import metrics, provenance, rankings, stats, tokens
 from ga_eval.bm25 import Bm25Index, Chunk
 from ga_eval.client import ApiClient
 from ga_eval.dataset import Dataset, digest
@@ -20,8 +20,11 @@ from ga_eval.metrics import Result
 
 SYSTEM_STRATEGIES = ["sparse-only", "dense-only", "hybrid-rrf", "hybrid-rrf-rerank"]
 REFERENCE = "bm25-reference"
-QUALITY_METRICS = ["recall@5", "recall@10", "mrr@10", "ndcg@10"]
-COMPARED_METRICS = ["recall@10", "mrr@10", "ndcg@10"]
+QUALITY_METRICS = ["recall@5", "recall@10", "mrr@10", "ec@10"]
+COMPARED_METRICS = ["recall@10", "mrr@10", "ec@10"]
+
+# The metrics a comparison pairs, by the metrics version a run recorded. Runs that recorded none are version 1.
+COMPARED_BY_VERSION = {"1": ["recall@10", "mrr@10", "ndcg@10"], "2": COMPARED_METRICS}
 
 
 # A degraded answer does not measure the strategy, so it is never scored. On a busy machine a single rerank call can exceed its timeout, so
@@ -29,17 +32,29 @@ COMPARED_METRICS = ["recall@10", "mrr@10", "ndcg@10"]
 ATTEMPTS = 3
 
 
-# The meaning of the per-case metrics. A run records it, and a comparison of runs that measured different things is refused.
-METRICS_VERSION = "1"
+# The meaning of the per-case metrics. A run records it, and a comparison of runs that measured different things is refused. Version 2
+# replaced nDCG@10 with evidence coverage EC@10 (ADR-0008); version 1 reports stay as they were.
+METRICS_VERSION = "2"
+
+# No request is sent before measuring; the manifest says so, and latency figures include cold starts.
+WARMUP_REQUESTS = 0
 
 
-class DegradedRunError(RuntimeError):
-    """The system answered without part of its plan (for example without the dense channel) too often, so the result does not measure the
-    strategy. `output` holds what was measured until then, marked invalid, so that the evidence can be kept."""
+class InvalidRunError(RuntimeError):
+    """The run cannot be a result. `output` holds what was measured until then, marked invalid, so that the evidence can be kept."""
 
     def __init__(self, message: str) -> None:
         super().__init__(message)
         self.output: dict | None = None
+
+
+class DegradedRunError(InvalidRunError):
+    """The system answered without part of its plan (for example without the dense channel) too often, so the result does not measure the
+    strategy."""
+
+
+class DriftError(InvalidRunError):
+    """The server, the index, the reranker or the corpus changed between the first request and the last, so the run measured two systems."""
 
 
 class VisibilityMismatchError(RuntimeError):
@@ -83,6 +98,8 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
         raise MixedChunkerError(f"the corpus mixes chunker versions {', '.join(chunker_versions)}; re-index it with a fresh load before evaluating")
     check_versions(dataset, listings)
     visibility_check = check_visibility(dataset, listings)
+    system_token = next(iter(tokens_by_principal.values()))
+    observed = provenance.snapshot(client, system_token, listings)
     references: dict[tuple, Bm25Index] = {}
     repeated = 0
     reference_headings: set[bool] = set()
@@ -98,6 +115,20 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
                 "metrics_version": METRICS_VERSION,
                 "git_sha": _git_sha(dataset.root),
                 "created_at": datetime.now(UTC).isoformat(timespec="seconds"),
+                "manifest": provenance.manifest(
+                    observed,
+                    dataset.version,
+                    digest(dataset),
+                    dataset.root,
+                    {
+                        "strategies": strategies,
+                        "k": k,
+                        "splits": sorted(splits),
+                        "attempt_limit": ATTEMPTS,
+                        "warmup_requests": WARMUP_REQUESTS,
+                        "metrics_version": METRICS_VERSION,
+                    },
+                ),
                 "strategies": strategies,
                 "reference_strategies": [s for s in strategies if s == REFERENCE],
                 "k": k,
@@ -110,7 +141,7 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
                 "reference_indexes_headings": sorted(reference_headings),
                 "visibility_check": visibility_check,
                 "platform": platform.platform(),
-                "cpu": cpu_model(),
+                "cpu": provenance.cpu_model(),
                 "bootstrap": {"samples": stats.SAMPLES, "seed": stats.SEED, "confidence": 0.95},
                 "summary": {split: summarize([r for r in records if r["split"] == split], strategies) for split in sorted(splits)},
                 "comparisons": compare([r for r in records if r["split"] == "test"], strategies),
@@ -153,10 +184,12 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
                 # but one that returned something the principal may not see, or something out of scope, is kept as the case's result:
                 # a later clean answer must not hide it.
                 degraded_attempts = 0
+                attempts = []
                 for attempt in range(1, ATTEMPTS + 1):
                     started = time.perf_counter()
                     response = client.search(token, case.query, strategy, k, as_of, case.region)
                     latency_ms = (time.perf_counter() - started) * 1000
+                    attempts.append({"degraded": response["degraded"], "latency_ms": round(latency_ms, 1)})
                     policy_versions.add(response["policyVersion"])
                     plans.setdefault(strategy, {})[response["planHash"]] = response["plan"]
                     results = [Result(r["documentKey"], r["versionNo"], r["charStart"], r["charEnd"], r["rank"]) for r in response["results"]]
@@ -175,22 +208,19 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
                 if response["degraded"]:
                     record["degraded"] = response["degraded"]
                 record["degraded_attempts"] = degraded_attempts
+                record["attempts"] = attempts
                 record["latency_ms"] = round(latency_ms, 1)
                 records.append(record)
                 continue
             records.append(_record(case, strategy, results, spans, dataset.visibility[case.principal], dataset.current_version))
+    final = provenance.snapshot(client, system_token, {p: client.list_chunks(t, include_out_of_scope=True) for p, t in tokens_by_principal.items()})
+    changed = provenance.drift(observed, final)
+    if changed:
+        drifted = DriftError(f"{', '.join(changed)} changed during the run; the run is invalid")
+        drifted.output = assemble("invalid", f"drift: {str(drifted)}")
+        drifted.output["run"]["drift"] = {"changed": changed, "at_end": final}
+        raise drifted
     return assemble("complete")
-
-
-def cpu_model() -> str:
-    """The CPU the stack ran on, as far as the evaluator can tell (it assumes the stack runs on the same machine, which is true for the
-    published CI runs). Dense rankings can swap near-tied candidates between CPUs, so a run records which one produced it."""
-    cpuinfo = Path("/proc/cpuinfo")
-    if cpuinfo.is_file():
-        for line in cpuinfo.read_text().splitlines():
-            if line.startswith("model name"):
-                return line.split(":", 1)[1].strip()
-    return platform.processor() or platform.machine()
 
 
 def check_visibility(dataset: Dataset, listings: dict[str, tuple[str, list[dict]]]) -> dict[str, dict]:
@@ -231,7 +261,7 @@ def _record(case, strategy: str, results: list[Result], spans, visible: set[str]
             "recall@5": metrics.recall_at(5, results, spans),
             "recall@10": metrics.recall_at(10, results, spans),
             "mrr@10": metrics.reciprocal_rank(results, spans),
-            "ndcg@10": metrics.ndcg_at(10, results, spans),
+            "ec@10": metrics.evidence_coverage_at(10, results, spans),
         }
     if case.hard_negative_documents:
         negative = metrics.hard_negative_rank(results, set(case.hard_negative_documents))
@@ -302,6 +332,9 @@ def render(output: dict) -> str:
         f"Intervals are 95% percentile bootstraps over cases ({run_info['bootstrap']['samples']:,} samples, seed {run_info['bootstrap']['seed']}).",
         "",
     ]
+    manifest = run_info.get("manifest")
+    if manifest:
+        lines += [_measured(manifest), ""]
     plans = run_info.get("plans", {})
     if plans:
         lines += ["Retrieval plans: " + "; ".join(f"`{s}` `{', '.join(sorted(hashes))}`" for s, hashes in plans.items()) + ".", ""]
@@ -324,7 +357,7 @@ def render(output: dict) -> str:
     for split in run_info["splits"]:
         summary = run_info["summary"][split]
         title = "Results (test split)" if split == "test" else "Tuning split (dev) — not a result"
-        lines += [f"## {title}", "", "| Strategy | Cases | Recall@5 | Recall@10 | MRR@10 | nDCG@10 | Violations |", "|---|---|---|---|---|---|---|"]
+        lines += [f"## {title}", "", "| Strategy | Cases | Recall@5 | Recall@10 | MRR@10 | EC@10 | Violations |", "|---|---|---|---|---|---|---|"]
         for strategy, s in summary.items():
             cells = " | ".join(_cell(s[m]) for m in QUALITY_METRICS)
             lines.append(f"| `{strategy}` | {s['answerable_cases']} | {cells} | {s['security_violations']} |")
@@ -335,7 +368,7 @@ def render(output: dict) -> str:
             "",
             "Mean per-case difference, second minus first, with a 95% interval. A difference counts only if the interval excludes zero.",
             "",
-            "| First | Second | Cases | ΔRecall@10 | ΔMRR@10 | ΔnDCG@10 |",
+            "| First | Second | Cases | ΔRecall@10 | ΔMRR@10 | ΔEC@10 |",
             "|---|---|---|---|---|---|",
         ]
         for c in run_info["comparisons"]:
@@ -389,6 +422,8 @@ def render(output: dict) -> str:
     for tag in sorted(by_tag):
         cells = [f"{metrics.mean(by_tag[tag][s]):.2f} (n={len(by_tag[tag][s])})" for s in strategies]
         lines.append(f"| {tag} | " + " | ".join(cells) + " |")
+    if run_info.get("ranking_check"):
+        lines += ["", rankings.render(run_info["ranking_check"]).rstrip()]
     misses = [r for r in records if r.get("recall@10", 1.0) < 1.0 or r["violations"]]
     lines += ["", "## Misses and violations", ""]
     lines += [
@@ -398,6 +433,29 @@ def render(output: dict) -> str:
     if not misses:
         lines.append("None.")
     return "\n".join(lines) + "\n"
+
+
+def _measured(manifest: dict) -> str:
+    """One paragraph naming the system the run measured, from its manifest; a value the system did not report is printed as such."""
+    server = manifest["server"]
+    profile = server.get("indexProfile")
+    index = (
+        f"index `{profile['embeddingModel']}@{profile['embeddingRevision']}`, embedding context {'on' if profile['embeddingContext'] else 'off'}, "
+        f"chunker release {profile['chunkerRelease']} ({profile['chunkMaxWords']}/{profile['chunkOverlapWords']} words)"
+        if profile
+        else "index profile not reported"
+    )
+    reranker = server["reranker"]
+    evaluator = manifest["evaluator"]
+    return (
+        f"Measured: server commit `{server['build']['commit']}` ({server['build']['version']}), {index}, "
+        f"reranker `{reranker['model']}@{reranker.get('revision') or 'unreported'}`, server CPU `{server['host']['cpu']}` "
+        f"({server['host']['processors']} processors), "
+        f"corpus `{manifest['corpus']['digest'][:12]}` ({manifest['corpus']['chunks']} chunks as listed). "
+        f"Evaluator commit `{evaluator['git_sha']}`{' with uncommitted changes' if evaluator['uncommitted_changes'] else ''}, "
+        f"{manifest['run']['warmup_requests']} warmup requests, up to {manifest['run']['attempt_limit']} attempts per request"
+        + (f", metrics version {manifest['run']['metrics_version']}." if "metrics_version" in manifest["run"] else ".")
+    )
 
 
 def _interval(interval: stats.Interval) -> dict:

@@ -60,6 +60,12 @@ class ApiClient:
         response.raise_for_status()
         return response.json()
 
+    def system(self, token: str) -> dict:
+        """What the deployment says about itself: build, index profile, reranker, retrieval settings, host. Needs the `debug` scope."""
+        response = self._http.get("/api/v1/system", headers=_auth(token))
+        response.raise_for_status()
+        return response.json()
+
     def get(self, token: str, path: str) -> tuple[int, dict]:
         """A GET that returns the status instead of raising, for callers that expect a refusal."""
         response = self._http.get(path, headers=_auth(token))

@@ -10,6 +10,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
@@ -134,6 +135,18 @@ public class IndexProfiles implements ApplicationRunner {
                     vectors.modelId(), vectors.dimensions(), vectors.prefix(), profile.describe()));
         }
         return current.id();
+    }
+
+    /**
+     * The established profile, establishing it now if needed; empty when the model service cannot be reached or produces another profile.
+     * For describing the deployment only: a request that needs the profile calls a check method and fails when it is missing.
+     */
+    public Optional<Established> current() {
+        try {
+            return Optional.of(establish());
+        } catch (RestClientException | IndexProfileMismatchException e) {
+            return Optional.empty();
+        }
     }
 
     /**

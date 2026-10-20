@@ -14,5 +14,8 @@ RUN apt-get update && apt-get -y upgrade && rm -rf /var/lib/apt/lists/*
 RUN useradd --system --uid 10001 app
 USER app
 COPY --from=build /app.jar /app/app.jar
+# Last, so a new commit does not invalidate the layers above
+ARG GA_BUILD_COMMIT=unknown
+ENV GA_BUILD_COMMIT=${GA_BUILD_COMMIT}
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

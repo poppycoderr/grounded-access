@@ -7,8 +7,8 @@ the same cases, before and after. The difference is paired per case, so a hard c
 import json
 from pathlib import Path
 
-from ga_eval import stats
-from ga_eval.runner import COMPARED_METRICS
+from ga_eval import provenance, stats
+from ga_eval.runner import COMPARED_BY_VERSION
 
 
 class IncomparableRunsError(RuntimeError):
@@ -35,6 +35,7 @@ def compare(before_dir: Path, after_dir: Path, split: str, allow_subset: bool = 
     for name, run in (("before", before_run), ("after", after_run)):
         _require_valid(name, run)
     _require_same(before_run, after_run)
+    compared = COMPARED_BY_VERSION[before_run.get("metrics_version", "1")]
     strategies = [s for s in before_run["strategies"] if s in after_run["strategies"]]
     first_all = _index("before", before, split, strategies)
     second_all = _index("after", after, split, strategies)
@@ -55,11 +56,11 @@ def compare(before_dir: Path, after_dir: Path, split: str, allow_subset: bool = 
         second = {c: r for c, r in second_all[strategy].items() if "recall@10" in r}
         shared = sorted(first.keys() & second.keys())
         for case in shared:
-            for metric in COMPARED_METRICS:
+            for metric in compared:
                 if metric not in first[case] or metric not in second[case]:
                     raise IncomparableRunsError(f"{strategy} · {case}: {metric} is missing from a run")
         row: dict = {"strategy": strategy, "cases": len(shared)}
-        for metric in COMPARED_METRICS:
+        for metric in compared:
             difference = stats.paired([first[c][metric] for c in shared], [second[c][metric] for c in shared])
             row[metric] = {
                 "before": sum(first[c][metric] for c in shared) / len(shared) if shared else 0.0,
@@ -80,7 +81,23 @@ def compare(before_dir: Path, after_dir: Path, split: str, allow_subset: bool = 
     }
     if subset:
         comparison["subset"] = subset
+    if "manifest" in before_run and "manifest" in after_run:
+        comparison["differences"] = provenance.differences(before_run["manifest"], after_run["manifest"])
+        comparison["latency"] = _latency(before_run, after_run, split, strategies)
     return comparison
+
+
+def _latency(before: dict, after: dict, split: str, strategies: list[str]) -> dict:
+    """Latency depends on the machine more than on the change, so it is compared only when both runs name the same server CPU."""
+    cpus = [run["manifest"]["server"]["host"]["cpu"] for run in (before, after)]
+    if cpus[0] != cpus[1]:
+        return {"compared": False, "reason": f"the runs were served by different CPUs ({cpus[0]} and {cpus[1]})"}
+    rows = {}
+    for strategy in strategies:
+        timings = [run["summary"].get(split, {}).get(strategy, {}).get("latency_ms") for run in (before, after)]
+        if all(timings):
+            rows[strategy] = {"before": timings[0], "after": timings[1]}
+    return {"compared": True, "cpu": cpus[0], "strategies": rows}
 
 
 def _require_valid(name: str, run: dict) -> None:
@@ -128,6 +145,7 @@ def _describe(run_dir: Path, run: dict) -> dict:
         "cpu": run.get("cpu"),
         "security_violations": run.get("security_violations"),
         "legacy": [field for field in PROVENANCE if field not in run],
+        "manifest": "manifest" in run,
     }
 
 
@@ -149,6 +167,13 @@ def render(comparison: dict) -> str:
                 "those was not checked.",
                 "",
             ]
+    unmanifested = [side for side in ("before", "after") if not comparison[side]["manifest"]]
+    if unmanifested:
+        lines += [
+            f"The {' and '.join(unmanifested)} run{'s have' if len(unmanifested) == 2 else ' has'} no manifest, so what differs in the server, the "
+            "index and the models is not listed and latency is not compared.",
+            "",
+        ]
     if comparison.get("subset"):
         listed = "; ".join(
             f"`{strategy}`: missing before {_listing(missing['missing_before']) or 'none'}, "
@@ -166,6 +191,24 @@ def render(comparison: dict) -> str:
             f"| `{row['strategy']}` | {row['cases']} | {recall['before']:.3f} → {recall['after']:.3f} | {_delta(recall)} | "
             f"{mrr['before']:.3f} → {mrr['after']:.3f} | {_delta(mrr)} | {len(row['changed_cases'])} |"
         )
+    if "differences" in comparison:
+        lines += ["", "## What differs between the runs", ""]
+        lines += [f"- `{d['field']}`: `{d['before']}` → `{d['after']}`" for d in comparison["differences"]] or ["Nothing in the manifests."]
+        latency = comparison["latency"]
+        lines += ["", "## Latency", ""]
+        if not latency["compared"]:
+            lines.append(f"Not compared: {latency['reason']}.")
+        else:
+            lines += [
+                f"Request latency seen by the evaluation client, both runs served by `{latency['cpu']}`.",
+                "",
+                "| Strategy | p50 ms | p95 ms |",
+                "|---|---|---|",
+            ]
+            lines += [
+                f"| `{name}` | {t['before']['p50']:.0f} → {t['after']['p50']:.0f} | {t['before']['p95']:.0f} → {t['after']['p95']:.0f} |"
+                for name, t in latency["strategies"].items()
+            ]
     return "\n".join(lines) + "\n"
 
 

@@ -108,6 +108,9 @@ jobs:
   # Starts the whole stack, loads the demo corpus and runs the retrieval evaluation; any unauthorized result fails the job
   smoke:
     runs-on: ubuntu-latest
+    env:
+      # Recorded in the image and reported to the evaluation manifest as the server's commit
+      GA_BUILD_COMMIT: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
 

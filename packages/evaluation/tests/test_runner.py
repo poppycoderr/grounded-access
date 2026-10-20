@@ -1,9 +1,10 @@
 from pathlib import Path
 
+import fake_system
 import pytest
 
 from ga_eval import dataset as ds
-from ga_eval import runner
+from ga_eval import provenance, runner
 
 DATA = Path(__file__).resolve().parents[3] / "data"
 
@@ -22,6 +23,9 @@ class ListingOnlyClient:
 
     def search(self, *args: object) -> dict:
         raise AssertionError("searched a corpus with mixed chunker releases")
+
+    def system(self, token: str) -> dict:
+        return fake_system.system()
 
 
 def test_chunker_release_ignores_the_format():
@@ -116,7 +120,7 @@ def test_a_principal_that_cannot_list_a_visible_document_aborts_the_run():
 
 
 def test_a_run_records_the_cpu_that_produced_it():
-    assert runner.cpu_model().strip()
+    assert provenance.cpu_model().strip()
 
 
 def test_a_readable_document_outside_the_requests_scope_is_a_scope_failure_not_a_violation():

@@ -1,3 +1,5 @@
+import math
+
 from ga_eval import metrics
 from ga_eval.dataset import Span
 from ga_eval.metrics import Result
@@ -48,6 +50,48 @@ def test_ndcg_rewards_early_evidence_and_ignores_duplicate_coverage():
 
     assert perfect == 1.0
     assert 0 < duplicated < perfect
+
+
+# The worked examples of ADR-0008, with the version 1 nDCG next to each. Two spans of one document, 100-150 and 400-450.
+SECOND = Span("policy", 1, 400, 450)
+
+
+def test_evidence_coverage_scores_one_chunk_covering_both_spans_at_rank_one_as_perfect():
+    both = [result(1, start=90, end=460)]
+
+    assert metrics.evidence_coverage_at(10, both, [SPAN, SECOND]) == 1.0
+    assert round(metrics.ndcg_at(10, both, [SPAN, SECOND]), 3) == 0.613
+
+
+def test_evidence_coverage_discounts_the_span_found_second():
+    split = [result(1), result(2, start=400, end=420)]
+
+    assert round(metrics.evidence_coverage_at(10, split, [SPAN, SECOND]), 3) == 0.815
+    assert metrics.ndcg_at(10, split, [SPAN, SECOND]) == 1.0
+
+
+def test_evidence_coverage_counts_only_the_first_hit_of_a_span():
+    duplicated = [result(1, document="other"), result(2, document="other"), result(3), result(4)]
+
+    assert metrics.evidence_coverage_at(10, duplicated, [SPAN]) == 0.5
+    assert metrics.evidence_coverage_at(10, duplicated[:3], [SPAN]) == 0.5
+    assert metrics.ndcg_at(10, duplicated, [SPAN]) == 0.5
+
+
+def test_evidence_coverage_gives_nothing_for_a_span_found_below_the_cutoff():
+    other = Span("handbook", 1, 0, 50)
+    results = (
+        [result(1, document="x"), result(2)] + [result(rank, document="x") for rank in range(3, 12)] + [result(12, document="handbook", start=0)]
+    )
+
+    assert round(metrics.evidence_coverage_at(10, results, [SPAN, other]), 3) == 0.315
+    assert round(metrics.ndcg_at(10, results, [SPAN, other]), 3) == 0.387
+    assert round(metrics.evidence_coverage_at(12, results, [SPAN, other]), 3) == round((1 / math.log2(3) + 1 / math.log2(13)) / 2, 3)
+
+
+def test_evidence_coverage_ignores_chunks_of_another_version():
+    assert metrics.evidence_coverage_at(10, [result(1, version=2)], [SPAN]) == 0.0
+    assert metrics.evidence_coverage_at(10, [], [SPAN]) == 0.0
 
 
 def test_hard_negative_rank_and_first_relevant_rank():

@@ -8,7 +8,7 @@ from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
-from ga_eval import answers, between, demo, load, runner, tokens
+from ga_eval import answers, between, demo, load, rankings, runner, tokens
 from ga_eval import dataset as ds
 from ga_eval.client import ApiClient, IngestionFailedError
 
@@ -28,6 +28,12 @@ def main(argv: list[str] | None = None) -> int:
     run_parser.add_argument("--split", action="append", choices=["dev", "test"], help="repeatable; default: all")
     run_parser.add_argument("--k", type=int, default=10)
     run_parser.add_argument("--out", type=Path, help="output directory (default: results/<timestamp>)")
+    run_parser.add_argument(
+        "--expected-rankings", type=Path, help="keyword rankings a run must reproduce (default: <repo>/benchmarks/expected/keyword-rankings.json)"
+    )
+    rankings_parser = commands.add_parser("rankings", help="write the expected keyword rankings from a complete run")
+    rankings_parser.add_argument("run_dir", type=Path)
+    rankings_parser.add_argument("--out", type=Path, help="default: <repo>/benchmarks/expected/keyword-rankings.json")
     load_parser = commands.add_parser("load-test", help="send the cases concurrently and check every result; a smoke test, not a benchmark")
     load_parser.add_argument("--strategy", action="append", choices=runner.SYSTEM_STRATEGIES, help="repeatable; default: all")
     load_parser.add_argument("--workers", type=int, default=16, help="concurrent clients")
@@ -55,6 +61,17 @@ def main(argv: list[str] | None = None) -> int:
     mint_parser.add_argument("--scope")
     args = parser.parse_args(argv)
 
+    if args.command == "rankings":
+        run_info, records = between.load(args.run_dir)
+        try:
+            expected = rankings.expected_from(run_info, records)
+        except rankings.RankingsUnavailableError as unavailable:
+            print(f"error: {unavailable}", file=sys.stderr)
+            return 1
+        destination = args.out or _expected_rankings(args.data)
+        rankings.write(expected, destination)
+        print(f"expected rankings of {', '.join(expected['strategies'])} written to {destination}")
+        return 0
     if args.command == "compare":
         try:
             comparison = between.compare(args.before, args.after, args.split, allow_subset=args.allow_subset)
@@ -97,7 +114,7 @@ def main(argv: list[str] | None = None) -> int:
         output = runner.run(
             dataset, client, args.strategy or [*runner.SYSTEM_STRATEGIES, runner.REFERENCE], args.k, set(args.split or ["dev", "test"])
         )
-    except runner.DegradedRunError as invalid:
+    except runner.InvalidRunError as invalid:
         # What was measured before the run became invalid is kept: it may hold the evidence of what went wrong.
         print(f"error: {invalid}", file=sys.stderr)
         if invalid.output is None:
@@ -108,9 +125,23 @@ def main(argv: list[str] | None = None) -> int:
     except (runner.MixedChunkerError, runner.ReloadedCorpusError, runner.VisibilityMismatchError) as invalid:
         print(f"error: {invalid}", file=sys.stderr)
         return 1
+    expected = args.expected_rankings or _expected_rankings(args.data)
+    output["run"]["ranking_check"] = (
+        rankings.check(output["run"], output["cases"], rankings.load(expected))
+        if expected.is_file()
+        else {"status": "not applicable", "reason": f"there is no {expected.name}", "differences": []}
+    )
     runner.write(output, out_dir)
     print((out_dir / "report.md").read_text())
-    return _gate_exit(output["run"], 0)
+    gate = _gate_exit(output["run"], 0)
+    if gate == 0 and output["run"]["ranking_check"]["status"] == "failed":
+        print(f"RANKING CHECK FAILED: {output['run']['ranking_check']['reason']}", file=sys.stderr)
+        return 4
+    return gate
+
+
+def _expected_rankings(data: Path) -> Path:
+    return data.resolve().parent / "benchmarks" / "expected" / "keyword-rankings.json"
 
 
 def _gate_exit(run: dict, otherwise: int) -> int:
@@ -194,12 +225,19 @@ def _load_test(dataset: ds.Dataset, client: ApiClient, args: argparse.Namespace)
 
 
 def _answers(dataset: ds.Dataset, client: ApiClient, args: argparse.Namespace) -> int:
+    out_dir = args.out or Path("results") / ("answers-" + datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ"))
     try:
         output = answers.run(dataset, client, set(args.split or ["dev", "test"]))
     except answers.NoChatModelError as missing:
         print(f"error: {missing}", file=sys.stderr)
         return 1
-    out_dir = args.out or Path("results") / ("answers-" + datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ"))
+    except runner.InvalidRunError as invalid:
+        print(f"error: {invalid}", file=sys.stderr)
+        if invalid.output is None:
+            return 1
+        answers.write(invalid.output, out_dir)
+        print(f"results of the invalid run: {out_dir}", file=sys.stderr)
+        return _gate_exit(invalid.output["run"], 1)
     answers.write(output, out_dir)
     print((out_dir / "answers-report.md").read_text())
     return _gate_exit(output["run"], 0)

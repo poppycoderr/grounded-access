@@ -95,7 +95,8 @@ Every configuration is a serialized `RetrievalPlan`. `run.json` stores each stra
 | Layer | Metrics | Gate in CI? |
 |---|---|---|
 | Security | unauthorized candidates, unauthorized citations, cross-tenant candidates | **yes, must be 0** |
-| Retrieval | Recall@5, Recall@10, MRR@10, nDCG@10 | no. Reported with intervals; a change is compared with `ga-eval compare` and reviewed. There is no automated quality threshold: with 70 test cases and runner-dependent near-ties, no fixed threshold would separate a regression from noise |
+| Retrieval | Recall@5, Recall@10, MRR@10, EC@10 (evidence coverage; reports of metrics version 1 show nDCG@10 instead) | no threshold. Reported with intervals; a change is compared with `ga-eval compare` and reviewed. With 70 test cases and runner-dependent near-ties, no fixed threshold would separate a regression from noise |
+| Keyword rankings | the top 10 of `sparse-only` and `bm25-reference` for every case, against `benchmarks/expected/keyword-rankings.json` | **yes, must match** (exit code 4). These rankings are identical on every machine, so any difference is a change in ranking, not noise |
 | Hard negatives | rank of the first tempting wrong document; how often it ranks above the first correct evidence | reported |
 | Rerank | paired metric difference against `hybrid-rrf` and `dense-only`; p50 and p95 request latency per strategy, measured by the evaluation client on the machine named in the report | reported |
 | Context | gold evidence coverage, duplicate ratio, context tokens | reported |
@@ -119,7 +120,8 @@ These are string and span comparisons. They do not judge whether a statement is 
 ## 5. Statistics
 
 - Metrics are reported with 95% percentile bootstrap intervals (resampling cases, 10,000 samples, fixed seed recorded in `run.json`).
-- nDCG uses binary gain per evidence span: a result earns gain only for spans no higher-ranked result already covered, so several chunks of one paragraph do not count as several relevant results.
+- **Evidence coverage** (EC@10, metrics version 2, [ADR-0008](../adr/0008-what-an-evaluation-run-records-and-measures.md)) scores each evidence span by the rank of the first result that covers it, `1 / log2(1 + rank)`, or 0 if no result in the top 10 does, and averages over the spans. A second result covering the same span adds nothing. It is 1 only when the first result covers every span, so a case whose evidence lies in two documents cannot reach 1; EC is compared between runs of the same cases, never read as a share of a perfect score. Example: two spans covered by one chunk at rank 1 score 1.0; covered by ranks 1 and 2 they score 0.815.
+- Metrics version 1 reported nDCG@10 instead. Its ideal ranking assumed one result per span, so a chunk covering two spans scored below two chunks covering them. Version 1 reports are kept as they were, and `ga-eval compare` refuses to compare two versions.
 - Headline tables and comparisons use the `test` split only. The `dev` split is reported under a separate heading marked "not a result".
 - Two configurations are compared with a paired bootstrap on the per-query differences. A gain is only called an "improvement" if the interval excludes zero. Otherwise the report says "no detectable difference".
 - If hybrid does not beat the best single channel, the report says so and includes a failure analysis.
@@ -128,8 +130,14 @@ These are string and span comparisons. They do not judge whether a statement is 
 
 Each run writes `results/<run-id>/`:
 
-- `run.json` — `status` (`complete` or `invalid`, with the reason), dataset version and `dataset_digest` (a SHA-256 over the cases, visibility labels, principals, manifests and corpus files), `metrics_version`, the evaluator's git SHA, each strategy's `RetrievalPlan` and hash, policy and chunker versions, repeated requests, CPU, platform, date and bootstrap seed. It does not record the embedding or reranker revision, the server's own commit or a warmup; there is no warmup. The git SHA is that of the checkout the evaluator ran from, which is the server's commit only when both come from the same checkout, as in CI;
-- `cases.jsonl` — per-case ranks, metrics and any degraded flags;
+- `run.json` — `status` (`complete` or `invalid`, with the reason), dataset version and `dataset_digest` (a SHA-256 over the cases, visibility labels, principals, manifests and corpus files), `metrics_version`, each strategy's `RetrievalPlan` and hash, policy and chunker versions, repeated requests, date, bootstrap seed, the result of the keyword ranking check, and a `manifest`:
+  - **server**, as `GET /api/v1/system` reports it: the commit the image was built from (`unknown` unless the build passed `GA_BUILD_COMMIT`; CI does), the index profile, the reranker and its revision, the retrieval settings, the server's CPU and processor count;
+  - **corpus**: a SHA-256 over every chunk the evaluation principals can list (who lists it, document, version, chunker version, offsets);
+  - **evaluator**: its git SHA, whether its checkout had uncommitted changes, the `ga-eval` version, CPU and platform;
+  - **run**: strategies, `k`, splits, the attempt limit, `warmup_requests` (0: nothing is sent before measuring, so latency includes cold starts) and the metrics version.
+
+  The server and the corpus are read before the first request and again after the last. If the server commit, the index profile, the reranker or the corpus changed, the run is written with `status: invalid` and the reason `drift`, and cannot be compared. `ga-eval answers` writes the same manifest with its chat models and prompt versions;
+- `cases.jsonl` — per-case ranks, metrics, any degraded flags, and every attempt of each request with its degraded reasons and latency;
 - `report.md` — rendered from the two files above, never edited by hand.
 
 `run.json` records the chunker versions seen in the corpus. The runner refuses to start when the corpus mixes chunker releases (for example after an upgrade without a fresh load), because the results would compare two chunkings.
@@ -142,7 +150,13 @@ Rules: no case is removed after a failure, all configurations are published rath
 
 `ga-eval compare <before> <after>` pairs the same strategy on the same cases across two runs. What an experiment changes may differ between the runs: the index, the chunker, the models, the retrieval plans. What must not differ is checked, and the comparison is refused otherwise: the dataset version, the `dataset_digest` and `metrics_version` when both runs record them, `k`, and the set of cases of each strategy in the split. A case recorded twice, a case present in one run only, an empty split, and a run that is invalid or failed its security or scope gate are all refused. `--allow-subset` compares only the shared cases, lists the others and marks the result as a subset, which is not a full result. A run made before `dataset_digest` and `metrics_version` were recorded is compared and named as legacy in the output; the missing values are not assumed.
 
+When both runs have a manifest, the comparison lists every field that differs between them (for example `server.indexProfile.embeddingContext`), so the experiment's variables are stated rather than inferred. Latency is compared only when both runs were served by the same CPU; otherwise the comparison says why it is missing. A run without a manifest is named as such.
+
+### Expected keyword rankings
+
+`sparse-only` and `bm25-reference` rank identically on every machine. `benchmarks/expected/keyword-rankings.json` holds their top 10 for every case, with the dataset digest, `k` and the configuration that produced them (the sparse plan hash; whether the reference indexes headings). `ga-eval run` compares a run with it and exits with code 4 when a case ranks differently, after the security (2) and scope (3) gates. A run with another configuration is an experiment and is not checked. A change that is meant to alter keyword ranking regenerates the file with `ga-eval rankings <run-dir>` in the same pull request, with its evaluation evidence; nothing regenerates it automatically. Dense and reranked rankings can swap near-ties between CPUs and are not checked.
+
 ## 7. CI
 
-- **Every PR:** schema validation of the dataset, then the README quick start against the full stack: the demo corpus is embedded by the real model service and all 128 cases are evaluated on every strategy, with the security gate (exit code 2) and the scope check (exit code 3). A concurrent load smoke test checks every result again. No quality metric gates the build.
+- **Every PR:** schema validation of the dataset, then the README quick start against the full stack: the demo corpus is embedded by the real model service and all 128 cases are evaluated on every strategy, with the security gate (exit code 2), the scope check (exit code 3) and the keyword ranking check (exit code 4). The image is built with the commit under test, so the run's manifest names the server it measured. A concurrent load smoke test checks every result again. No quality metric gates the build.
 - **Local only:** answer metrics, with `ga-eval answers` against a control plane that has a chat model configured. CI has no chat model. It tests the deterministic parts of the answering path (context building, citation validation, refusal) with a scripted model, and the scoring functions with fabricated responses.

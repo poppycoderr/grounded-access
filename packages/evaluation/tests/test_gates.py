@@ -7,6 +7,7 @@ from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
+import fake_system
 import pytest
 
 from ga_eval import between, cli, runner
@@ -49,6 +50,9 @@ class ScriptedClient:
 
     def search(self, *args: object) -> dict:
         return self._script.pop(0)
+
+    def system(self, token: str) -> dict:
+        return fake_system.system()
 
 
 def run_case(case, script: list[dict]) -> dict:
