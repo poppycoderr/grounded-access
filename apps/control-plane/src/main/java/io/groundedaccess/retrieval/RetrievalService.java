@@ -164,6 +164,10 @@ public class RetrievalService {
         if (strategy.usesDense()) {
             try {
                 Duration remaining = Duration.ofNanos(deadline - System.nanoTime());
+                if (profiles.ready().isEmpty()) {
+                    // Not established yet: an attempt runs in the background, and this search does not wait for it
+                    throw new ModelBusyException("PROFILE_NOT_READY");
+                }
                 if (remaining.compareTo(embeddings.timeout(InputType.QUERY)) < 0) {
                     spans.refused("embed_query", "NO_TIME_LEFT");
                     throw new ModelBusyException("NO_TIME_LEFT");
@@ -194,7 +198,7 @@ public class RetrievalService {
                 degraded.add(e instanceof IndexProfileMismatchException ? DENSE_INDEX_MISMATCH : DENSE_INVALID_RESPONSE);
                 denseAvailable = false;
             } catch (RestClientException e) {
-                if (e instanceof ModelBusyException busy && !"NO_TIME_LEFT".equals(busy.reason())) {
+                if (e instanceof ModelBusyException busy && !"NO_TIME_LEFT".equals(busy.reason()) && !"PROFILE_NOT_READY".equals(busy.reason())) {
                     spans.refused("embed_query", busy.reason());
                 }
                 if (!strategy.usesSparse() || e instanceof HttpClientErrorException) {

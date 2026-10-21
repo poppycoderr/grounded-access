@@ -108,7 +108,8 @@ class IndexProfileIT {
 
     @BeforeEach
     void reset() {
-        jdbc.sql("truncate ingestion_job_document, ingestion_job, chunk, document_version, document, tenant, query_execution cascade").update();
+        jdbc.sql("truncate ingestion_job_document, ingestion_job, chunk, document_version, document, tenant, query_execution, index_anchor cascade")
+                .update();
         REVISION.set("test");
         QUERY_PREFIX.set("");
         DIMENSIONS.set(384);
@@ -252,6 +253,79 @@ class IndexProfileIT {
 
         assertThatThrownBy(() -> fresh(180, 30, true).checkAtStartup()).hasMessageContaining("hashing@unknown");
     }
+
+    /**
+     * Two configurations that both established their profile on the empty database, as two long-running processes would: the first write
+     * anchors the database to its profile, and the other configuration's writes are refused (review 2026-10-21, D6).
+     */
+    @Test
+    void aDatabaseAcceptsWritesOfOneProfileOnlyEvenFromProcessesThatStartedWhileItWasEmpty() {
+        IndexProfiles withContext = fresh(180, 30, true);
+        IndexProfiles withoutContext = fresh(180, 30, false);
+        withContext.establish();
+        withoutContext.establish();
+
+        new IngestionService(writer, embeddings, transactions, withContext).ingest("northstar", List.of(document("first", "Employees receive two paid volunteer days.")));
+
+        assertThatThrownBy(() -> new IngestionService(writer, embeddings, transactions, withoutContext)
+                .ingest("northstar", List.of(document("second", "Travel is booked through the portal.")))).isInstanceOf(IndexProfileMismatchException.class)
+                .hasMessageContaining("embedding context on")
+                .hasMessageContaining("embedding context off");
+        assertThat(jdbc.sql("select count(distinct index_profile_id) from document_version").query(Integer.class).single()).isOne();
+        assertThat(jdbc.sql("select count(*) from document where external_key = 'second'").query(Integer.class).single()).isZero();
+
+        new IngestionService(writer, embeddings, transactions, fresh(180, 30, true))
+                .ingest("northstar", List.of(document("third", "The cafeteria opens at eight.")));
+        assertThat(jdbc.sql("select count(*) from document_version").query(Integer.class).single()).as("the same configuration keeps writing").isEqualTo(2);
+    }
+
+    @Test
+    void ofTwoFirstWritersRacingForAnEmptyDatabaseExactlyOneWins() throws Exception {
+        IndexProfiles withContext = fresh(180, 30, true);
+        IndexProfiles withoutContext = fresh(180, 30, false);
+        UUID first = withContext.establish().id();
+        UUID second = withoutContext.establish().id();
+        java.util.concurrent.CountDownLatch claimed = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.CountDownLatch release = new java.util.concurrent.CountDownLatch(1);
+
+        try (var pool = java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            var winner = pool.submit(() -> transactions.executeWithoutResult(status -> {
+                withContext.claim(first);
+                claimed.countDown();
+                await(release);
+            }));
+            claimed.await();
+            var loser = pool.submit(() -> transactions.executeWithoutResult(status -> withoutContext.claim(second)));
+            Thread.sleep(200);
+            assertThat(loser.isDone()).as("the second claim waits for the first transaction").isFalse();
+            release.countDown();
+            winner.get();
+            assertThatThrownBy(loser::get).hasCauseInstanceOf(IndexProfileMismatchException.class);
+        }
+        assertThat(jdbc.sql("select index_profile_id from index_anchor").query(UUID.class).single()).isEqualTo(first);
+    }
+
+    private static void await(java.util.concurrent.CountDownLatch latch) {
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    @Test
+    void anEmptiedDatabaseKeepsItsProfile() {
+        ingestion.ingest("northstar", List.of(document("handbook", "Employees receive two paid volunteer days.")));
+        jdbc.sql("truncate chunk, document_version, document cascade").update();
+
+        assertThatThrownBy(() -> fresh(180, 30, false).checkAtStartup()).hasMessageContaining("embedding context on");
+    }
+
+    @Autowired
+    private CorpusWriter writer;
+
+    @Autowired
+    private org.springframework.transaction.support.TransactionTemplate transactions;
 
     private IndexProfiles fresh(int maxWords, int overlapWords, boolean embeddingContext) {
         return new IndexProfiles(jdbc, embeddings, maxWords, overlapWords, embeddingContext);

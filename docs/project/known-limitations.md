@@ -40,6 +40,7 @@ Grounded Access v0.1 is a reference system: it shows one way to put authorizatio
 - **Ingestion and searches share the model service's CPU.** They no longer share a queue, but a passage embedding running next to a query embedding still slows it. Separate processes or machines would be the next step; no measurement here has shown the need yet.
 - The embedding queue is not limited, and there is no rate limiting per caller (R7).
 - A timeout ends the wait, not the work: the model service keeps computing a request its caller has given up on.
+- **One index profile per database.** Processes with another configuration are refused when they write; a different profile needs a new database.
 - The model service is unauthenticated inside the deployment network (R4).
 - Audit rows are ordinary table rows without tamper evidence (R6).
 - Logs are checked for sensitive text on the failure paths the tests exercise, not on every line a dependency could write (R5).

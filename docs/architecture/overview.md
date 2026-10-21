@@ -244,6 +244,8 @@ How `/query` decides, in order:
 | Reranker busy | The model service runs one rerank at a time and lets four wait; beyond that it refuses at once (`503 BUSY`). Each control plane also keeps one call in flight (`GA_RERANK_MAX_CONCURRENT`) as a cheap first filter. A query waits for a slot only as long as a whole rerank call still fits before its deadline; otherwise it is answered in the fused order and is never sent to the reranker | `degraded: rerank_unavailable`; `ga.model.refused` |
 | Query embedding queue full or its deadline passed while it waited | The model service refuses without computing (`503 BUSY` or `DEADLINE_EXCEEDED`); sparse-only retrieval | `degraded: dense_unavailable`; `ga.model.refused` |
 | Passage embedding refused during ingestion | Retried with a growing delay, like an unavailable model service | job `error_code` `MODEL_SERVICE_UNAVAILABLE`; `ga.model.refused` |
+| Index profile not established yet (the model service was down at startup and has just come back) | Sparse-only retrieval; one attempt to establish the profile runs in the background, never on a search's time | `degraded: dense_unavailable` |
+| A process with another index profile writes a new version | Refused before anything is written; the database keeps the profile of its first version | job `error_code` `INDEX_PROFILE_MISMATCH` |
 | Chat model timeout or error | Evidence-only response | `degraded: generation_unavailable` |
 | Chat output is not the expected JSON | Evidence-only response | `degraded: generation_invalid` |
 | Chat output cites unknown ids, or a statement has no citation | Those statements are dropped. If none remain, `no_answer` | `rejectedStatements` in the audit event |

@@ -121,6 +121,8 @@ public class IngestionService {
         if (document.hasContent(sha, version.source().format()) && document.hasMetadata(version.source())) {
             return Outcome.UNCHANGED;
         }
+        // Lock order: job, document, then the database's index anchor
+        profiles.claim(version.indexProfileId());
         writer.writeVersion(version, document);
         return document.versionNo() == 0 || document.deleted() ? Outcome.CREATED : Outcome.UPDATED;
     }
