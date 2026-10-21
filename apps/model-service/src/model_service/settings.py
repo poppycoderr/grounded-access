@@ -18,8 +18,8 @@ class Settings:
     max_chars_per_text: int
     max_passages_per_request: int
     # Admission by lane (ADR-0010): concurrent computations, requests allowed to wait, and how long a request without a deadline waits.
-    # Slots plus queues of all lanes stay below the 40 threads FastAPI runs synchronous endpoints on, so a waiting request never blocks
-    # /healthz. Eight query slots were measured as fast as no limit under 16 clients; two were 60% slower.
+    # Only admitted work takes a worker thread, so the slots of all lanes (12 by default) bound the threads in use. Eight query slots were
+    # measured as fast as no limit under 16 clients; two were 60% slower.
     query_slots: int = 8
     query_queue: int = 16
     query_wait_seconds: float = 2.0
@@ -29,6 +29,9 @@ class Settings:
     rerank_slots: int = 1
     rerank_queue: int = 4
     rerank_wait_seconds: float = 3.0
+    tokenize_slots: int = 2
+    tokenize_queue: int = 8
+    tokenize_wait_seconds: float = 30.0
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -50,4 +53,7 @@ class Settings:
             rerank_slots=int(os.getenv("GA_RERANK_SLOTS", "1")),
             rerank_queue=int(os.getenv("GA_RERANK_QUEUE", "4")),
             rerank_wait_seconds=float(os.getenv("GA_RERANK_WAIT_SECONDS", "3")),
+            tokenize_slots=int(os.getenv("GA_TOKENIZE_SLOTS", "2")),
+            tokenize_queue=int(os.getenv("GA_TOKENIZE_QUEUE", "8")),
+            tokenize_wait_seconds=float(os.getenv("GA_TOKENIZE_WAIT_SECONDS", "30")),
         )

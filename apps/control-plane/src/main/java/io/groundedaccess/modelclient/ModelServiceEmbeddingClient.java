@@ -135,8 +135,17 @@ public class ModelServiceEmbeddingClient implements EmbeddingClient {
         List<Integer> fitting = new ArrayList<>(texts.size());
         for (int from = 0; from < texts.size(); from += properties.batchSize()) {
             List<String> batch = texts.subList(from, Math.min(from + properties.batchSize(), texts.size()));
-            TokenizeResponse response = Objects.requireNonNull(
-                    http.post().uri("/v1/tokenize").body(new TokenizeRequest(batch, budget)).retrieve().body(TokenizeResponse.class));
+            TokenizeResponse response = Objects.requireNonNull(http.post()
+                    .uri("/v1/tokenize")
+                    .header(DEADLINE_HEADER, Long.toString(properties.readTimeout().toMillis()))
+                    .body(new TokenizeRequest(batch, budget))
+                    .retrieve()
+                    .onStatus(status -> status.value() == 503, (request, refused) -> {
+                        String body = new String(refused.getBody().readAllBytes(), StandardCharsets.UTF_8);
+                        refusal(body);
+                        throw new HttpServerErrorException(refused.getStatusCode(), body);
+                    })
+                    .body(TokenizeResponse.class));
             List<@Nullable Integer> counted = response.fittingChars();
             if (counted == null || counted.size() != batch.size()) {
                 throw new InvalidModelResponseException("expected %d fitting lengths, got %s".formatted(batch.size(), counted == null ? "none" : counted.size()));

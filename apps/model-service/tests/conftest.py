@@ -1,4 +1,5 @@
 import re
+from collections.abc import Iterator
 
 import pytest
 from fastapi.testclient import TestClient
@@ -73,5 +74,7 @@ def reranker() -> FakeReranker:
 
 
 @pytest.fixture
-def client(embedder: FakeEmbedder, reranker: FakeReranker) -> TestClient:
-    return TestClient(create_app(embedder, reranker, SETTINGS))
+def client(embedder: FakeEmbedder, reranker: FakeReranker) -> Iterator[TestClient]:
+    # One event loop for every request of a test, as uvicorn runs the service; the lanes' semaphores belong to that loop
+    with TestClient(create_app(embedder, reranker, SETTINGS)) as client:
+        yield client

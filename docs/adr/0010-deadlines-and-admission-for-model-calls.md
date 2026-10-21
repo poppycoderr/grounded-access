@@ -39,6 +39,7 @@ The model service has three **lanes**:
   - With less time left, it is not reranked and is marked `rerank_unavailable`, as today.
   - The per-process semaphore stays as a first, cheap filter; the model service decides.
 - **Bound.** The model calls of a search therefore end before its deadline. Database time comes on top and is bounded separately: each retrieval statement by `ga.retrieval.sql-timeout` (2 s), after which it fails as `503 DATABASE_TIMEOUT`, and the wait for a pooled connection by the pool timeout (3 s, `503 DATABASE_UNAVAILABLE`). A database failure is never reported as a degraded model channel. Writing the audit rows is not bounded this way (review 2026-10-21, D3).
+- **Before admission.** Admission happens on the model service's event loop, before a worker thread is taken. Only admitted work runs on a thread, so requests that wait never hold one, and the health check never waits for one. The caller's deadline counts from the moment the request arrived and is capped by the lane's longest wait. Token counting runs after admission, and the deadline is checked again before the model starts. Tokenizing has its own lane (2 running, 8 waiting), because a large batch costs CPU like inference (review 2026-10-21, D4 and N3).
 - **Ingestion.** Passage embeddings send their read timeout as the deadline. A refusal (`BUSY`, `DEADLINE_EXCEEDED`) is retried with backoff, as an unavailable model service is today.
 - **Generation.** Answer generation keeps its own timeout. Generation is optional and runs against an external chat model.
 
