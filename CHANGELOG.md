@@ -4,6 +4,10 @@ Notable changes per release. Versions before `v0.1.0` are pre-releases. Before `
 
 ## Unreleased
 
+### Fixed (review 2026-10-21)
+
+- **Text outside the Basic Multilingual Plane could be split into invalid characters.** The model service reports fitting lengths in Unicode code points and the chunker counted Java chars, and its hard cuts could fall between the two halves of a surrogate pair. The chunker now converts the unit and never cuts inside a pair; `ga-eval validate` refuses corpus files outside the plane, because evaluation offsets are code points and API offsets are UTF-16 units.
+
 ### Retrieval
 
 - **Deadlines and admission for model calls** ([ADR-0010](./docs/adr/0010-deadlines-and-admission-for-model-calls.md)). A search has one deadline (`GA_RETRIEVAL_DEADLINE`, 5 s) for its model calls: the query is embedded only if its timeout still fits, and reranking starts only if a whole call still fits. The model service admits work by lane (query embeddings, passage embeddings, reranking), each with bounded slots and a bounded queue; a full lane refuses at once (`503 BUSY`) and a request whose caller's deadline passed while it waited is refused without being computed (`503 DEADLINE_EXCEEDED`). Ingestion no longer shares a queue with interactive queries. New: `X-Deadline-Ms`, `X-Queue-Ms` and `X-Compute-Ms` headers, `ga.model-service.query-timeout`, the `model.queue_ms` and `model.compute_ms` span attributes, and the `ga.model.queue` and `ga.model.refused` metrics.

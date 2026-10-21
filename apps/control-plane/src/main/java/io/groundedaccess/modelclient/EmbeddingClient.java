@@ -26,8 +26,8 @@ public interface EmbeddingClient {
     }
 
     /**
-     * How many leading characters of each passage text fit in {@code budget} tokens under the tokenizers of both models, special tokens
-     * included (ADR-0009).
+     * How many leading Unicode code points of each passage text fit in {@code budget} tokens under the tokenizers of both models, special
+     * tokens included (ADR-0009).
      */
     List<Integer> fittingChars(List<String> texts, int budget);
 

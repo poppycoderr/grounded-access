@@ -61,7 +61,8 @@ class TokenizeResponse(BaseModel):
     max_tokens: int = Field(description="The smaller of the two models' input limits, special tokens included.")
     counts: list[int] = Field(description="Tokens per text as a passage, the larger count of the two tokenizers.")
     fitting_chars: list[int] | None = Field(
-        default=None, description="Leading characters of each text that fit in the budget under both tokenizers; present when a budget is given."
+        default=None,
+        description="Leading Unicode code points of each text that fit in the budget under both tokenizers; present when a budget is given.",
     )
 
 

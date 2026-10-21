@@ -102,3 +102,12 @@ def test_scope_cases_carry_their_date_and_region(data):
 
     assert past.as_of is not None and past.as_of.year == 2025
     assert override.region == "US"
+
+
+def test_a_corpus_file_outside_the_basic_plane_is_refused_because_offsets_would_shift():
+    data = ds.load(DATA)
+    key = next(iter(data.texts))
+    shifted = replace(data, texts={**data.texts, key: data.texts[key] + " \U0001f600"})
+
+    assert any("outside the Basic Multilingual Plane" in problem for problem in ds.validate(shifted))
+    assert not any("Basic Multilingual Plane" in problem for problem in ds.validate(data))

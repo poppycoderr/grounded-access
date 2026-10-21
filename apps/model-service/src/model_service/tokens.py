@@ -15,7 +15,8 @@ class TokenCounter(Protocol):
         ...
 
     def fitting_chars(self, text: str, budget: int) -> int:
-        """How many leading characters of the text fit in `budget` tokens, special tokens included. The prefix ends where a token ends."""
+        """How many leading Unicode code points of the text fit in `budget` tokens, special tokens included. The prefix ends where a token
+        ends. Python strings index code points, so this is the unit on the wire; Java converts it."""
         ...
 
 

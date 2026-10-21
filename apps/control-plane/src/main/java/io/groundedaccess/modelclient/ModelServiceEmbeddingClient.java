@@ -143,7 +143,7 @@ public class ModelServiceEmbeddingClient implements EmbeddingClient {
             }
             for (int i = 0; i < batch.size(); i++) {
                 Integer value = counted.get(i);
-                if (value == null || value < 0 || value > batch.get(i).length()) {
+                if (value == null || value < 0 || value > batch.get(i).codePointCount(0, batch.get(i).length())) {
                     throw new InvalidModelResponseException("fitting length %d is outside its text".formatted(i));
                 }
                 fitting.add(value);

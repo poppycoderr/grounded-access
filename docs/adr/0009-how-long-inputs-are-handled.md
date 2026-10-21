@@ -75,6 +75,10 @@ Chunker release 4 adds two rules to release 3:
 
   Each has a fixed expected result: offsets that cover the text without gaps, every input within the budget, and the model service refusing what is over its limit.
 
+## Units
+
+Lengths on the wire (`fitting_chars`, the model service's character limits) are Unicode code points, the unit of Python strings. The chunker converts them to Java's UTF-16 offsets and never cuts between the two halves of a surrogate pair; stored and returned offsets are UTF-16 code units (review 2026-10-21, N2).
+
 ## Consequences
 
 - No input is embedded or reranked from a silently truncated text, and a long document no longer fails at the model service.
