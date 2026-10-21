@@ -88,6 +88,10 @@ A migration creates profiles from what each existing version recorded:
 
 A version whose revision was recorded as `unknown` gets a profile with that revision. It never equals an expected profile, so the control plane refuses to start against it and asks for a rebuild. No data is deleted.
 
+### One profile per database
+
+Every check above compares a process with the data. Two processes with different configurations, both started while the database was empty, would each establish their own profile and write it. Since review 2026-10-21 (D6) the database is anchored to the profile of its first written version (migration V13): the claim is an atomic insert in the write transaction, so two first writers cannot both succeed, and other profiles are refused at write time and at startup. A label change writes no vectors and is never refused. Emptying the database does not release the anchor; a different profile needs a new database.
+
 ### Not decided here
 
 Rebuilding an index next to the live one and switching to it atomically, with a rollback, needs an index generation that the active pointer can follow. That is the next step and gets its own ADR. Until then, changing the profile means loading the corpus into an empty database, as it does today.

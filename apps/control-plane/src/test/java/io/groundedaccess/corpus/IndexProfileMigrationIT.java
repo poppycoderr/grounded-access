@@ -77,9 +77,42 @@ class IndexProfileMigrationIT {
                 List.of("text-plain", "BAAI/bge-small-en-v1.5", revision, 384, prefix, "", false, "2", 180, 30),
                 List.of("unrecorded", "other-model", "unknown", 384, "", "", true, "3", 180, 30));
         assertThat(jdbc.sql("select count(*) from index_profile").query(Integer.class).single()).isEqualTo(3);
+        assertThat(jdbc.sql("select count(*) from index_anchor").query(Integer.class).single())
+                .as("a corpus that already mixes profiles is not anchored; the startup check refuses it")
+                .isZero();
         assertThat(jdbc.sql("select distinct chunk_max_tokens + chunk_max_chars + heading_max_chars from index_profile").query(Integer.class).list())
                 .as("profiles of releases before 4 had no length limits")
                 .containsExactly(0);
         assertThat(jdbc.sql("select count(*) from document_version where embedding_model like 'BAAI/%'").query(Integer.class).single()).isEqualTo(3);
+    }
+
+    @Test
+    void anExistingCorpusWithOneProfileIsAnchoredToIt() {
+        JdbcClient.create(new DriverManagerDataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword()))
+                .sql("create database single_profile")
+                .update();
+        var dataSource = new DriverManagerDataSource(POSTGRES.getJdbcUrl().replaceFirst("/[^/?]+(\\?|$)", "/single_profile$1"), POSTGRES.getUsername(),
+                POSTGRES.getPassword());
+        Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").target("12").load().migrate();
+        JdbcClient jdbc = JdbcClient.create(dataSource);
+        UUID profile = jdbc.sql("""
+                insert into index_profile (id, embedding_model, embedding_revision, dimensions, query_prefix, passage_prefix, embedding_context,
+                    chunker_release, chunk_max_words, chunk_overlap_words, chunk_max_tokens, chunk_max_chars, heading_max_chars)
+                values (gen_random_uuid(), 'model', 'rev', 384, '', '', true, '4', 180, 30, 384, 2000, 200) returning id
+                """).query(UUID.class).single();
+        jdbc.sql("insert into tenant (id, name) values ('northstar', 'northstar')").update();
+        UUID document = UUID.randomUUID();
+        UUID version = UUID.randomUUID();
+        jdbc.sql("insert into document (id, tenant_id, external_key) values (:id, 'northstar', 'handbook')").param("id", document).update();
+        jdbc.sql("""
+                insert into document_version (id, document_id, tenant_id, version_no, content_sha256, title, format, chunker_version, embedding_model,
+                    index_profile_id, classification, allowed_departments, required_projects, applies_to_regions)
+                values (:id, :document, 'northstar', 1, 'sha', 'title', 'text', 'text/4', 'model@rev', :profile, 'public', '{}', '{}', '{}')
+                """).param("id", version).param("document", document).param("profile", profile).update();
+        jdbc.sql("update document set active_version_id = :version where id = :id").param("version", version).param("id", document).update();
+
+        Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").load().migrate();
+
+        assertThat(jdbc.sql("select index_profile_id from index_anchor").query(UUID.class).single()).isEqualTo(profile);
     }
 }

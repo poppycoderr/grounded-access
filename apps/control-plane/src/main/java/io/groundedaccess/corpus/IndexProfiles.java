@@ -12,6 +12,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import jakarta.annotation.PreDestroy;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -58,6 +63,11 @@ public class IndexProfiles implements ApplicationRunner {
     private final boolean embeddingContext;
 
     private volatile @Nullable Established established;
+
+    /** Establishes the profile off the request path; at most one attempt runs at a time. */
+    private final ExecutorService background = Executors.newSingleThreadExecutor(Thread.ofVirtual().name("index-profile").factory());
+
+    private final AtomicBoolean establishing = new AtomicBoolean();
 
     public IndexProfiles(JdbcClient jdbc, EmbeddingClient embeddings, @Value("${ga.corpus.chunk-max-words:180}") int chunkMaxWords,
             @Value("${ga.corpus.chunk-overlap-words:30}") int chunkOverlapWords, @Value("${ga.corpus.embedding-context:true}") boolean embeddingContext) {
@@ -139,15 +149,39 @@ public class IndexProfiles implements ApplicationRunner {
     }
 
     /**
-     * The established profile, establishing it now if needed; empty when the model service cannot be reached or produces another profile.
-     * For describing the deployment only: a request that needs the profile calls a check method and fails when it is missing.
+     * The established profile, or empty while it is not. Never waits: when the profile is missing, one attempt to establish it starts in the
+     * background, so a search does not spend its deadline on the two probe embeddings, and concurrent searches do not each start one. A
+     * search that finds no profile answers without its dense channel (review 2026-10-21, N1).
+     */
+    public Optional<Established> ready() {
+        Established current = established;
+        if (current != null) {
+            return Optional.of(current);
+        }
+        if (establishing.compareAndSet(false, true)) {
+            background.execute(() -> {
+                try {
+                    establish();
+                } catch (RuntimeException e) {
+                    log.warn("The index profile could not be established yet: {}", Failures.describe(e));
+                } finally {
+                    establishing.set(false);
+                }
+            });
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * As {@link #ready()}; for describing the deployment.
      */
     public Optional<Established> current() {
-        try {
-            return Optional.of(establish());
-        } catch (RestClientException | IndexProfileMismatchException e) {
-            return Optional.empty();
-        }
+        return ready();
+    }
+
+    @PreDestroy
+    void stop() {
+        background.shutdownNow();
     }
 
     /**
@@ -193,11 +227,33 @@ public class IndexProfiles implements ApplicationRunner {
         return new Established(save(observed), observed);
     }
 
+    /**
+     * Claims the database for {@code profile}, or confirms it is already claimed for it, in the caller's write transaction. The first write
+     * anchors the database; every later write with another profile is refused, also from a process that established its profile while the
+     * database was empty. The insert is atomic, so two first writers cannot both win (review 2026-10-21, D6).
+     */
+    void claim(UUID profile) {
+        jdbc.sql("insert into index_anchor (index_profile_id) values (:profile) on conflict (singleton) do nothing").param("profile", profile).update();
+        UUID anchored = jdbc.sql("select index_profile_id from index_anchor for key share").query(UUID.class).single();
+        if (!anchored.equals(profile)) {
+            throw new IndexProfileMismatchException(
+                    "This database is indexed with %s; this process writes %s".formatted(describe(anchored), describe(profile)));
+        }
+    }
+
+    private String describe(UUID id) {
+        return jdbc.sql("select %s from index_profile where id = :id".formatted(COLUMNS)).param("id", id).query((rs, i) -> profile(rs).describe()).single();
+    }
+
+    /**
+     * The profiles of the active versions and the profile the database is anchored to, which survives the database being emptied.
+     */
     private List<IndexProfile> stored() {
         return jdbc.sql("""
                         select %s
                         from index_profile
                         where id in (select v.index_profile_id from document d join document_version v on v.id = d.active_version_id)
+                            or id in (select index_profile_id from index_anchor)
                         """.formatted(COLUMNS))
                 .query((rs, i) -> profile(rs))
                 .list();
