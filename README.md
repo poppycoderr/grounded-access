@@ -39,7 +39,7 @@
 - 🔎 **Four retrieval strategies on one database**: PostgreSQL full-text search, exact pgvector search, reciprocal rank fusion and cross-encoder reranking, each response tagged with the hash of its retrieval plan
 - 📊 **Evaluation with confidence intervals**: 128 hand-checked cases, bootstrap intervals, paired comparisons and a BM25 reference row; a difference counts only if its interval excludes zero
 - 🚨 **A security gate in CI**: 31 cases try to reach forbidden documents, and every returned chunk is checked against hand-written visibility; one unauthorized result fails the build
-- 🧪 **Results are published as measured**: plain hybrid does not beat dense on this dataset, reranking does (MRR@10 +0.08 [+0.03, +0.13]) at about eleven times the latency, and one earlier claim was withdrawn when a larger dataset stopped supporting it
+- 🧪 **Results are published as measured**: plain hybrid does not beat dense on this dataset, reranking does (MRR@10 +0.08 [+0.03, +0.13]) at about ten times the latency, and one earlier claim was withdrawn when a larger dataset stopped supporting it
 - ⚙️ **Real ingestion**: asynchronous jobs with retry and resume, versioned documents, label changes that apply to the next query without re-embedding
 - 🚀 **Runs on a laptop**: one `docker compose up`, a CPU embedding model baked into the image, no API key and no GPU
 
@@ -148,19 +148,19 @@ The [threat model](./docs/security/threat-model.md) lists every control with the
     <img src="./assets/diagrams/ga-eval-results.en.svg" alt="MRR@10 with confidence intervals for each retrieval strategy" />
 </p>
 
-[`benchmarks/reports/heading-context/`](./benchmarks/reports/heading-context/) holds the committed run: `run.json` (dataset version, commit, retrieval plans, policy and chunker versions, bootstrap seed, platform and CPU), `cases.jsonl` (per-case rankings) and the rendered `report.md`. Regenerate it with `./scripts/benchmark --out benchmarks/reports/<name>`.
+[`benchmarks/reports/metrics-v2/`](./benchmarks/reports/metrics-v2/) holds the committed run: `run.json` (dataset version and digest, retrieval plans, policy and chunker versions, bootstrap seed, the keyword ranking check, and a manifest naming the server commit, index profile, model revisions and CPUs), `cases.jsonl` (per-case rankings) and the rendered `report.md`. Regenerate it with `./scripts/benchmark --out benchmarks/reports/<name>`.
 
 Dataset v4, `test` split, 70 answerable cases, 95% bootstrap intervals, produced by the CI runner (Linux x86_64):
 
-| Strategy | Recall@10 | MRR@10 | nDCG@10 | Security violations | Scope failures |
+| Strategy | Recall@10 | MRR@10 | EC@10 | Security violations | Scope failures |
 |---|---|---|---|---|---|
-| `sparse-only` (PostgreSQL FTS) | 0.943 [0.89, 0.99] | 0.740 [0.66, 0.82] | 0.785 [0.71, 0.85] | **0** | **0** |
-| `dense-only` (pgvector, exact) | 0.979 [0.94, 1.00] | 0.895 [0.84, 0.95] | 0.915 [0.87, 0.96] | **0** | **0** |
-| `hybrid-rrf` (reciprocal rank fusion of the two) | 0.986 [0.96, 1.00] | 0.867 [0.80, 0.93] | 0.892 [0.84, 0.94] | **0** | **0** |
-| `hybrid-rrf-rerank` (cross-encoder over the fused top 20) | 0.986 [0.96, 1.00] | **0.971 [0.94, 1.00]** | **0.970 [0.93, 0.99]** | **0** | **0** |
-| `bm25-reference` (offline, same authorized chunks) | 0.943 [0.89, 0.99] | 0.772 [0.69, 0.85] | 0.812 [0.74, 0.88] | **0** | **0** |
+| `sparse-only` (PostgreSQL FTS) | 0.943 [0.89, 0.99] | 0.740 [0.66, 0.82] | 0.779 [0.71, 0.85] | **0** | **0** |
+| `dense-only` (pgvector, exact) | 0.979 [0.94, 1.00] | 0.895 [0.84, 0.95] | 0.908 [0.86, 0.95] | **0** | **0** |
+| `hybrid-rrf` (reciprocal rank fusion of the two) | 0.986 [0.96, 1.00] | 0.867 [0.80, 0.93] | 0.885 [0.83, 0.93] | **0** | **0** |
+| `hybrid-rrf-rerank` (cross-encoder over the fused top 20) | 0.986 [0.96, 1.00] | **0.971 [0.94, 1.00]** | **0.963 [0.92, 0.99]** | **0** | **0** |
+| `bm25-reference` (offline, same authorized chunks) | 0.943 [0.89, 0.99] | 0.772 [0.69, 0.85] | 0.806 [0.73, 0.87] | **0** | **0** |
 
-nDCG@10 is from metrics version 1. Later runs report evidence coverage (EC@10) instead, because nDCG scored a chunk that covers two evidence spans below two chunks that cover them ([ADR-0008](./docs/adr/0008-what-an-evaluation-run-records-and-measures.md)); the two are not comparable.
+EC@10 (evidence coverage) scores each evidence span by the rank of its first hit. It replaced nDCG@10, which scored a chunk covering two evidence spans below two chunks covering them ([ADR-0008](./docs/adr/0008-what-an-evaluation-run-records-and-measures.md)); reports before this run show nDCG@10, and the two are not comparable. Every ranked list in this run equals the one in the previous published run.
 
 **Security.** Zero violations across 128 cases, 31 of which try to reach a document the principal may not see: in another tenant, above its clearance, in a project it is not on, or in another department. Every returned chunk is checked for document and version, and before any query runs each principal's full chunk listing is compared with its hand-labelled visible set.
 
@@ -168,7 +168,7 @@ nDCG@10 is from metrics version 1. Later runs report evidence coverage (EC@10) i
 
 What the paired comparisons support, and what they do not:
 
-- **Reranking beats the best single channel.** `hybrid-rrf-rerank` against dense: MRR@10 +0.08 [+0.03, +0.13]. It puts the right evidence first in 67 of 70 cases, where dense manages 58. Recall@10 does not move, because reranking only reorders what fusion already found. The cost is latency: 469 ms at the median against 41 ms for dense on the CI runner of this run, about eleven times, and about 1 s inside Docker on a laptop.
+- **Reranking beats the best single channel.** `hybrid-rrf-rerank` against dense: MRR@10 +0.08 [+0.03, +0.13]. It puts the right evidence first in 67 of 70 cases, where dense manages 58. Recall@10 does not move, because reranking only reorders what fusion already found. The cost is latency: 477 ms at the median against 46 ms for dense on the CI runner of this run, about ten times, and about 1 s inside Docker on a laptop.
 - **Dense ranks the right evidence higher than FTS:** MRR@10 +0.16 [+0.07, +0.25]. Whether the evidence appears in the top 10 at all shows **no detectable difference** (Recall@10 +0.04 [−0.01, +0.09]).
 - **Plain hybrid does not beat dense.** MRR@10 −0.03 [−0.09, +0.03] against dense: no detectable difference, with the point estimate in favour of dense. The [analysis](./docs/evaluation/m1b-hybrid-analysis.md) of the first hybrid run explains why: equal-weight fusion gives the weaker FTS channel the same vote.
 - **FTS against BM25: a finding that did not hold.** On dataset v1, BM25 was measurably ahead of FTS (MRR@10 +0.10 [+0.02, +0.18]). On every later dataset version the difference is not detectable (v4: +0.03 [−0.03, +0.10]). The earlier reports stay in the repository; the claim is withdrawn until a larger dataset supports it.
