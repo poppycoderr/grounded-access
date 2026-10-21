@@ -2,6 +2,10 @@ spring:
   application:
     name: grounded-access
   datasource:
+    # How long a request waits for a pooled connection before it fails (milliseconds); the default of 30 s would hold requests far past
+    # their deadline when the pool is exhausted
+    hikari:
+      connection-timeout: ${GA_DB_CONNECTION_TIMEOUT_MS:3000}
     url: ${GA_DB_URL:jdbc:postgresql://localhost:5432/grounded_access}
     username: ${GA_DB_USER:grounded_access}
     password: ${GA_DB_PASSWORD:grounded_access}
@@ -42,6 +46,8 @@ ga:
     rerank-context: ${GA_RERANK_CONTEXT:false}
     # The model calls of one search end before this (ADR-0010)
     deadline: ${GA_RETRIEVAL_DEADLINE:5s}
+    # Each retrieval statement (search channels, chunk listing) is cancelled after this; whole seconds
+    sql-timeout: ${GA_RETRIEVAL_SQL_TIMEOUT:2s}
   answering:
     strategy: hybrid-rrf-rerank
     evidence-limit: 8

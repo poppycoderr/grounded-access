@@ -2,12 +2,14 @@ package io.groundedaccess.api;
 
 import io.groundedaccess.corpus.IndexProfileMismatchException;
 import io.groundedaccess.modelclient.TextTooLongException;
+import io.groundedaccess.retrieval.RetrievalTimeoutException;
 import io.groundedaccess.telemetry.Failures;
 import io.groundedaccess.audit.AuditUnavailableException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -41,6 +43,25 @@ public class ApiExceptionHandler {
         log.error("Audit write failed, request refused: {}", Failures.describe(cause != null ? cause : exception));
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, "The request could not be audited and was not carried out");
         problem.setProperty("code", "AUDIT_UNAVAILABLE");
+        return problem;
+    }
+
+    @ExceptionHandler(RetrievalTimeoutException.class)
+    ProblemDetail retrievalTimeout(RetrievalTimeoutException exception) {
+        log.warn("Retrieval refused: {}", exception.getMessage());
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, "The database did not answer in time");
+        problem.setProperty("code", "DATABASE_TIMEOUT");
+        return problem;
+    }
+
+    /**
+     * The database could not be reached, including no pooled connection becoming free within the pool timeout.
+     */
+    @ExceptionHandler(DataAccessResourceFailureException.class)
+    ProblemDetail databaseUnavailable(DataAccessResourceFailureException exception) {
+        log.warn("The database is unavailable: {}", Failures.describe(exception));
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, "The database is unavailable");
+        problem.setProperty("code", "DATABASE_UNAVAILABLE");
         return problem;
     }
 
