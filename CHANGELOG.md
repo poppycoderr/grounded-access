@@ -36,6 +36,8 @@ Notable changes per release. Versions before `v0.1.0` are pre-releases. Before `
 
 ### Documentation
 
+- The package dependency table, the absence of cycles, `answering` staying away from JDBC and the corpus, and the rule that only the authorized query creates authorized rows are now architecture tests; the overview says which rules are tested and that the last one is still not a type guarantee.
+
 - Corrected statements that did not match the code: ADR-0001 to 0004 are accepted, the model-service contract is the generated `.openapi.json`, `answering` receives `RetrievedChunk` rows by convention rather than a restricted type, the architecture tests are described by what they check, the query flow is sequential, and CI gates security and scope but no quality metric.
 
 ## v0.1.0
