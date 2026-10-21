@@ -100,7 +100,7 @@ document_version(
 
 chunk(
   id, tenant_id, document_id, version_id, ordinal,
-  section_path, char_start, char_end,      -- offsets into the normalized version text
+  section_path, char_start, char_end,      -- offsets into the normalized version text, in UTF-16 code units
   content, content_tsv tsvector GENERATED, -- english config
   embedding vector(N),
   token_count)

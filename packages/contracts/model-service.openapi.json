@@ -347,7 +347,7 @@
                 "type": "null"
               }
             ],
-            "description": "Leading characters of each text that fit in the budget under both tokenizers; present when a budget is given.",
+            "description": "Leading Unicode code points of each text that fit in the budget under both tokenizers; present when a budget is given.",
             "title": "Fitting Chars"
           },
           "max_tokens": {

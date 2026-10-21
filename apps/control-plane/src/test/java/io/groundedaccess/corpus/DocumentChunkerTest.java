@@ -279,6 +279,71 @@ class DocumentChunkerTest {
         assertThat(DocumentChunker.fit(chunks, text, true, (inputs, budget) -> inputs.stream().map(String::length).toList())).isEqualTo(chunks);
     }
 
+    // Characters outside the Basic Multilingual Plane are two UTF-16 units in Java and one code point on the wire (review 2026-10-21, N2)
+
+    /** What the model service answers: the fitting prefix in Unicode code points. */
+    private static final DocumentChunker.TokenFitter CODE_POINTS_FIT_EVERYTHING = (inputs, budget) -> inputs.stream()
+            .map(input -> input.codePointCount(0, input.length()))
+            .toList();
+
+    @Test
+    void anInputThatFitsIsNotSplitWhenItContainsCharactersOutsideTheBasicPlane() {
+        String text = DocumentChunker.normalize("Launch \uD83D\uDE00 approved for \uD840\uDC0B.");
+        List<ChunkDraft> chunks = defaults.chunk(text, DocumentFormat.TEXT);
+
+        List<ChunkDraft> fitted = DocumentChunker.fit(chunks, text, true, CODE_POINTS_FIT_EVERYTHING);
+
+        assertThat(fitted).isEqualTo(chunks);
+        assertThat(fitted).allSatisfy(c -> assertThat(hasLoneSurrogate(c.content())).isFalse());
+    }
+
+    @Test
+    void aSplitWhereTheFittingPrefixEndsCountsCodePoints() {
+        // Ten emoji, one token each, a budget of 2 special tokens + 4: the prefix ends after the fourth emoji, eight UTF-16 units in
+        String text = DocumentChunker.normalize("\uD83D\uDE00".repeat(10));
+        DocumentChunker.TokenFitter fourEmoji = (inputs, budget) -> inputs.stream().map(input -> Math.min(input.codePointCount(0, input.length()), 4)).toList();
+
+        List<ChunkDraft> fitted = DocumentChunker.fit(defaults.chunk(text, DocumentFormat.TEXT), text, false, fourEmoji);
+
+        assertThat(fitted).extracting(c -> c.content().codePointCount(0, c.content().length())).containsExactly(4, 4, 2);
+        assertThat(fitted).allSatisfy(c -> assertThat(hasLoneSurrogate(c.content())).isFalse());
+        assertCoversWithoutOverlap(text, fitted);
+    }
+
+    @Test
+    void theCharacterCapNeverSplitsASurrogatePair() {
+        String text = DocumentChunker.normalize("a".repeat(DocumentChunker.MAX_CHARS - 1) + "\uD83D\uDE00" + "b".repeat(500));
+
+        List<ChunkDraft> chunks = defaults.chunk(text, DocumentFormat.TEXT);
+
+        assertThat(chunks).allSatisfy(c -> assertThat(hasLoneSurrogate(c.content())).isFalse());
+        assertCoversWithoutOverlap(text, chunks);
+    }
+
+    @Test
+    void theHeadingLimitNeverSplitsASurrogatePair() {
+        String heading = "h".repeat(DocumentChunker.HEADING_MAX_CHARS - 1) + "\uD83D\uDE00";
+
+        assertThat(hasLoneSurrogate(DocumentChunker.embeddedPath(heading))).isFalse();
+        assertThat(DocumentChunker.embeddedPath(heading)).hasSize(DocumentChunker.HEADING_MAX_CHARS - 1);
+    }
+
+    private static boolean hasLoneSurrogate(String text) {
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (Character.isHighSurrogate(c) && (i + 1 >= text.length() || !Character.isLowSurrogate(text.charAt(i + 1)))) {
+                return true;
+            }
+            if (Character.isLowSurrogate(c) && (i == 0 || !Character.isHighSurrogate(text.charAt(i - 1)))) {
+                return true;
+            }
+            if (Character.isHighSurrogate(c)) {
+                i++;
+            }
+        }
+        return false;
+    }
+
     /**
      * Consecutive chunks follow each other: whatever lies between them is whitespace, and they never overlap. Offsets match the content.
      */

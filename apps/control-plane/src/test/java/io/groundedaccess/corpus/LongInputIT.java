@@ -103,6 +103,20 @@ class LongInputIT {
     }
 
     @Test
+    void textOutsideTheBasicPlaneIsStoredWholeAndRoundTrips() {
+        // A long sentence whose cut point falls next to emoji and a supplementary-plane ideograph (review 2026-10-21, N2)
+        String sentence = ("Launch \uD83D\uDE00 approved for \uD840\uDC0B region ").repeat(300).strip() + ".";
+
+        ingestion.ingest("northstar", List.of(document("unicode", sentence)));
+
+        List<String> chunks = jdbc.sql("select content from chunk order by ordinal").query(String.class).list();
+        assertThat(chunks).hasSizeGreaterThan(1).allSatisfy(c -> {
+            assertThat(c.codePoints().filter(cp -> cp >= Character.MIN_SURROGATE && cp <= Character.MAX_SURROGATE).count()).as("no lone surrogate survives storage").isZero();
+            assertThat(sentence).contains(c);
+        });
+    }
+
+    @Test
     void aQueryLongerThanTheModelAcceptsIsTheCallersErrorForEveryStrategyWithADenseChannel() throws Exception {
         ingestion.ingest("northstar", List.of(document("handbook", "Employees receive two paid volunteer days.")));
         String query = "a ".repeat(600).strip();

@@ -159,6 +159,13 @@ def authorization_negatives(dataset: Dataset) -> list[Case]:
 def validate(dataset: Dataset) -> list[str]:
     """Returns every problem found; an empty list means the dataset is consistent with the corpus."""
     problems: list[str] = []
+    # The control plane reports offsets in UTF-16 units, the evaluator computes them in code points; the two agree only inside the Basic
+    # Multilingual Plane, so a corpus file outside it would shift every span after the first such character.
+    problems += [
+        f"document {key} contains characters outside the Basic Multilingual Plane; offsets would not match between the services"
+        for key, text in sorted(dataset.texts.items())
+        if any(ord(ch) > 0xFFFF for ch in text)
+    ]
     ids = [c.id for c in dataset.cases]
     problems += [f"duplicate case id {i}" for i in sorted({i for i in ids if ids.count(i) > 1})]
     for case in dataset.cases:

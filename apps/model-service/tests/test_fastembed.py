@@ -103,3 +103,12 @@ def test_the_real_service_refuses_an_input_it_would_have_cut(embedder, reranker)
     assert tokenized["max_tokens"] == 512
     accepted = client.post("/v1/embed", json={"input_type": "passage", "texts": [long_text[: tokenized["fitting_chars"][0]]]})
     assert accepted.status_code == 200
+
+
+def test_fitting_lengths_are_code_points_for_characters_outside_the_basic_plane(embedder, reranker):
+    text = "launch \U0001f600 approved " * 200
+
+    for counter in (embedder.tokens, reranker.tokens):
+        fitting = counter.fitting_chars(text, 100)
+        assert text[:fitting].endswith(("launch", "approved", "\U0001f600"))
+        assert counter.count(text[:fitting]) <= 100

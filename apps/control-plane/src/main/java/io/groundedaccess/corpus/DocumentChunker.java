@@ -96,11 +96,12 @@ public final class DocumentChunker {
             headings.removeFirst();
         }
         String path = String.join(SEPARATOR, headings);
-        return path.length() > HEADING_MAX_CHARS ? path.substring(0, HEADING_MAX_CHARS) : path;
+        return path.length() > HEADING_MAX_CHARS ? path.substring(0, notInsidePair(path, 0, HEADING_MAX_CHARS)) : path;
     }
 
     /**
-     * The fitting prefix, in characters, of each text within a token budget, as the models' tokenizers count it.
+     * The fitting prefix of each text within a token budget, as the models' tokenizers count it, in Unicode code points: the unit the model
+     * service uses. A character outside the Basic Multilingual Plane is one code point but two Java chars.
      */
     @FunctionalInterface
     public interface TokenFitter {
@@ -124,11 +125,14 @@ public final class DocumentChunker {
                 ChunkDraft chunk = pending.get(i);
                 String input = inputs.get(i);
                 int fits = fitting.get(i);
-                if (fits >= input.length()) {
+                int inputCodePoints = input.codePointCount(0, input.length());
+                if (fits >= inputCodePoints) {
                     continue;
                 }
-                int prefix = input.length() - chunk.content().length();
-                int cut = cut(text, chunk.charStart(), chunk.charStart() + Math.max(1, fits - prefix));
+                int contentCodePoints = chunk.content().codePointCount(0, chunk.content().length());
+                int prefix = inputCodePoints - contentCodePoints;
+                int fittingContent = Math.min(contentCodePoints - 1, Math.max(1, fits - prefix));
+                int cut = cut(text, chunk.charStart(), text.offsetByCodePoints(chunk.charStart(), fittingContent));
                 int rest = skipWhitespace(text, cut, chunk.charEnd());
                 ChunkDraft head = draft(chunk.ordinal(), chunk.sectionPath(), text, chunk.charStart(), trimEnd(text, chunk.charStart(), cut));
                 next.add(head);
@@ -162,7 +166,8 @@ public final class DocumentChunker {
     }
 
     /**
-     * Where to cut a span that must end at or before {@code limit}: after its last line break, else at its last whitespace, else at the limit.
+     * Where to cut a span that must end at or before {@code limit}: after its last line break, else at its last whitespace, else at the limit,
+     * moved back by one if the limit falls between the two halves of a surrogate pair.
      */
     private static int cut(String text, int start, int limit) {
         int newline = text.lastIndexOf('\n', limit - 1);
@@ -174,7 +179,16 @@ public final class DocumentChunker {
                 return i;
             }
         }
-        return limit;
+        return notInsidePair(text, start, limit);
+    }
+
+    /**
+     * {@code position}, or one before it when it would separate a high surrogate from its low surrogate; never at or before {@code start}.
+     */
+    private static int notInsidePair(String text, int start, int position) {
+        boolean inside = position > start && position < text.length() && Character.isLowSurrogate(text.charAt(position))
+                && Character.isHighSurrogate(text.charAt(position - 1));
+        return inside && position - 1 > start ? position - 1 : inside ? position + 1 : position;
     }
 
     private static int skipWhitespace(String text, int from, int end) {

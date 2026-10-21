@@ -35,11 +35,11 @@ public class HashingEmbeddingClient implements EmbeddingClient {
             int end = 0;
             while (words.find()) {
                 if (++count > budget) {
-                    return end;
+                    return text.codePointCount(0, end);
                 }
                 end = words.end();
             }
-            return text.length();
+            return text.codePointCount(0, text.length());
         }).toList();
     }
 
