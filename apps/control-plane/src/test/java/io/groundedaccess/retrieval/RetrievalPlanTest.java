@@ -1,12 +1,14 @@
 package io.groundedaccess.retrieval;
 
+import java.time.Duration;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
 class RetrievalPlanTest {
 
-    private static final RetrievalProperties DEFAULTS = new RetrievalProperties(50, 60, 20, false, false);
+    private static final RetrievalProperties DEFAULTS = new RetrievalProperties(50, 60, 20, false, false, Duration.ofSeconds(5));
 
     @Test
     void theHashIsTakenOverAFixedSerializationAndNeverChangesForTheSamePlan() {
@@ -21,8 +23,8 @@ class RetrievalPlanTest {
         RetrievalPlan plan = RetrievalPlan.of(RetrievalStrategy.HYBRID_RRF, 10, DEFAULTS, "reranker");
 
         assertThat(plan.hash()).isNotEqualTo(RetrievalPlan.of(RetrievalStrategy.HYBRID_RRF, 5, DEFAULTS, "reranker").hash())
-                .isNotEqualTo(RetrievalPlan.of(RetrievalStrategy.HYBRID_RRF, 10, new RetrievalProperties(50, 10, 20, false, false), "reranker").hash())
-                .isNotEqualTo(RetrievalPlan.of(RetrievalStrategy.HYBRID_RRF, 10, new RetrievalProperties(100, 60, 20, false, false), "reranker").hash())
+                .isNotEqualTo(RetrievalPlan.of(RetrievalStrategy.HYBRID_RRF, 10, new RetrievalProperties(50, 10, 20, false, false, Duration.ofSeconds(5)), "reranker").hash())
+                .isNotEqualTo(RetrievalPlan.of(RetrievalStrategy.HYBRID_RRF, 10, new RetrievalProperties(100, 60, 20, false, false, Duration.ofSeconds(5)), "reranker").hash())
                 .isNotEqualTo(RetrievalPlan.of(RetrievalStrategy.SPARSE_ONLY, 10, DEFAULTS, "reranker").hash());
     }
 
@@ -42,14 +44,14 @@ class RetrievalPlanTest {
         assertThat(reranking.canonical()).isEqualTo("{\"strategy\":\"hybrid-rrf-rerank\",\"k\":10,\"candidates\":50,\"rrfK\":60,\"dedupeOverlaps\":true,"
                 + "\"rerankCandidates\":20,\"reranker\":\"Xenova/ms-marco-MiniLM-L-12-v2\"}");
         assertThat(reranking.hash()).isNotEqualTo(RetrievalPlan.of(RetrievalStrategy.HYBRID_RRF_RERANK, 10, DEFAULTS, "another-model").hash())
-                .isNotEqualTo(RetrievalPlan.of(RetrievalStrategy.HYBRID_RRF_RERANK, 10, new RetrievalProperties(50, 60, 30, false, false), "Xenova/ms-marco-MiniLM-L-12-v2").hash());
+                .isNotEqualTo(RetrievalPlan.of(RetrievalStrategy.HYBRID_RRF_RERANK, 10, new RetrievalProperties(50, 60, 30, false, false, Duration.ofSeconds(5)), "Xenova/ms-marco-MiniLM-L-12-v2").hash());
         assertThat(RetrievalPlan.of(RetrievalStrategy.HYBRID_RRF, 10, DEFAULTS, "any").canonical()).doesNotContain("rerank");
         assertThat(RetrievalPlan.of(RetrievalStrategy.HYBRID_RRF_RERANK, 40, DEFAULTS, "m").rerankCandidates()).as("never fewer candidates than k").isEqualTo(40);
     }
 
     @Test
     void contextFlagsAreRecordedOnlyWhereTheyApplyAndPlansWithoutThemKeepTheirSerialization() {
-        RetrievalProperties withContext = new RetrievalProperties(50, 60, 20, true, true);
+        RetrievalProperties withContext = new RetrievalProperties(50, 60, 20, true, true, Duration.ofSeconds(5));
 
         assertThat(RetrievalPlan.of(RetrievalStrategy.SPARSE_ONLY, 10, withContext, "m").canonical()).endsWith("\"dedupeOverlaps\":true,\"sparseContext\":true}");
         assertThat(RetrievalPlan.of(RetrievalStrategy.DENSE_ONLY, 10, withContext, "m").canonical()).as("dense search has no keyword or rerank stage")

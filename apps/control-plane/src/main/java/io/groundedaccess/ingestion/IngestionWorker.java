@@ -1,12 +1,14 @@
 package io.groundedaccess.ingestion;
 
 import io.groundedaccess.telemetry.Failures;
+import io.groundedaccess.telemetry.Spans;
 import io.groundedaccess.corpus.IngestionResult;
 import io.groundedaccess.corpus.IndexProfileMismatchException;
 import io.groundedaccess.corpus.IngestionService;
 import io.groundedaccess.corpus.SourceDocument;
 import io.groundedaccess.corpus.WriteFence;
 import io.groundedaccess.modelclient.InvalidModelResponseException;
+import io.groundedaccess.modelclient.ModelBusyException;
 import io.groundedaccess.modelclient.TextTooLongException;
 
 import jakarta.annotation.PreDestroy;
@@ -46,13 +48,16 @@ public class IngestionWorker {
 
     private final IngestionWorkerProperties properties;
 
+    private final Spans spans;
+
     private final ScheduledExecutorService renewals = Executors.newSingleThreadScheduledExecutor(runnable -> {
         Thread thread = new Thread(runnable, "ingestion-lease-renewal");
         thread.setDaemon(true);
         return thread;
     });
 
-    public IngestionWorker(IngestionJobStore store, IngestionService ingestion, IngestionWorkerProperties properties) {
+    public IngestionWorker(IngestionJobStore store, IngestionService ingestion, IngestionWorkerProperties properties, Spans spans) {
+        this.spans = spans;
         this.store = store;
         this.ingestion = ingestion;
         this.properties = properties;
@@ -145,6 +150,9 @@ public class IngestionWorker {
     }
 
     private void fail(IngestionJobStore.ClaimedJob job, RuntimeException cause) {
+        if (cause instanceof ModelBusyException busy) {
+            spans.refused("embed_passage", busy.reason());
+        }
         String retryable = retryableCode(cause);
         if (retryable != null && job.attempt() < job.maxAttempts()) {
             Duration delay = properties.retryBackoff().multipliedBy(1L << Math.min(job.attempt() - 1, 10));

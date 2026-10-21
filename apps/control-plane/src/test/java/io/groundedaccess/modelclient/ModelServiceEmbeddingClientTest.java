@@ -33,6 +33,8 @@ class ModelServiceEmbeddingClientTest {
 
     private volatile int status = 200;
 
+    private final List<String> deadlines = new CopyOnWriteArrayList<>();
+
     /** The tokenize response, given the texts of the request. */
     private volatile java.util.function.Function<List<String>, String> tokenized = texts -> "{\"max_tokens\":512,\"fitting_chars\":"
             + texts.stream().map(t -> Integer.toString(t.length())).toList() + "}";
@@ -47,6 +49,9 @@ class ModelServiceEmbeddingClientTest {
         server.createContext("/v1/embed", exchange -> {
             String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
             requests.add(exchange.getRequestHeaders().getFirst("Upgrade") + "|" + body);
+            deadlines.add(String.valueOf(exchange.getRequestHeaders().getFirst("X-Deadline-Ms")));
+            exchange.getResponseHeaders().add("X-Queue-Ms", "3");
+            exchange.getResponseHeaders().add("X-Compute-Ms", "5");
             int texts = body.substring(body.indexOf("\"texts\":[")).split("\",\"", -1).length;
             byte[] response = answer.apply(texts, requests.size() - 1).getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().add("Content-Type", "application/json");
@@ -80,7 +85,7 @@ class ModelServiceEmbeddingClientTest {
 
     private ModelServiceEmbeddingClient client() {
         var properties = new ModelServiceProperties(URI.create("http://127.0.0.1:" + server.getAddress().getPort()), "m", 2, Duration.ofSeconds(1),
-                Duration.ofSeconds(2), "reranker", Duration.ofSeconds(1), 1);
+                Duration.ofSeconds(2), Duration.ofSeconds(2), "reranker", Duration.ofSeconds(1), 1);
         return new ModelServiceEmbeddingClient(RestClient.builder(), properties);
     }
 
@@ -162,5 +167,26 @@ class ModelServiceEmbeddingClientTest {
         tokenized = texts -> "{\"max_tokens\":512,\"fitting_chars\":[3]}";
         assertThatThrownBy(() -> client().fittingChars(List.of("aa"), 384)).isInstanceOf(InvalidModelResponseException.class)
                 .hasMessageContaining("outside its text");
+    }
+
+    @Test
+    void sumsTheReportedTimingOfEveryBatchAndTellsTheServiceHowLongTheCallerWaits() {
+        Embeddings embeddings = client().embed(List.of("a", "b", "c"), InputType.QUERY, Duration.ofMillis(800));
+
+        assertThat(embeddings.queueMs()).isEqualTo(6);
+        assertThat(embeddings.computeMs()).isEqualTo(10);
+        assertThat(deadlines).hasSize(2).allSatisfy(d -> assertThat(Long.parseLong(d)).isBetween(1L, 800L));
+    }
+
+    @Test
+    void aRefusalIsNamedAndOtherServerErrorsStayServerErrors() {
+        status = 503;
+        for (String reason : List.of("BUSY", "DEADLINE_EXCEEDED")) {
+            answer = (texts, call) -> "{\"code\":\"" + reason + "\",\"message\":\"not started\"}";
+            assertThatThrownBy(() -> client().embed(List.of("a"), InputType.QUERY)).isInstanceOfSatisfying(ModelBusyException.class,
+                    busy -> assertThat(busy.reason()).isEqualTo(reason));
+        }
+        answer = (texts, call) -> "{\"detail\":\"overloaded\"}";
+        assertThatThrownBy(() -> client().embed(List.of("a"), InputType.QUERY)).isInstanceOf(org.springframework.web.client.HttpServerErrorException.class);
     }
 }

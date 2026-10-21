@@ -396,6 +396,26 @@
     "/v1/embed": {
       "post": {
         "operationId": "embed_v1_embed_post",
+        "parameters": [
+          {
+            "description": "Milliseconds the caller still waits; work not started by then is refused.",
+            "in": "header",
+            "name": "x-deadline-ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Milliseconds the caller still waits; work not started by then is refused.",
+              "title": "X-Deadline-Ms"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -426,6 +446,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Embed"
@@ -453,6 +483,26 @@
       "post": {
         "description": "Scores each passage against the query. The service does not sort or drop passages: ordering and cut-off belong to the caller,\nwhich also decides what happens when this call fails.",
         "operationId": "rerank_v1_rerank_post",
+        "parameters": [
+          {
+            "description": "Milliseconds the caller still waits; work not started by then is refused.",
+            "in": "header",
+            "name": "x-deadline-ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Milliseconds the caller still waits; work not started by then is refused.",
+              "title": "X-Deadline-Ms"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -483,6 +533,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Rerank"
