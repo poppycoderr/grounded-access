@@ -25,6 +25,8 @@ Notable changes per release. Versions before `v0.1.0` are pre-releases. Before `
 
 ### Evaluation
 
+- The README now quotes [`benchmarks/reports/metrics-v2`](./benchmarks/reports/metrics-v2/), the CI run of `b878bb5`: the first published run with EC@10, a manifest and chunker release 4. Every ranked list equals the previous published run's, so Recall and MRR are unchanged; the latency ratio of reranking to dense on that runner is about ten instead of eleven.
+
 - **Run manifest.** `run.json` records what was measured: the server's build commit, index profile, reranker revision, retrieval settings and CPU (from the new `GET /api/v1/system`, debug scope), a digest of the corpus as listed, the evaluator's commit and whether it had uncommitted changes, the attempt limit and `warmup_requests: 0`. Every attempt of a retried request is kept. The server and corpus are read again after the last request, and a run during which any of them changed is invalid (`drift`). `ga-eval answers` records the same ([ADR-0008](./docs/adr/0008-what-an-evaluation-run-records-and-measures.md)).
 - **Evidence coverage replaces nDCG@10** (metrics version 2). nDCG's ideal ranking assumed one result per evidence span, so one chunk covering two spans scored 0.613 and two chunks covering them scored 1.0. EC@10 scores each span by the rank of its first hit. Version 1 reports are unchanged; comparing the two versions is refused.
 - **`ga-eval compare`** lists every manifest field that differs between the two runs and compares latency only when both were served by the same CPU.

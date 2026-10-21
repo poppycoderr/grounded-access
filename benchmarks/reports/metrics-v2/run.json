@@ -1,0 +1,767 @@
+{
+  "status": "complete",
+  "invalid_reason": null,
+  "dataset_version": "v4",
+  "dataset_digest": "2c1950c5549c361403717328454eead971b6cbf6f0a423c61093281ca4697f46",
+  "metrics_version": "2",
+  "git_sha": "b878bb5",
+  "created_at": "2026-10-21T09:09:16+00:00",
+  "manifest": {
+    "manifest_version": "1",
+    "dataset": {
+      "version": "v4",
+      "digest": "2c1950c5549c361403717328454eead971b6cbf6f0a423c61093281ca4697f46"
+    },
+    "server": {
+      "build": {
+        "version": "0.1.0-SNAPSHOT",
+        "commit": "b878bb560412b514ee0cf14d685a9992ecf3c674"
+      },
+      "indexProfile": {
+        "id": "18485fba-c1dd-4f06-aae4-439836486770",
+        "embeddingModel": "BAAI/bge-small-en-v1.5",
+        "embeddingRevision": "aa8f8b060edb00e03bfdd08813a2949946c8ba55",
+        "dimensions": 384,
+        "queryPrefix": "Represent this sentence for searching relevant passages: ",
+        "passagePrefix": "",
+        "embeddingContext": true,
+        "chunkerRelease": "4",
+        "chunkMaxWords": 180,
+        "chunkOverlapWords": 30,
+        "chunkMaxTokens": 384,
+        "chunkMaxChars": 2000,
+        "headingMaxChars": 200
+      },
+      "reranker": {
+        "model": "Xenova/ms-marco-MiniLM-L-12-v2",
+        "revision": "42a4a787e30451cf9dbd09080c2a5b8dde332c1e"
+      },
+      "retrieval": {
+        "candidates": 50,
+        "rrfK": 60,
+        "rerankCandidates": 20,
+        "sparseContext": true,
+        "rerankContext": false,
+        "deadline": "PT5S"
+      },
+      "host": {
+        "cpu": "AMD EPYC 7763 64-Core Processor",
+        "processors": 4
+      }
+    },
+    "corpus": {
+      "digest": "14ca27e36ab75e06fe951578ad126f477914df0dbd09f42fca2796b7e91cc9fa",
+      "chunks": 328
+    },
+    "evaluator": {
+      "git_sha": "b878bb5",
+      "uncommitted_changes": false,
+      "ga_eval_version": "0.1.0",
+      "cpu": "AMD EPYC 7763 64-Core Processor",
+      "platform": "Linux-7.0.0-1017-azure-x86_64-with-glibc2.39"
+    },
+    "run": {
+      "strategies": [
+        "sparse-only",
+        "dense-only",
+        "hybrid-rrf",
+        "hybrid-rrf-rerank",
+        "bm25-reference"
+      ],
+      "k": 10,
+      "splits": [
+        "dev",
+        "test"
+      ],
+      "attempt_limit": 3,
+      "warmup_requests": 0,
+      "metrics_version": "2"
+    }
+  },
+  "strategies": [
+    "sparse-only",
+    "dense-only",
+    "hybrid-rrf",
+    "hybrid-rrf-rerank",
+    "bm25-reference"
+  ],
+  "reference_strategies": [
+    "bm25-reference"
+  ],
+  "k": 10,
+  "splits": [
+    "dev",
+    "test"
+  ],
+  "case_count": 128,
+  "policy_versions": [
+    "abac/1"
+  ],
+  "chunker_versions": [
+    "markdown/4"
+  ],
+  "plans": {
+    "sparse-only": {
+      "d7967398b8117b5f": {
+        "strategy": "sparse-only",
+        "k": 10,
+        "candidates": 50,
+        "rrfK": null,
+        "dedupeOverlaps": true,
+        "rerankCandidates": null,
+        "reranker": null,
+        "sparseContext": true,
+        "rerankContext": false
+      }
+    },
+    "dense-only": {
+      "d489d865e16bcda9": {
+        "strategy": "dense-only",
+        "k": 10,
+        "candidates": 50,
+        "rrfK": null,
+        "dedupeOverlaps": true,
+        "rerankCandidates": null,
+        "reranker": null,
+        "sparseContext": false,
+        "rerankContext": false
+      }
+    },
+    "hybrid-rrf": {
+      "2598002ea9c41e8d": {
+        "strategy": "hybrid-rrf",
+        "k": 10,
+        "candidates": 50,
+        "rrfK": 60,
+        "dedupeOverlaps": true,
+        "rerankCandidates": null,
+        "reranker": null,
+        "sparseContext": true,
+        "rerankContext": false
+      }
+    },
+    "hybrid-rrf-rerank": {
+      "748ba4f7e675effe": {
+        "strategy": "hybrid-rrf-rerank",
+        "k": 10,
+        "candidates": 50,
+        "rrfK": 60,
+        "dedupeOverlaps": true,
+        "rerankCandidates": 20,
+        "reranker": "Xenova/ms-marco-MiniLM-L-12-v2",
+        "sparseContext": true,
+        "rerankContext": false
+      }
+    }
+  },
+  "repeated_degraded_requests": 0,
+  "reference_indexes_headings": [
+    true
+  ],
+  "visibility_check": {
+    "alice-engineer": {
+      "visible_documents": 26,
+      "listed_chunks": 100,
+      "violations": []
+    },
+    "bob-support": {
+      "visible_documents": 26,
+      "listed_chunks": 100,
+      "violations": []
+    },
+    "carol-manager": {
+      "visible_documents": 28,
+      "listed_chunks": 108,
+      "violations": []
+    },
+    "dave-contractor": {
+      "visible_documents": 2,
+      "listed_chunks": 8,
+      "violations": []
+    },
+    "mallory-outsider": {
+      "visible_documents": 4,
+      "listed_chunks": 12,
+      "violations": []
+    }
+  },
+  "platform": "Linux-7.0.0-1017-azure-x86_64-with-glibc2.39",
+  "cpu": "AMD EPYC 7763 64-Core Processor",
+  "bootstrap": {
+    "samples": 10000,
+    "seed": 20260921,
+    "confidence": 0.95
+  },
+  "summary": {
+    "dev": {
+      "sparse-only": {
+        "answerable_cases": 23,
+        "recall@5": {
+          "mean": 0.9565217391304348,
+          "low": 0.8695652173913043,
+          "high": 1.0
+        },
+        "recall@10": {
+          "mean": 1.0,
+          "low": 1.0,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.7043478260869565,
+          "low": 0.5623188405797102,
+          "high": 0.8405797101449275
+        },
+        "ec@10": {
+          "mean": 0.7767944616361855,
+          "low": 0.6686580729109907,
+          "high": 0.8797975158287308
+        },
+        "hard_negative_cases": 3,
+        "hard_negative_above_evidence": 0,
+        "security_violations": 0,
+        "latency_ms": {
+          "p50": 9.2,
+          "p95": 17.2,
+          "requests": 34
+        },
+        "scope_cases": 3,
+        "scope_failures": 0
+      },
+      "dense-only": {
+        "answerable_cases": 23,
+        "recall@5": {
+          "mean": 0.9565217391304348,
+          "low": 0.8695652173913043,
+          "high": 1.0
+        },
+        "recall@10": {
+          "mean": 0.9565217391304348,
+          "low": 0.8695652173913043,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.9057971014492753,
+          "low": 0.7898550724637682,
+          "high": 1.0
+        },
+        "ec@10": {
+          "mean": 0.9187360762422373,
+          "low": 0.8100404240683242,
+          "high": 1.0
+        },
+        "hard_negative_cases": 3,
+        "hard_negative_above_evidence": 0,
+        "security_violations": 0,
+        "latency_ms": {
+          "p50": 48.0,
+          "p95": 85.0,
+          "requests": 34
+        },
+        "scope_cases": 3,
+        "scope_failures": 0
+      },
+      "hybrid-rrf": {
+        "answerable_cases": 23,
+        "recall@5": {
+          "mean": 0.9565217391304348,
+          "low": 0.8695652173913043,
+          "high": 1.0
+        },
+        "recall@10": {
+          "mean": 1.0,
+          "low": 1.0,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.8822463768115942,
+          "low": 0.7644927536231884,
+          "high": 0.9782608695652174
+        },
+        "ec@10": {
+          "mean": 0.9107128100155298,
+          "low": 0.8214256200310597,
+          "high": 0.9839534675465851
+        },
+        "hard_negative_cases": 3,
+        "hard_negative_above_evidence": 0,
+        "security_violations": 0,
+        "latency_ms": {
+          "p50": 46.6,
+          "p95": 70.5,
+          "requests": 34
+        },
+        "scope_cases": 3,
+        "scope_failures": 0
+      },
+      "hybrid-rrf-rerank": {
+        "answerable_cases": 23,
+        "recall@5": {
+          "mean": 1.0,
+          "low": 1.0,
+          "high": 1.0
+        },
+        "recall@10": {
+          "mean": 1.0,
+          "low": 1.0,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.9275362318840579,
+          "low": 0.8405797101449275,
+          "high": 1.0
+        },
+        "ec@10": {
+          "mean": 0.9461678046583877,
+          "low": 0.8819816748447281,
+          "high": 1.0
+        },
+        "hard_negative_cases": 3,
+        "hard_negative_above_evidence": 0,
+        "security_violations": 0,
+        "latency_ms": {
+          "p50": 463.6,
+          "p95": 654.3,
+          "requests": 34
+        },
+        "scope_cases": 3,
+        "scope_failures": 0
+      },
+      "bm25-reference": {
+        "answerable_cases": 23,
+        "recall@5": {
+          "mean": 0.8695652173913043,
+          "low": 0.7391304347826086,
+          "high": 1.0
+        },
+        "recall@10": {
+          "mean": 1.0,
+          "low": 1.0,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.7471014492753624,
+          "low": 0.6036231884057971,
+          "high": 0.8768115942028986
+        },
+        "ec@10": {
+          "mean": 0.808121935933244,
+          "low": 0.6981618886875983,
+          "high": 0.9078228783214719
+        },
+        "hard_negative_cases": 3,
+        "hard_negative_above_evidence": 0,
+        "security_violations": 0,
+        "latency_ms": null,
+        "scope_cases": 3,
+        "scope_failures": 0
+      }
+    },
+    "test": {
+      "sparse-only": {
+        "answerable_cases": 70,
+        "recall@5": {
+          "mean": 0.8857142857142857,
+          "low": 0.8071428571428572,
+          "high": 0.95
+        },
+        "recall@10": {
+          "mean": 0.9428571428571428,
+          "low": 0.8857142857142857,
+          "high": 0.9857142857142858
+        },
+        "mrr@10": {
+          "mean": 0.7397789115646258,
+          "low": 0.6556122448979592,
+          "high": 0.8208503401360544
+        },
+        "ec@10": {
+          "mean": 0.7788464545945553,
+          "low": 0.7056300140833048,
+          "high": 0.8468027403896614
+        },
+        "hard_negative_cases": 29,
+        "hard_negative_above_evidence": 9,
+        "security_violations": 0,
+        "latency_ms": {
+          "p50": 8.6,
+          "p95": 17.3,
+          "requests": 94
+        },
+        "scope_cases": 10,
+        "scope_failures": 0
+      },
+      "dense-only": {
+        "answerable_cases": 70,
+        "recall@5": {
+          "mean": 0.9642857142857143,
+          "low": 0.9214285714285714,
+          "high": 1.0
+        },
+        "recall@10": {
+          "mean": 0.9785714285714285,
+          "low": 0.9428571428571428,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.8952380952380952,
+          "low": 0.8380952380952381,
+          "high": 0.9476190476190476
+        },
+        "ec@10": {
+          "mean": 0.9084025762699136,
+          "low": 0.8582188182796204,
+          "high": 0.9529750591071444
+        },
+        "hard_negative_cases": 29,
+        "hard_negative_above_evidence": 9,
+        "security_violations": 0,
+        "latency_ms": {
+          "p50": 46.1,
+          "p95": 63.6,
+          "requests": 94
+        },
+        "scope_cases": 10,
+        "scope_failures": 0
+      },
+      "hybrid-rrf": {
+        "answerable_cases": 70,
+        "recall@5": {
+          "mean": 0.95,
+          "low": 0.8928571428571429,
+          "high": 0.9928571428571429
+        },
+        "recall@10": {
+          "mean": 0.9857142857142858,
+          "low": 0.9571428571428572,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.8666666666666666,
+          "low": 0.8023809523809523,
+          "high": 0.9273809523809524
+        },
+        "ec@10": {
+          "mean": 0.8852587878160524,
+          "low": 0.8328289073123858,
+          "high": 0.9332740635935739
+        },
+        "hard_negative_cases": 29,
+        "hard_negative_above_evidence": 10,
+        "security_violations": 0,
+        "latency_ms": {
+          "p50": 48.0,
+          "p95": 77.1,
+          "requests": 94
+        },
+        "scope_cases": 10,
+        "scope_failures": 0
+      },
+      "hybrid-rrf-rerank": {
+        "answerable_cases": 70,
+        "recall@5": {
+          "mean": 0.9714285714285714,
+          "low": 0.9285714285714286,
+          "high": 1.0
+        },
+        "recall@10": {
+          "mean": 0.9857142857142858,
+          "low": 0.9571428571428572,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.9714285714285714,
+          "low": 0.9357142857142857,
+          "high": 1.0
+        },
+        "ec@10": {
+          "mean": 0.9628817641284027,
+          "low": 0.9235102077083355,
+          "high": 0.9899656631462589
+        },
+        "hard_negative_cases": 29,
+        "hard_negative_above_evidence": 8,
+        "security_violations": 0,
+        "latency_ms": {
+          "p50": 477.2,
+          "p95": 586.6,
+          "requests": 94
+        },
+        "scope_cases": 10,
+        "scope_failures": 0
+      },
+      "bm25-reference": {
+        "answerable_cases": 70,
+        "recall@5": {
+          "mean": 0.9071428571428571,
+          "low": 0.8357142857142857,
+          "high": 0.9714285714285714
+        },
+        "recall@10": {
+          "mean": 0.9428571428571428,
+          "low": 0.8857142857142857,
+          "high": 0.9857142857142858
+        },
+        "mrr@10": {
+          "mean": 0.7716666666666666,
+          "low": 0.6888095238095239,
+          "high": 0.8497619047619048
+        },
+        "ec@10": {
+          "mean": 0.806135527980361,
+          "low": 0.7342115854553524,
+          "high": 0.873509780770863
+        },
+        "hard_negative_cases": 29,
+        "hard_negative_above_evidence": 9,
+        "security_violations": 0,
+        "latency_ms": null,
+        "scope_cases": 10,
+        "scope_failures": 0
+      }
+    }
+  },
+  "comparisons": [
+    {
+      "first": "sparse-only",
+      "second": "dense-only",
+      "cases": 70,
+      "recall@10": {
+        "mean": 0.03571428571428571,
+        "low": -0.007142857142857143,
+        "high": 0.08571428571428572,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": 0.1554591836734694,
+        "low": 0.06639455782312925,
+        "high": 0.2454421768707483,
+        "verdict": "better"
+      },
+      "ec@10": {
+        "mean": 0.1295561216753584,
+        "low": 0.05854290018741021,
+        "high": 0.20236070603824183,
+        "verdict": "better"
+      }
+    },
+    {
+      "first": "sparse-only",
+      "second": "hybrid-rrf",
+      "cases": 70,
+      "recall@10": {
+        "mean": 0.04285714285714286,
+        "low": 0.0,
+        "high": 0.1,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": 0.12688775510204084,
+        "low": 0.06721088435374149,
+        "high": 0.19020408163265307,
+        "verdict": "better"
+      },
+      "ec@10": {
+        "mean": 0.10641233322149717,
+        "low": 0.06003674436878684,
+        "high": 0.1553926630193043,
+        "verdict": "better"
+      }
+    },
+    {
+      "first": "sparse-only",
+      "second": "hybrid-rrf-rerank",
+      "cases": 70,
+      "recall@10": {
+        "mean": 0.04285714285714286,
+        "low": 0.0,
+        "high": 0.1,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": 0.2316496598639456,
+        "low": 0.15357142857142858,
+        "high": 0.31387755102040815,
+        "verdict": "better"
+      },
+      "ec@10": {
+        "mean": 0.18403530953384728,
+        "low": 0.12036591109541876,
+        "high": 0.25304193902788663,
+        "verdict": "better"
+      }
+    },
+    {
+      "first": "sparse-only",
+      "second": "bm25-reference",
+      "cases": 70,
+      "recall@10": {
+        "mean": 0.0,
+        "low": -0.04285714285714286,
+        "high": 0.04285714285714286,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": 0.03188775510204082,
+        "low": -0.03190476190476191,
+        "high": 0.09797619047619048,
+        "verdict": "no detectable difference"
+      },
+      "ec@10": {
+        "mean": 0.027289073385805808,
+        "low": -0.022995886626438703,
+        "high": 0.07954225697207719,
+        "verdict": "no detectable difference"
+      }
+    },
+    {
+      "first": "dense-only",
+      "second": "hybrid-rrf",
+      "cases": 70,
+      "recall@10": {
+        "mean": 0.007142857142857143,
+        "low": 0.0,
+        "high": 0.02142857142857143,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": -0.02857142857142857,
+        "low": -0.08571428571428572,
+        "high": 0.02738095238095238,
+        "verdict": "no detectable difference"
+      },
+      "ec@10": {
+        "mean": -0.02314378845386123,
+        "low": -0.06603778571213056,
+        "high": 0.018384053502591646,
+        "verdict": "no detectable difference"
+      }
+    },
+    {
+      "first": "dense-only",
+      "second": "hybrid-rrf-rerank",
+      "cases": 70,
+      "recall@10": {
+        "mean": 0.007142857142857143,
+        "low": 0.0,
+        "high": 0.02142857142857143,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": 0.0761904761904762,
+        "low": 0.02857142857142857,
+        "high": 0.13095238095238096,
+        "verdict": "better"
+      },
+      "ec@10": {
+        "mean": 0.054479187858488876,
+        "low": 0.018453512321427126,
+        "high": 0.09621631714264588,
+        "verdict": "better"
+      }
+    },
+    {
+      "first": "dense-only",
+      "second": "bm25-reference",
+      "cases": 70,
+      "recall@10": {
+        "mean": -0.03571428571428571,
+        "low": -0.08571428571428572,
+        "high": 0.007142857142857143,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": -0.12357142857142858,
+        "low": -0.21357142857142858,
+        "high": -0.03595238095238095,
+        "verdict": "worse"
+      },
+      "ec@10": {
+        "mean": -0.1022670482895526,
+        "low": -0.17650287945673607,
+        "high": -0.03143135650515016,
+        "verdict": "worse"
+      }
+    },
+    {
+      "first": "hybrid-rrf",
+      "second": "hybrid-rrf-rerank",
+      "cases": 70,
+      "recall@10": {
+        "mean": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": 0.10476190476190476,
+        "low": 0.04761904761904762,
+        "high": 0.16666666666666669,
+        "verdict": "better"
+      },
+      "ec@10": {
+        "mean": 0.0776229763123501,
+        "low": 0.0347322848493554,
+        "high": 0.12456015116981398,
+        "verdict": "better"
+      }
+    },
+    {
+      "first": "hybrid-rrf",
+      "second": "bm25-reference",
+      "cases": 70,
+      "recall@10": {
+        "mean": -0.04285714285714286,
+        "low": -0.1,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": -0.095,
+        "low": -0.1680952380952381,
+        "high": -0.0230952380952381,
+        "verdict": "worse"
+      },
+      "ec@10": {
+        "mean": -0.07912325983569136,
+        "low": -0.13592934522946118,
+        "high": -0.022962583126110315,
+        "verdict": "worse"
+      }
+    },
+    {
+      "first": "hybrid-rrf-rerank",
+      "second": "bm25-reference",
+      "cases": 70,
+      "recall@10": {
+        "mean": -0.04285714285714286,
+        "low": -0.1,
+        "high": 0.0,
+        "verdict": "no detectable difference"
+      },
+      "mrr@10": {
+        "mean": -0.19976190476190478,
+        "low": -0.28095238095238095,
+        "high": -0.12523809523809526,
+        "verdict": "worse"
+      },
+      "ec@10": {
+        "mean": -0.15674623614804148,
+        "low": -0.2250985268182535,
+        "high": -0.09479970417441311,
+        "verdict": "worse"
+      }
+    }
+  ],
+  "security_violations": 0,
+  "scope_failures": 0,
+  "ranking_check": {
+    "status": "passed",
+    "reason": null,
+    "checked": [
+      "sparse-only",
+      "bm25-reference"
+    ],
+    "skipped": [],
+    "differences": []
+  }
+}
