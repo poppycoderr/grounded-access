@@ -398,9 +398,9 @@
         "operationId": "embed_v1_embed_post",
         "parameters": [
           {
-            "description": "Milliseconds the caller still waits; work not started by then is refused.",
+            "description": "Milliseconds the caller still waits, counted from arrival; capped by the lane's longest wait. Work not started by then is refused.",
             "in": "header",
-            "name": "x-deadline-ms",
+            "name": "X-Deadline-Ms",
             "required": false,
             "schema": {
               "anyOf": [
@@ -411,7 +411,7 @@
                   "type": "null"
                 }
               ],
-              "description": "Milliseconds the caller still waits; work not started by then is refused.",
+              "description": "Milliseconds the caller still waits, counted from arrival; capped by the lane's longest wait. Work not started by then is refused.",
               "title": "X-Deadline-Ms"
             }
           }
@@ -485,9 +485,9 @@
         "operationId": "rerank_v1_rerank_post",
         "parameters": [
           {
-            "description": "Milliseconds the caller still waits; work not started by then is refused.",
+            "description": "Milliseconds the caller still waits, counted from arrival; capped by the lane's longest wait. Work not started by then is refused.",
             "in": "header",
-            "name": "x-deadline-ms",
+            "name": "X-Deadline-Ms",
             "required": false,
             "schema": {
               "anyOf": [
@@ -498,7 +498,7 @@
                   "type": "null"
                 }
               ],
-              "description": "Milliseconds the caller still waits; work not started by then is refused.",
+              "description": "Milliseconds the caller still waits, counted from arrival; capped by the lane's longest wait. Work not started by then is refused.",
               "title": "X-Deadline-Ms"
             }
           }
@@ -550,8 +550,28 @@
     },
     "/v1/tokenize": {
       "post": {
-        "description": "Token counts as passages under both models' tokenizers, so the control plane can make chunks that fit both. No text, token or\nvector is returned.",
+        "description": "Token counts as passages under both models' tokenizers, so the control plane can make chunks that fit both. Lengths are Unicode\ncode points. No text, token or vector is returned. Tokenizing a large batch costs CPU like inference, so it has its own lane.",
         "operationId": "tokenize_v1_tokenize_post",
+        "parameters": [
+          {
+            "description": "Milliseconds the caller still waits, counted from arrival; capped by the lane's longest wait. Work not started by then is refused.",
+            "in": "header",
+            "name": "X-Deadline-Ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Milliseconds the caller still waits, counted from arrival; capped by the lane's longest wait. Work not started by then is refused.",
+              "title": "X-Deadline-Ms"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -582,6 +602,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Tokenize"

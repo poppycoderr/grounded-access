@@ -10,6 +10,7 @@ Notable changes per release. Versions before `v0.1.0` are pre-releases. Before `
 - **The first search after the model service came back could exceed its deadline.** It established the index profile on its own time, with a passage probe that had no deadline. The profile is now established once, in the background; searches meanwhile answer from the sparse channel (`dense_unavailable`).
 - **Two configurations could write two index profiles into one database.** The database is now anchored to the profile of its first written version (migration V13); other profiles are refused when they write and at startup, also from processes that started while the database was empty.
 - **Retrieval SQL had no time limit.** Each retrieval statement is cancelled after `GA_RETRIEVAL_SQL_TIMEOUT` (2 s) and fails as `503 DATABASE_TIMEOUT`; a request that gets no pooled connection within `GA_DB_CONNECTION_TIMEOUT_MS` (3 s) fails as `503 DATABASE_UNAVAILABLE`. Neither is reported as a degraded model channel.
+- **Model-service admission had gaps.** Token counting and `/v1/tokenize` ran outside the lanes, a request's deadline started only once it reached its lane, waiting requests held worker threads, and a caller could ask for any wait. Endpoints now admit on the event loop before taking a thread, deadlines count from arrival and are capped by the lane, the deadline is checked again before the model runs, tokenizing has its own lane, and the health check needs no worker thread.
 
 ### Retrieval
 

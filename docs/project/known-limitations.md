@@ -38,8 +38,8 @@ Grounded Access v0.1 is a reference system: it shows one way to put authorizatio
 
 - **Reranking capacity is about one query per second on a CPU.** Beyond that, queries are answered in the fused order and marked `rerank_unavailable`. Its model calls end within the 5 s deadline (each retrieval statement has its own 2 s limit on top), but under 8 concurrent clients it still takes about 2 s at the median and most searches are not reranked ([admission report](../../benchmarks/reports/h-admission/README.md)).
 - **Ingestion and searches share the model service's CPU.** They no longer share a queue, but a passage embedding running next to a query embedding still slows it. Separate processes or machines would be the next step; no measurement here has shown the need yet.
-- The embedding queue is not limited, and there is no rate limiting per caller (R7).
-- A timeout ends the wait, not the work: the model service keeps computing a request its caller has given up on.
+- The model service bounds its queues per lane, but there is no rate limiting per caller (R7): one caller can fill a lane for everyone.
+- A computation that has started is not interrupted: the model service drops work whose caller's deadline passed before it started, but finishes work its caller gave up on later.
 - **One index profile per database.** Processes with another configuration are refused when they write; a different profile needs a new database.
 - The model service is unauthenticated inside the deployment network (R4).
 - Audit rows are ordinary table rows without tamper evidence (R6).

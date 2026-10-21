@@ -1,9 +1,11 @@
 """HTTP API of the model service. It holds no identities and never sees tenant or principal data."""
 
+import time
 import uuid
 from collections.abc import Awaitable, Callable
 
 from fastapi import FastAPI, Header, Request, Response
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
 
 from model_service.admission import Admitted, Lane, Lanes, Refused
@@ -32,19 +34,24 @@ class ModelServiceError(Exception):
         self.status, self.code, self.message = status, code, message
 
 
-DEADLINE_HEADER = "x-deadline-ms"
-
-
 def create_app(embedder: Embedder, reranker: Reranker, settings: Settings) -> FastAPI:
     app = FastAPI(title="Grounded Access model service", version="1.0.0")
     lanes = Lanes(
         query=Lane("query", settings.query_slots, settings.query_queue, settings.query_wait_seconds),
         passage=Lane("passage", settings.passage_slots, settings.passage_queue, settings.passage_wait_seconds),
         rerank=Lane("rerank", settings.rerank_slots, settings.rerank_queue, settings.rerank_wait_seconds),
+        tokenize=Lane("tokenize", settings.tokenize_slots, settings.tokenize_queue, settings.tokenize_wait_seconds),
+    )
+    deadline_header = Header(
+        default=None,
+        alias="X-Deadline-Ms",
+        description="Milliseconds the caller still waits, counted from arrival; capped by the lane's longest wait. Work not started by then is "
+        "refused.",
     )
 
     @app.middleware("http")
     async def request_id(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+        request.state.received = time.monotonic()
         response = await call_next(request)
         response.headers[REQUEST_ID_HEADER] = request.headers.get(REQUEST_ID_HEADER) or uuid.uuid4().hex
         return response
@@ -59,20 +66,19 @@ def create_app(embedder: Embedder, reranker: Reranker, settings: Settings) -> Fa
             status_code=503, content=ErrorResponse(code=refusal.code, message=refusal.message).model_dump(), headers={"Retry-After": "1"}
         )
 
+    # Endpoints are asynchronous: they validate and admit on the event loop, and only admitted work runs on a worker thread. The health check
+    # therefore never waits for a thread, and waiting requests never hold one.
+
     @app.get("/healthz")
-    def healthz() -> dict[str, str]:
+    async def healthz() -> dict[str, str]:
         return {"status": "ok"}
 
     @app.get("/v1/models")
-    def models() -> ModelsResponse:
+    async def models() -> ModelsResponse:
         return ModelsResponse(models=[embedder.info, reranker.info])
 
     @app.post("/v1/embed", responses={422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
-    def embed(
-        request: EmbedRequest,
-        response: Response,
-        x_deadline_ms: int | None = Header(default=None, description="Milliseconds the caller still waits; work not started by then is refused."),
-    ) -> EmbedResponse:
+    async def embed(request: EmbedRequest, response: Response, raw: Request, x_deadline_ms: int | None = deadline_header) -> EmbedResponse:
         info = embedder.info
         if request.model is not None and request.model != info.name:
             raise ModelServiceError(422, "MODEL_MISMATCH", f"requested {request.model}, loaded {info.name}")
@@ -80,42 +86,50 @@ def create_app(embedder: Embedder, reranker: Reranker, settings: Settings) -> Fa
             raise ModelServiceError(422, "TOO_MANY_TEXTS", f"at most {settings.max_texts_per_request} texts per request")
         if any(len(t) > settings.max_chars_per_text for t in request.texts):
             raise ModelServiceError(422, "TEXT_TOO_LONG", f"each text must be at most {settings.max_chars_per_text} characters")
-        prefix = info.query_prefix if request.input_type == "query" else info.passage_prefix
-        # Counted before embedding: the model would silently cut a longer input and represent only its beginning.
-        limit = embedder.tokens.max_tokens
-        over = [(i, n) for i, n in enumerate(embedder.tokens.count((prefix or "") + t) for t in request.texts) if n > limit]
-        if over:
-            listed = ", ".join(f"text {i} has {n}" for i, n in over[:5])
-            raise ModelServiceError(422, "TEXT_TOO_LONG", f"{listed} tokens; the model accepts at most {limit} per text, special tokens included")
-        with (lanes.query if request.input_type == "query" else lanes.passage).admit(x_deadline_ms) as admitted:
-            vectors = embedder.embed(request.texts, request.input_type)
-            _timing(response, admitted)
-        return EmbedResponse(model=info.name, revision=info.revision, dimensions=info.dimensions, prefix=prefix or "", vectors=vectors)
+        prefix = (info.query_prefix if request.input_type == "query" else info.passage_prefix) or ""
 
-    @app.post("/v1/tokenize", responses={422: {"model": ErrorResponse}})
-    def tokenize(request: TokenizeRequest) -> TokenizeResponse:
-        """Token counts as passages under both models' tokenizers, so the control plane can make chunks that fit both. No text, token or
-        vector is returned."""
+        def work(admitted: Admitted) -> list[list[float]]:
+            # Counted before embedding: the model would silently cut a longer input and represent only its beginning
+            limit = embedder.tokens.max_tokens
+            over = [(i, n) for i, n in enumerate(embedder.tokens.count(prefix + t) for t in request.texts) if n > limit]
+            if over:
+                listed = ", ".join(f"text {i} has {n}" for i, n in over[:5])
+                raise ModelServiceError(422, "TEXT_TOO_LONG", f"{listed} tokens; the model accepts at most {limit} per text, special tokens included")
+            admitted.check()
+            return embedder.embed(request.texts, request.input_type)
+
+        lane = lanes.query if request.input_type == "query" else lanes.passage
+        async with lane.admit(x_deadline_ms, raw.state.received) as admitted:
+            vectors = await run_in_threadpool(work, admitted)
+            _timing(response, admitted)
+        return EmbedResponse(model=info.name, revision=info.revision, dimensions=info.dimensions, prefix=prefix, vectors=vectors)
+
+    @app.post("/v1/tokenize", responses={422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
+    async def tokenize(request: TokenizeRequest, raw: Request, x_deadline_ms: int | None = deadline_header) -> TokenizeResponse:
+        """Token counts as passages under both models' tokenizers, so the control plane can make chunks that fit both. Lengths are Unicode
+        code points. No text, token or vector is returned. Tokenizing a large batch costs CPU like inference, so it has its own lane."""
         if len(request.texts) > settings.max_texts_per_request:
             raise ModelServiceError(422, "TOO_MANY_TEXTS", f"at most {settings.max_texts_per_request} texts per request")
         if any(len(t) > settings.max_chars_per_text for t in request.texts):
             raise ModelServiceError(422, "TEXT_TOO_LONG", f"each text must be at most {settings.max_chars_per_text} characters")
         counters = (embedder.tokens, reranker.tokens)
         prefix = embedder.info.passage_prefix or ""
-        return TokenizeResponse(
-            max_tokens=min(c.max_tokens for c in counters),
-            counts=[max(c.count(prefix + t) for c in counters) for t in request.texts],
-            fitting_chars=None
-            if request.budget is None
-            else [max(0, min(c.fitting_chars(prefix + t, request.budget) for c in counters) - len(prefix)) for t in request.texts],
-        )
+
+        def work(admitted: Admitted) -> TokenizeResponse:
+            admitted.check()
+            return TokenizeResponse(
+                max_tokens=min(c.max_tokens for c in counters),
+                counts=[max(c.count(prefix + t) for c in counters) for t in request.texts],
+                fitting_chars=None
+                if request.budget is None
+                else [max(0, min(c.fitting_chars(prefix + t, request.budget) for c in counters) - len(prefix)) for t in request.texts],
+            )
+
+        async with lanes.tokenize.admit(x_deadline_ms, raw.state.received) as admitted:
+            return await run_in_threadpool(work, admitted)
 
     @app.post("/v1/rerank", responses={422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
-    def rerank(
-        request: RerankRequest,
-        response: Response,
-        x_deadline_ms: int | None = Header(default=None, description="Milliseconds the caller still waits; work not started by then is refused."),
-    ) -> RerankResponse:
+    async def rerank(request: RerankRequest, response: Response, raw: Request, x_deadline_ms: int | None = deadline_header) -> RerankResponse:
         """Scores each passage against the query. The service does not sort or drop passages: ordering and cut-off belong to the caller,
         which also decides what happens when this call fails."""
         info = reranker.info
@@ -128,9 +142,15 @@ def create_app(embedder: Embedder, reranker: Reranker, settings: Settings) -> Fa
         ids = [p.id for p in request.passages]
         if len(set(ids)) != len(ids):
             raise ModelServiceError(422, "DUPLICATE_PASSAGE_ID", "passage ids must be unique within a request")
-        query, truncated = _fit_query(reranker.tokens, request.query, [p.text for p in request.passages])
-        with lanes.rerank.admit(x_deadline_ms) as admitted:
-            scores = reranker.score(query, [p.text for p in request.passages])
+        passages = [p.text for p in request.passages]
+
+        def work(admitted: Admitted) -> tuple[list[float], bool]:
+            query, truncated = _fit_query(reranker.tokens, request.query, passages)
+            admitted.check()
+            return reranker.score(query, passages), truncated
+
+        async with lanes.rerank.admit(x_deadline_ms, raw.state.received) as admitted:
+            scores, truncated = await run_in_threadpool(work, admitted)
             _timing(response, admitted)
         return RerankResponse(
             model=info.name,
