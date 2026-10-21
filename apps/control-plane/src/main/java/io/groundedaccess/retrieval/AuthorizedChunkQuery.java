@@ -9,8 +9,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Supplier;
+
+import javax.sql.DataSource;
 
 import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -33,7 +39,21 @@ public class AuthorizedChunkQuery {
     // Ties are broken by stable keys, never by the random chunk id, so repeated evaluation runs rank identically
     private static final String TIE_BREAK = "d.external_key, v.version_no, c.ordinal";
 
+    /** PostgreSQL's SQLSTATE for a statement cancelled by its timeout. */
+    private static final String QUERY_CANCELED = "57014";
+
     private final JdbcClient jdbc;
+
+    /**
+     * Every statement runs with the retrieval SQL timeout ({@code ga.retrieval.sql-timeout}, whole seconds, at least one): PostgreSQL cancels a
+     * statement that takes longer, so a slow scan or a lock wait cannot hold a request and its connection without bound.
+     */
+    @Autowired
+    public AuthorizedChunkQuery(DataSource dataSource, RetrievalProperties properties) {
+        JdbcTemplate template = new JdbcTemplate(dataSource);
+        template.setQueryTimeout((int) Math.max(1, (properties.sqlTimeout().toMillis() + 999) / 1000));
+        this.jdbc = JdbcClient.create(template);
+    }
 
     public AuthorizedChunkQuery(JdbcClient jdbc) {
         this.jdbc = jdbc;
@@ -85,8 +105,9 @@ public class AuthorizedChunkQuery {
         if (after != null) {
             statement = statement.param("after_key", after.documentKey()).param("after_version", after.versionNo()).param("after_ordinal", after.ordinal());
         }
-        return statement.query((rs, rowNum) -> new AuthorizedChunk(rs.getObject(1, UUID.class), rs.getString(2), rs.getInt(3), rs.getString(4),
-                rs.getString(5), rs.getInt(6), rs.getInt(7), rs.getInt(8), rs.getString(9), rs.getString(10))).list();
+        var bound = statement;
+        return timed(() -> bound.query((rs, rowNum) -> new AuthorizedChunk(rs.getObject(1, UUID.class), rs.getString(2), rs.getInt(3), rs.getString(4),
+                rs.getString(5), rs.getInt(6), rs.getInt(7), rs.getInt(8), rs.getString(9), rs.getString(10))).list());
     }
 
     /**
@@ -110,13 +131,24 @@ public class AuthorizedChunkQuery {
     }
 
     private List<RetrievedChunk> run(String sql, AuthorizationPredicate predicate, Scope scope, boolean sparse, int limit, Map<String, Object> search) {
-        return jdbc.sql(sql)
+        return timed(() -> jdbc.sql(sql)
                 .params(predicate.parameters())
                 .params(scope.parameters())
                 .params(search)
                 .param("limit", limit)
                 .query((rs, rowNum) -> map(rs, sparse, rowNum + 1))
-                .list();
+                .list());
+    }
+
+    private static <T> T timed(Supplier<T> statement) {
+        try {
+            return statement.get();
+        } catch (DataAccessException e) {
+            if (e.getMostSpecificCause() instanceof SQLException sql && QUERY_CANCELED.equals(sql.getSQLState())) {
+                throw new RetrievalTimeoutException(e);
+            }
+            throw e;
+        }
     }
 
     private static RetrievedChunk map(ResultSet rs, boolean sparse, int rank) throws SQLException {

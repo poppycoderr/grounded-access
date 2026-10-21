@@ -38,7 +38,7 @@ The model service has three **lanes**:
   - Reranking waits for its slot only as long as the remaining time minus the rerank timeout. A search that starts reranking can therefore finish it before its deadline.
   - With less time left, it is not reranked and is marked `rerank_unavailable`, as today.
   - The per-process semaphore stays as a first, cheap filter; the model service decides.
-- **Bound.** The model calls of a search therefore end before its deadline. Only the database time of the two channels and fusion comes on top, a few milliseconds each.
+- **Bound.** The model calls of a search therefore end before its deadline. Database time comes on top and is bounded separately: each retrieval statement by `ga.retrieval.sql-timeout` (2 s), after which it fails as `503 DATABASE_TIMEOUT`, and the wait for a pooled connection by the pool timeout (3 s, `503 DATABASE_UNAVAILABLE`). A database failure is never reported as a degraded model channel. Writing the audit rows is not bounded this way (review 2026-10-21, D3).
 - **Ingestion.** Passage embeddings send their read timeout as the deadline. A refusal (`BUSY`, `DEADLINE_EXCEEDED`) is retried with backoff, as an unavailable model service is today.
 - **Generation.** Answer generation keeps its own timeout. Generation is optional and runs against an external chat model.
 
