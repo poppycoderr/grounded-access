@@ -22,7 +22,7 @@ The scans can be run locally with the commands in `.github/workflows/build.yml`;
 
 1. `main` is green on the commit to be tagged.
 2. The changelog has an entry for the version: what changed for users, what the measurements say, what is not included.
-3. The [known limitations](./known-limitations.md) are still true. Remove what was fixed, add what was found.
+3. The [known limitations](./known-limitations.md) are still true. Remove what was fixed, add what was found. The [upgrade notes](./upgrading.md) cover every migration, contract and index-profile change since the previous release, and say whether a reload is needed.
 4. Published numbers in the READMEs and docs match the committed result files under `benchmarks/reports/`. Regenerate the diagrams (`scripts/generate-diagrams.py`) and the terminal recording (`scripts/generate-demo-animation.py`) if the numbers changed.
 5. Every entry in `ops/supply-chain/trivyignore.yaml` and every override in `ops/supply-chain/licenses.json` is still needed and its reason still holds.
 6. Version overrides in the root `pom.xml` that exist only to fix a vulnerability are removed if the Spring Boot version in use now manages a fixed version.

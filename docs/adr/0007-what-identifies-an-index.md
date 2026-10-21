@@ -90,7 +90,7 @@ A version whose revision was recorded as `unknown` gets a profile with that revi
 
 ### One profile per database
 
-Every check above compares a process with the data. Two processes with different configurations, both started while the database was empty, would each establish their own profile and write it. Since review 2026-10-21 (D6) the database is anchored to the profile of its first written version (migration V13): the claim is an atomic insert in the write transaction, so two first writers cannot both succeed, and other profiles are refused at write time and at startup. A label change writes no vectors and is never refused. Emptying the database does not release the anchor; a different profile needs a new database.
+Every check above compares a process with the data. Two processes with different configurations, both started while the database was empty, would each establish their own profile and write it. Since review 2026-10-21 (D6) the database is anchored to the profile of its first written version, and other profiles are refused at write time and at startup ([ADR-0011](./0011-what-a-request-sees.md)).
 
 ### Not decided here
 

@@ -29,6 +29,6 @@ The 2026-10-15 review (R1, R5) asked for one definition, applied the same way be
 ## Consequences
 
 - Fingerprint columns are no longer needed and are dropped (migration V10). Existing versions keep their numbers; nothing is recomputed.
-- A title or link correction now produces a new version number, so `key@version` citations made before it point at a version that cleanup removes within a minute. That was already true for label changes.
+- A title or link correction now produces a new version number, so `key@version` citations made before it point at a version that is no longer readable. The chunks move to the new version in the same transaction, so this happens at once, not when cleanup removes the old row a minute later. That was already true for label changes. Citations are a snapshot, not a resolvable reference ([ADR-0011](./0011-what-a-request-sees.md)).
 - Rolling V10 back means adding the columns again and filling them from the stored fields; no other data changes.
 - Tests: `VersionMetadataTest` (including a property test over sets with separators, quotes and control characters), `DocumentMetadataIT` (narrowing labels hides the document from search, listing and document reads with the model service down; title and link changes keep the embeddings; resubmission and reordering are unchanged).

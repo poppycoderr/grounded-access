@@ -4,13 +4,20 @@ Notable changes per release. Versions before `v0.1.0` are pre-releases. Before `
 
 ## Unreleased
 
+Upgrading from v0.1.0 needs a new database and the corpus loaded again; see [upgrading](./docs/project/upgrading.md).
+
 ### Fixed (review 2026-10-21)
 
 - **Text outside the Basic Multilingual Plane could be split into invalid characters.** The model service reports fitting lengths in Unicode code points and the chunker counted Java chars, and its hard cuts could fall between the two halves of a surrogate pair. The chunker now converts the unit and never cuts inside a pair; `ga-eval validate` refuses corpus files outside the plane, because evaluation offsets are code points and API offsets are UTF-16 units.
 - **The first search after the model service came back could exceed its deadline.** It established the index profile on its own time, with a passage probe that had no deadline. The profile is now established once, in the background; searches meanwhile answer from the sparse channel (`dense_unavailable`).
-- **Two configurations could write two index profiles into one database.** The database is now anchored to the profile of its first written version (migration V13); other profiles are refused when they write and at startup, also from processes that started while the database was empty.
+- **Two configurations could write two index profiles into one database.** The database is now anchored to the profile of its first written version (migration V13); other profiles are refused when they write and at startup, also from processes that started while the database was empty ([ADR-0011](./docs/adr/0011-what-a-request-sees.md)).
 - **Retrieval SQL had no time limit.** Each retrieval statement is cancelled after `GA_RETRIEVAL_SQL_TIMEOUT` (2 s) and fails as `503 DATABASE_TIMEOUT`; a request that gets no pooled connection within `GA_DB_CONNECTION_TIMEOUT_MS` (3 s) fails as `503 DATABASE_UNAVAILABLE`. Neither is reported as a degraded model channel.
 - **Model-service admission had gaps.** Token counting and `/v1/tokenize` ran outside the lanes, a request's deadline started only once it reached its lane, waiting requests held worker threads, and a caller could ask for any wait. Endpoints now admit on the event loop before taking a thread, deadlines count from arrival and are capped by the lane, the deadline is checked again before the model runs, tokenizing has its own lane, and the health check needs no worker thread.
+
+### Documentation (review 2026-10-21)
+
+- [ADR-0011](./docs/adr/0011-what-a-request-sees.md) states what a request sees: authorization per statement, no re-check of requests already running, evidence as a snapshot, one index profile per database, audit rows kept indefinitely. `RevocationBoundaryIT` pins the in-flight behaviour.
+- Corrected: the deadline bound (ADR-0010), the moment old citations stop resolving (ADR-0006), the threat model's revocation row, and several known limitations (latency ratio, queue limits, accepted findings, the pillow override, the reranker tokenizer).
 
 ### Retrieval
 

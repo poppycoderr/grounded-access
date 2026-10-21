@@ -59,7 +59,7 @@ flowchart LR
 | A5 | Use fusion, deduplication or a later stage to surface filtered rows | Those stages only reorder and trim rows the SQL already admitted | By construction; the gate checks every returned chunk |
 | A6 | Use `asOf` to read an older, less restricted version | `asOf` filters the current version only; replaced versions are never candidates (ADR-0005) | Integration test; the gate treats a chunk of a replaced version as a violation |
 | A7 | Use scope parameters to widen access | Scope is a separate condition; dropping it (`includeOutOfScope`) keeps the predicate | Property test: without scope, exactly the authorized set |
-| A8 | Keep reading after access is revoked by a label change or deletion | A label change, a disable and a delete apply to the next query | Integration tests, including a label change while the model service is down |
+| A8 | Keep reading after access is revoked by a label change or deletion | A label change, a disable and a delete apply to every retrieval statement that starts after they commit. A request already running is not re-checked: a search can keep a row from a statement that ran just before, and an answer keeps evidence revoked during generation; text already sent to the chat model cannot be recalled ([ADR-0011](../adr/0011-what-a-request-sees.md)) | Integration tests, including a label change while the model service is down; `RevocationBoundaryIT` pins the in-flight behaviour |
 
 ### Learning that something exists
 
