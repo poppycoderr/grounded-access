@@ -15,3 +15,7 @@ vulnerabilities:
     paths:
       - "usr/bin/pebble"
     statement: Go standard library in a base-image binary that is never executed
+  - id: CVE-2026-111943
+    paths:
+      - "usr/bin/pebble"
+    statement: Go standard library in a base-image binary that is never executed
