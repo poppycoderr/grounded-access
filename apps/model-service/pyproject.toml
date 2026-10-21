@@ -26,6 +26,11 @@ dev = [
     "ruff>=0.16.8",
 ]
 
+[tool.uv]
+# fastembed caps pillow below 13, and the fixes for the pillow advisories of October 2026 are only in 13. The service loads text models only:
+# pillow is imported by fastembed but never handles input. Remove the override once fastembed allows pillow 13.
+override-dependencies = ["pillow>=13.0.0"]
+
 [tool.ruff]
 line-length = 150
 target-version = "py312"
