@@ -1,6 +1,8 @@
 package io.groundedaccess.modelclient;
 
 import java.net.http.HttpClient;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -10,7 +12,9 @@ import java.util.concurrent.TimeUnit;
 import org.jspecify.annotations.Nullable;
 import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
 import org.springframework.boot.http.client.HttpClientSettings;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClient;
 
 /**
@@ -47,8 +51,18 @@ public class ModelServiceRerankClient implements RerankClient {
 
     @Override
     public RerankScores score(String query, List<String> passages) {
+        return score(query, passages, properties.rerankTimeout());
+    }
+
+    @Override
+    public Duration timeout() {
+        return properties.rerankTimeout();
+    }
+
+    @Override
+    public RerankScores score(String query, List<String> passages, Duration wait) {
         try {
-            if (!slots.tryAcquire(properties.rerankTimeout().toMillis(), TimeUnit.MILLISECONDS)) {
+            if (!slots.tryAcquire(Math.min(wait.toMillis(), properties.rerankTimeout().toMillis()), TimeUnit.MILLISECONDS)) {
                 throw new RerankBusyException();
             }
         } catch (InterruptedException e) {
@@ -67,12 +81,21 @@ public class ModelServiceRerankClient implements RerankClient {
         for (int i = 0; i < passages.size(); i++) {
             numbered.add(new Passage(Integer.toString(i), passages.get(i)));
         }
-        RerankResponse response = Objects.requireNonNull(http.post()
+        // The model service may start the work only while the call can still finish: it gets the whole call timeout, no more
+        ResponseEntity<RerankResponse> entity = http.post()
                 .uri("/v1/rerank")
+                .header(ModelServiceEmbeddingClient.DEADLINE_HEADER, Long.toString(properties.rerankTimeout().toMillis()))
                 .body(new RerankRequest(properties.rerankerModel(), query, numbered))
                 .retrieve()
-                .body(RerankResponse.class));
-        return check(response, numbered);
+                .onStatus(status -> status.value() == 503, (request, refused) -> {
+                    String body = new String(refused.getBody().readAllBytes(), StandardCharsets.UTF_8);
+                    ModelServiceEmbeddingClient.refusal(body);
+                    throw new HttpServerErrorException(refused.getStatusCode(), body);
+                })
+                .toEntity(RerankResponse.class);
+        RerankScores scores = check(Objects.requireNonNull(entity.getBody()), numbered);
+        return new RerankScores(scores.model(), scores.revision(), scores.scores(), scores.queryTruncated(),
+                ModelServiceEmbeddingClient.timing(entity.getHeaders(), "X-Queue-Ms"), ModelServiceEmbeddingClient.timing(entity.getHeaders(), "X-Compute-Ms"));
     }
 
     /**

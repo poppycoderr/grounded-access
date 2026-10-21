@@ -17,6 +17,18 @@ class Settings:
     max_texts_per_request: int
     max_chars_per_text: int
     max_passages_per_request: int
+    # Admission by lane (ADR-0010): concurrent computations, requests allowed to wait, and how long a request without a deadline waits.
+    # Slots plus queues of all lanes stay below the 40 threads FastAPI runs synchronous endpoints on, so a waiting request never blocks
+    # /healthz. Eight query slots were measured as fast as no limit under 16 clients; two were 60% slower.
+    query_slots: int = 8
+    query_queue: int = 16
+    query_wait_seconds: float = 2.0
+    passage_slots: int = 1
+    passage_queue: int = 4
+    passage_wait_seconds: float = 30.0
+    rerank_slots: int = 1
+    rerank_queue: int = 4
+    rerank_wait_seconds: float = 3.0
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -29,4 +41,13 @@ class Settings:
             max_texts_per_request=int(os.getenv("GA_MAX_TEXTS_PER_REQUEST", "128")),
             max_chars_per_text=int(os.getenv("GA_MAX_CHARS_PER_TEXT", "8000")),
             max_passages_per_request=int(os.getenv("GA_MAX_PASSAGES_PER_REQUEST", "64")),
+            query_slots=int(os.getenv("GA_QUERY_SLOTS", "8")),
+            query_queue=int(os.getenv("GA_QUERY_QUEUE", "16")),
+            query_wait_seconds=float(os.getenv("GA_QUERY_WAIT_SECONDS", "2")),
+            passage_slots=int(os.getenv("GA_PASSAGE_SLOTS", "1")),
+            passage_queue=int(os.getenv("GA_PASSAGE_QUEUE", "4")),
+            passage_wait_seconds=float(os.getenv("GA_PASSAGE_WAIT_SECONDS", "30")),
+            rerank_slots=int(os.getenv("GA_RERANK_SLOTS", "1")),
+            rerank_queue=int(os.getenv("GA_RERANK_QUEUE", "4")),
+            rerank_wait_seconds=float(os.getenv("GA_RERANK_WAIT_SECONDS", "3")),
         )

@@ -34,7 +34,7 @@ public final class StubModelServer {
     public static final String CHAT = "/v1/chat/completions";
 
     public enum Behaviour {
-        OK, HANG, ERROR, GARBAGE
+        OK, HANG, ERROR, GARBAGE, BUSY
     }
 
     private static final ObjectMapper JSON = new ObjectMapper();
@@ -42,6 +42,8 @@ public final class StubModelServer {
     private final Map<String, Behaviour> behaviours = new ConcurrentHashMap<>();
 
     private final Map<String, AtomicInteger> calls = new ConcurrentHashMap<>();
+
+    private final Map<String, Long> deadlines = new ConcurrentHashMap<>();
 
     private final HashingEmbeddingClient hashing = new HashingEmbeddingClient();
 
@@ -68,6 +70,13 @@ public final class StubModelServer {
         this.chatContent = content;
     }
 
+    /**
+     * The X-Deadline-Ms the last request to the endpoint carried, or -1.
+     */
+    public long lastDeadline(String endpoint) {
+        return deadlines.getOrDefault(endpoint, -1L);
+    }
+
     public int calls(String endpoint) {
         return calls.computeIfAbsent(endpoint, key -> new AtomicInteger()).get();
     }
@@ -78,6 +87,7 @@ public final class StubModelServer {
     public void reset() {
         behaviours.clear();
         calls.clear();
+        deadlines.clear();
         chatContent = "{\"answerable\": false}";
         if (server == null) {
             server = bind(port);
@@ -111,6 +121,10 @@ public final class StubModelServer {
 
     private void handle(HttpExchange exchange, String endpoint) throws IOException {
         calls.computeIfAbsent(endpoint, key -> new AtomicInteger()).incrementAndGet();
+        String deadline = exchange.getRequestHeaders().getFirst("X-Deadline-Ms");
+        if (deadline != null) {
+            deadlines.put(endpoint, Long.parseLong(deadline));
+        }
         JsonNode request = JSON.readTree(exchange.getRequestBody().readAllBytes());
         switch (behaviours.getOrDefault(endpoint, Behaviour.OK)) {
             case HANG -> {
@@ -123,6 +137,7 @@ public final class StubModelServer {
             }
             case ERROR -> respond(exchange, 500, "{\"detail\":\"internal error\"}");
             case GARBAGE -> respond(exchange, 200, "<html>not the contract</html>");
+            case BUSY -> respond(exchange, 503, "{\"code\":\"BUSY\",\"message\":\"the lane is full; try again later\"}");
             case OK -> respond(exchange, 200, answer(endpoint, request));
         }
     }

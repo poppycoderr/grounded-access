@@ -18,6 +18,9 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,7 +41,7 @@ import org.springframework.test.web.servlet.MvcResult;
  * {@link StubModelServer}. Whatever fails, a response contains only documents the caller may read.
  */
 @SpringBootTest(properties = {"ga.ingestion.worker.enabled=false", "ga.corpus.cleanup.enabled=false", "ga.ingestion.worker.max-attempts=3",
-        "ga.ingestion.worker.retry-backoff=1h", "ga.model-service.connect-timeout=300ms", "ga.model-service.read-timeout=500ms",
+        "ga.ingestion.worker.retry-backoff=1h", "ga.model-service.connect-timeout=300ms", "ga.model-service.read-timeout=500ms", "ga.model-service.query-timeout=500ms",
         "ga.model-service.rerank-timeout=300ms", "ga.chat.connect-timeout=300ms", "ga.chat.read-timeout=300ms", "ga.chat.model=stub-chat"})
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
@@ -78,6 +81,9 @@ class DependencyFailureIT {
 
     @Autowired
     private IngestionWorker worker;
+
+    @Autowired
+    private MeterRegistry meters;
 
     @BeforeEach
     void corpus() throws Exception {
@@ -152,6 +158,29 @@ class DependencyFailureIT {
         MODELS.behave(StubModelServer.CHAT, Behaviour.OK);
         MODELS.chatReplies("Sure! Employees receive two days.");
         query().andExpect(jsonPath("$.status").value("evidence_only")).andExpect(jsonPath("$.degraded[0]").value("generation_invalid"));
+    }
+
+    @Test
+    void aModelServiceThatRefusesWorkDegradesSearchesIsCountedAndIngestionRetries() throws Exception {
+        double before = refused("embed_query", "BUSY") + refused("rerank", "BUSY");
+        MODELS.behave(StubModelServer.EMBED, Behaviour.BUSY);
+        MODELS.behave(StubModelServer.RERANK, Behaviour.BUSY);
+
+        assertThat(degraded(search("hybrid-rrf-rerank"))).containsExactly("dense_unavailable", "rerank_unavailable");
+        mvc.perform(searchRequest("dense-only")).andExpect(status().isServiceUnavailable());
+        assertThat(refused("embed_query", "BUSY") + refused("rerank", "BUSY") - before).isEqualTo(3);
+
+        String location = submit("hr-travel-policy", "The meal allowance is sixty euros per day.", "internal");
+        worker.drain();
+        mvc.perform(get(location).header("Authorization", "Bearer " + ADMIN))
+                .andExpect(jsonPath("$.status").value("queued"))
+                .andExpect(jsonPath("$.errorCode").value("MODEL_SERVICE_UNAVAILABLE"));
+        assertThat(refused("embed_passage", "BUSY")).isPositive();
+    }
+
+    private double refused(String operation, String reason) {
+        Counter counter = meters.find("ga.model.refused").tag("operation", operation).tag("reason", reason).counter();
+        return counter == null ? 0 : counter.count();
     }
 
     @Test

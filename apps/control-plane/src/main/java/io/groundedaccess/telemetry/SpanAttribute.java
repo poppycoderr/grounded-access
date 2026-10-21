@@ -27,6 +27,12 @@ public enum SpanAttribute {
 
     MODEL_NAME("model.name"),
 
+    /** How long the model service let the call wait for a slot, as it reported. */
+    MODEL_QUEUE_MS("model.queue_ms"),
+
+    /** How long the model service computed, as it reported. */
+    MODEL_COMPUTE_MS("model.compute_ms"),
+
     DEGRADED("degraded"),
 
     ERROR_TYPE("error.type"),

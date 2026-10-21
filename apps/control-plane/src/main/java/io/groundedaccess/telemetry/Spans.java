@@ -1,5 +1,6 @@
 package io.groundedaccess.telemetry;
 
+import java.time.Duration;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -81,6 +82,26 @@ public class Spans {
     public void expect(List<String> degradedReasons, List<String> answerStatuses) {
         degradedReasons.forEach(reason -> meters.counter("ga.degraded", "reason", reason));
         answerStatuses.forEach(status -> meters.counter("ga.answers", "status", status));
+    }
+
+    /**
+     * The model service's own timing of a call, on the call's span and as {@code ga.model.queue}. A negative value means it did not say.
+     */
+    public void modelTiming(Stage stage, String operation, long queueMs, long computeMs) {
+        if (queueMs >= 0) {
+            stage.set(SpanAttribute.MODEL_QUEUE_MS, queueMs);
+            Timer.builder("ga.model.queue").tag("operation", operation).publishPercentileHistogram().register(meters).record(Duration.ofMillis(queueMs));
+        }
+        if (computeMs >= 0) {
+            stage.set(SpanAttribute.MODEL_COMPUTE_MS, computeMs);
+        }
+    }
+
+    /**
+     * Model work that was not done because there was no capacity or no time: {@code operation} and {@code reason} come from bounded sets.
+     */
+    public void refused(String operation, String reason) {
+        meters.counter("ga.model.refused", "operation", operation, "reason", reason).increment();
     }
 
     public void degraded(String reason) {

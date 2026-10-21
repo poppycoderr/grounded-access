@@ -3,9 +3,10 @@
 import uuid
 from collections.abc import Awaitable, Callable
 
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Header, Request, Response
 from fastapi.responses import JSONResponse
 
+from model_service.admission import Admitted, Lane, Lanes, Refused
 from model_service.embedding import Embedder, FastEmbedEmbedder
 from model_service.reranking import FastEmbedReranker, Reranker
 from model_service.schemas import (
@@ -31,8 +32,16 @@ class ModelServiceError(Exception):
         self.status, self.code, self.message = status, code, message
 
 
+DEADLINE_HEADER = "x-deadline-ms"
+
+
 def create_app(embedder: Embedder, reranker: Reranker, settings: Settings) -> FastAPI:
     app = FastAPI(title="Grounded Access model service", version="1.0.0")
+    lanes = Lanes(
+        query=Lane("query", settings.query_slots, settings.query_queue, settings.query_wait_seconds),
+        passage=Lane("passage", settings.passage_slots, settings.passage_queue, settings.passage_wait_seconds),
+        rerank=Lane("rerank", settings.rerank_slots, settings.rerank_queue, settings.rerank_wait_seconds),
+    )
 
     @app.middleware("http")
     async def request_id(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
@@ -44,6 +53,12 @@ def create_app(embedder: Embedder, reranker: Reranker, settings: Settings) -> Fa
     async def service_error(_: Request, error: ModelServiceError) -> JSONResponse:
         return JSONResponse(status_code=error.status, content=ErrorResponse(code=error.code, message=error.message).model_dump())
 
+    @app.exception_handler(Refused)
+    async def refused(_: Request, refusal: Refused) -> JSONResponse:
+        return JSONResponse(
+            status_code=503, content=ErrorResponse(code=refusal.code, message=refusal.message).model_dump(), headers={"Retry-After": "1"}
+        )
+
     @app.get("/healthz")
     def healthz() -> dict[str, str]:
         return {"status": "ok"}
@@ -52,8 +67,12 @@ def create_app(embedder: Embedder, reranker: Reranker, settings: Settings) -> Fa
     def models() -> ModelsResponse:
         return ModelsResponse(models=[embedder.info, reranker.info])
 
-    @app.post("/v1/embed", responses={422: {"model": ErrorResponse}})
-    def embed(request: EmbedRequest) -> EmbedResponse:
+    @app.post("/v1/embed", responses={422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
+    def embed(
+        request: EmbedRequest,
+        response: Response,
+        x_deadline_ms: int | None = Header(default=None, description="Milliseconds the caller still waits; work not started by then is refused."),
+    ) -> EmbedResponse:
         info = embedder.info
         if request.model is not None and request.model != info.name:
             raise ModelServiceError(422, "MODEL_MISMATCH", f"requested {request.model}, loaded {info.name}")
@@ -68,7 +87,9 @@ def create_app(embedder: Embedder, reranker: Reranker, settings: Settings) -> Fa
         if over:
             listed = ", ".join(f"text {i} has {n}" for i, n in over[:5])
             raise ModelServiceError(422, "TEXT_TOO_LONG", f"{listed} tokens; the model accepts at most {limit} per text, special tokens included")
-        vectors = embedder.embed(request.texts, request.input_type)
+        with (lanes.query if request.input_type == "query" else lanes.passage).admit(x_deadline_ms) as admitted:
+            vectors = embedder.embed(request.texts, request.input_type)
+            _timing(response, admitted)
         return EmbedResponse(model=info.name, revision=info.revision, dimensions=info.dimensions, prefix=prefix or "", vectors=vectors)
 
     @app.post("/v1/tokenize", responses={422: {"model": ErrorResponse}})
@@ -89,8 +110,12 @@ def create_app(embedder: Embedder, reranker: Reranker, settings: Settings) -> Fa
             else [max(0, min(c.fitting_chars(prefix + t, request.budget) for c in counters) - len(prefix)) for t in request.texts],
         )
 
-    @app.post("/v1/rerank", responses={422: {"model": ErrorResponse}})
-    def rerank(request: RerankRequest) -> RerankResponse:
+    @app.post("/v1/rerank", responses={422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
+    def rerank(
+        request: RerankRequest,
+        response: Response,
+        x_deadline_ms: int | None = Header(default=None, description="Milliseconds the caller still waits; work not started by then is refused."),
+    ) -> RerankResponse:
         """Scores each passage against the query. The service does not sort or drop passages: ordering and cut-off belong to the caller,
         which also decides what happens when this call fails."""
         info = reranker.info
@@ -104,7 +129,9 @@ def create_app(embedder: Embedder, reranker: Reranker, settings: Settings) -> Fa
         if len(set(ids)) != len(ids):
             raise ModelServiceError(422, "DUPLICATE_PASSAGE_ID", "passage ids must be unique within a request")
         query, truncated = _fit_query(reranker.tokens, request.query, [p.text for p in request.passages])
-        scores = reranker.score(query, [p.text for p in request.passages])
+        with lanes.rerank.admit(x_deadline_ms) as admitted:
+            scores = reranker.score(query, [p.text for p in request.passages])
+            _timing(response, admitted)
         return RerankResponse(
             model=info.name,
             revision=info.revision,
@@ -113,6 +140,11 @@ def create_app(embedder: Embedder, reranker: Reranker, settings: Settings) -> Fa
         )
 
     return app
+
+
+def _timing(response: Response, admitted: Admitted) -> None:
+    response.headers["X-Queue-Ms"] = f"{admitted.queue_ms:.0f}"
+    response.headers["X-Compute-Ms"] = f"{admitted.compute_ms():.0f}"
 
 
 def _fit_query(tokens: TokenCounter, query: str, passages: list[str]) -> tuple[str, bool]:

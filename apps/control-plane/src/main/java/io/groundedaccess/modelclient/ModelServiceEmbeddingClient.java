@@ -1,6 +1,7 @@
 package io.groundedaccess.modelclient;
 
 import java.net.http.HttpClient;
+import java.time.Duration;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,7 +13,10 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
 import org.springframework.boot.http.client.HttpClientSettings;
 import org.springframework.stereotype.Component;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClient;
 
 /**
@@ -24,16 +28,31 @@ import org.springframework.web.client.RestClient;
 @EnableConfigurationProperties(ModelServiceProperties.class)
 public class ModelServiceEmbeddingClient implements EmbeddingClient {
 
+    static final String DEADLINE_HEADER = "X-Deadline-Ms";
+
     private final RestClient http;
+
+    /** The same service with the shorter timeout of an interactive query embedding. */
+    private final RestClient queries;
 
     private final ModelServiceProperties properties;
 
     public ModelServiceEmbeddingClient(RestClient.Builder builder, ModelServiceProperties properties) {
-        HttpClientSettings settings = HttpClientSettings.defaults().withTimeouts(properties.connectTimeout(), properties.readTimeout());
+        this.http = client(builder.clone(), properties, properties.readTimeout());
+        this.queries = client(builder.clone(), properties, properties.queryTimeout());
+        this.properties = properties;
+    }
+
+    private static RestClient client(RestClient.Builder builder, ModelServiceProperties properties, Duration timeout) {
+        HttpClientSettings settings = HttpClientSettings.defaults().withTimeouts(properties.connectTimeout(), timeout);
         // HTTP/1.1 on purpose: the JDK client otherwise sends an h2c upgrade request, and uvicorn drops the body of upgrade requests
         var requestFactory = ClientHttpRequestFactoryBuilder.jdk().withHttpClientCustomizer(client -> client.version(HttpClient.Version.HTTP_1_1)).build(settings);
-        this.http = builder.baseUrl(properties.baseUrl()).requestFactory(requestFactory).build();
-        this.properties = properties;
+        return builder.baseUrl(properties.baseUrl()).requestFactory(requestFactory).build();
+    }
+
+    @Override
+    public Duration timeout(InputType inputType) {
+        return inputType == InputType.QUERY ? properties.queryTimeout() : properties.readTimeout();
     }
 
     @Override
@@ -43,27 +62,42 @@ public class ModelServiceEmbeddingClient implements EmbeddingClient {
 
     @Override
     public Embeddings embed(List<String> texts, InputType inputType) {
+        return embed(texts, inputType, timeout(inputType));
+    }
+
+    @Override
+    public Embeddings embed(List<String> texts, InputType inputType, Duration remaining) {
         if (texts.isEmpty()) {
             throw new IllegalArgumentException("nothing to embed");
         }
         List<float[]> vectors = new ArrayList<>(texts.size());
         String model = properties.embeddingModel();
         @Nullable Embeddings first = null;
+        long queueMs = 0;
+        long computeMs = 0;
+        long deadline = System.nanoTime() + Math.min(remaining.toNanos(), timeout(inputType).toNanos());
         for (int from = 0; from < texts.size(); from += properties.batchSize()) {
             List<String> batch = texts.subList(from, Math.min(from + properties.batchSize(), texts.size()));
-            EmbedResponse response = Objects.requireNonNull(http.post()
+            ResponseEntity<EmbedResponse> entity = (inputType == InputType.QUERY ? queries : http).post()
                     .uri("/v1/embed")
+                    .header(DEADLINE_HEADER, Long.toString(Math.max(0, (deadline - System.nanoTime()) / 1_000_000)))
                     .body(new EmbedRequest(model, inputType.name().toLowerCase(Locale.ROOT), batch))
                     .retrieve()
-                    .onStatus(status -> status.value() == 422, (request, refused) -> {
+                    .onStatus(status -> status.value() == 422 || status.value() == 503, (request, refused) -> {
                         String body = new String(refused.getBody().readAllBytes(), StandardCharsets.UTF_8);
                         if (body.contains("\"TEXT_TOO_LONG\"")) {
                             throw new TextTooLongException("the model service refused a text as too long: " + message(body));
                         }
-                        throw new HttpClientErrorException(refused.getStatusCode(), body);
+                        refusal(body);
+                        if (refused.getStatusCode().is4xxClientError()) {
+                            throw new HttpClientErrorException(refused.getStatusCode(), body);
+                        }
+                        throw new HttpServerErrorException(refused.getStatusCode(), body);
                     })
-                    .body(EmbedResponse.class));
-            Embeddings checked = check(response, batch.size());
+                    .toEntity(EmbedResponse.class);
+            queueMs += timing(entity.getHeaders(), "X-Queue-Ms");
+            computeMs += timing(entity.getHeaders(), "X-Compute-Ms");
+            Embeddings checked = check(Objects.requireNonNull(entity.getBody()), batch.size());
             if (first == null) {
                 first = checked;
             } else if (!first.revision().equals(checked.revision()) || !first.prefix().equals(checked.prefix())
@@ -73,7 +107,27 @@ public class ModelServiceEmbeddingClient implements EmbeddingClient {
             vectors.addAll(checked.vectors());
         }
         Embeddings checked = Objects.requireNonNull(first);
-        return new Embeddings(checked.model(), checked.revision(), checked.prefix(), checked.dimensions(), vectors);
+        return new Embeddings(checked.model(), checked.revision(), checked.prefix(), checked.dimensions(), vectors, queueMs, computeMs);
+    }
+
+    /**
+     * A 503 that says the work was not started in time; anything else falls through to the caller's handling.
+     */
+    static void refusal(String body) {
+        for (String reason : List.of("BUSY", "DEADLINE_EXCEEDED")) {
+            if (body.contains("\"" + reason + "\"")) {
+                throw new ModelBusyException(reason);
+            }
+        }
+    }
+
+    static long timing(HttpHeaders headers, String name) {
+        String value = headers.getFirst(name);
+        try {
+            return value == null ? 0 : Long.parseLong(value);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     @Override

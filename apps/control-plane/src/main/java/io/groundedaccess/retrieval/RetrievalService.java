@@ -13,6 +13,8 @@ import io.groundedaccess.modelclient.Embeddings;
 import io.groundedaccess.modelclient.InputType;
 import io.groundedaccess.modelclient.InvalidModelResponseException;
 import io.groundedaccess.modelclient.RerankClient;
+import io.groundedaccess.modelclient.ModelBusyException;
+import io.groundedaccess.modelclient.RerankBusyException;
 import io.groundedaccess.modelclient.RerankScores;
 import io.groundedaccess.modelclient.TextTooLongException;
 import io.groundedaccess.telemetry.Failures;
@@ -21,6 +23,7 @@ import io.groundedaccess.telemetry.Spans;
 import io.groundedaccess.telemetry.TraceContext;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -138,6 +141,8 @@ public class RetrievalService {
     }
 
     private RetrievalResult searchTraced(Principal principal, String query, RetrievalStrategy strategy, int k, Scope scope) {
+        // The model calls of this search end before the deadline (ADR-0010); only database time comes on top
+        long deadline = System.nanoTime() + properties.deadline().toNanos();
         AuthorizationPredicate predicate = spans.in("policy.compile", span -> {
             AuthorizationPredicate compiled = policyCompiler.compile(principal);
             span.set(SpanAttribute.POLICY_VERSION, compiled.policyVersion());
@@ -158,10 +163,16 @@ public class RetrievalService {
         boolean denseAvailable = strategy.usesDense();
         if (strategy.usesDense()) {
             try {
+                Duration remaining = Duration.ofNanos(deadline - System.nanoTime());
+                if (remaining.compareTo(embeddings.timeout(InputType.QUERY)) < 0) {
+                    spans.refused("embed_query", "NO_TIME_LEFT");
+                    throw new ModelBusyException("NO_TIME_LEFT");
+                }
                 DenseCandidates found = spans.in("retrieval.dense", span -> {
                     Embeddings embedded = spans.in("model.embed", model -> {
-                        Embeddings vectors = embeddings.embed(List.of(query), InputType.QUERY);
+                        Embeddings vectors = embeddings.embed(List.of(query), InputType.QUERY, remaining);
                         model.set(SpanAttribute.MODEL_NAME, vectors.modelId());
+                        spans.modelTiming(model, "embed_query", vectors.queueMs(), vectors.computeMs());
                         return vectors;
                     });
                     UUID profile = profiles.checkQuery(embedded);
@@ -183,6 +194,9 @@ public class RetrievalService {
                 degraded.add(e instanceof IndexProfileMismatchException ? DENSE_INDEX_MISMATCH : DENSE_INVALID_RESPONSE);
                 denseAvailable = false;
             } catch (RestClientException e) {
+                if (e instanceof ModelBusyException busy && !"NO_TIME_LEFT".equals(busy.reason())) {
+                    spans.refused("embed_query", busy.reason());
+                }
                 if (!strategy.usesSparse() || e instanceof HttpClientErrorException) {
                     throw e;
                 }
@@ -211,7 +225,13 @@ public class RetrievalService {
         Integer rerankCandidates = plan.rerankCandidates();
         if (rerankCandidates != null) {
             List<RetrievedChunk> pool = RankFusion.top(ordered, rerankCandidates, plan.dedupeOverlaps());
-            if (!pool.isEmpty()) {
+            // Reranking starts only if a whole call still fits before the deadline; waiting for a slot uses what is left beyond that
+            Duration wait = Duration.ofNanos(deadline - System.nanoTime()).minus(reranker.timeout());
+            if (!pool.isEmpty() && wait.isNegative()) {
+                log.warn("No time left to rerank before the deadline, answering in the fused order");
+                spans.refused("rerank", "NO_TIME_LEFT");
+                degraded.add(RERANK_UNAVAILABLE);
+            } else if (!pool.isEmpty()) {
                 List<RetrievedChunk> candidates = pool;
                 try {
                     Reranked reranked = spans.in("rerank", span -> {
@@ -219,8 +239,9 @@ public class RetrievalService {
                         RerankScores scores = spans.in("model.rerank", model -> {
                             RerankScores scored = reranker.score(query, candidates.stream()
                                     .map(chunk -> plan.rerankContext() ? DocumentChunker.withContext(chunk.sectionPath(), chunk.content()) : chunk.content())
-                                    .toList());
+                                    .toList(), wait);
                             model.set(SpanAttribute.MODEL_NAME, scored.modelId());
+                            spans.modelTiming(model, "rerank", scored.queueMs(), scored.computeMs());
                             return scored;
                         });
                         return new Reranked(scores.modelId(), scores.queryTruncated(), RankFusion.rerank(candidates, scores.scores()));
@@ -229,6 +250,11 @@ public class RetrievalService {
                     rerankQueryTruncated = reranked.queryTruncated();
                     pool = reranked.rows();
                 } catch (RestClientException e) {
+                    if (e instanceof ModelBusyException busy) {
+                        spans.refused("rerank", busy.reason());
+                    } else if (e instanceof RerankBusyException) {
+                        spans.refused("rerank", "LOCAL_SLOT");
+                    }
                     log.warn("Reranking failed, answering in the fused order: {}", Failures.describe(e));
                     degraded.add(RERANK_UNAVAILABLE);
                 }

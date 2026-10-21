@@ -143,7 +143,7 @@ class ModelServiceRerankClientTest {
 
     private ModelServiceRerankClient client(Duration rerankTimeout) {
         var properties = new ModelServiceProperties(URI.create("http://127.0.0.1:" + server.getAddress().getPort()), "embedder", 2, Duration.ofSeconds(1),
-                Duration.ofSeconds(30), "m", rerankTimeout, 1);
+                Duration.ofSeconds(30), Duration.ofSeconds(2), "m", rerankTimeout, 1);
         return new ModelServiceRerankClient(RestClient.builder(), properties);
     }
 }
