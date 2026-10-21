@@ -21,7 +21,7 @@ Grounded Access v0.1 is a reference system: it shows one way to put authorizatio
 - **Small-scale only.** Vector search is exact and linear in the number of passages the caller may read. There is no approximate index, because filtered recall of an approximate index has to be measured first (ADR-0002).
 - **A passage is indexed with its heading path and nothing else from its document.** This is new after v0.1. On the test split it shows no detectable gain, and the case that motivated it is still missed by every strategy, because the phrase the question uses is in the document's introduction and not in a heading. Adding a document title to every chunk also lifts unrelated passages of a document whose title matches the question ([analysis](../evaluation/heading-context-analysis.md)).
 - **Plain hybrid search does not beat dense search on this dataset.** On paraphrased questions the keyword channel returns confident wrong passages and fusion demotes correct results (cases 1 and 6).
-- **Reranking helps ranking, not recall,** and costs about eleven times the request latency. It still ranks a labelled look-alike above the evidence in 8 of 29 cases.
+- **Reranking helps ranking, not recall,** and costs about ten times the request latency of dense search on the CI runner of the [published run](../../benchmarks/reports/metrics-v2/README.md) (eleven in the run before it; the ratio depends on the machine). It still ranks a labelled look-alike above the evidence in 8 of 29 cases.
 - English only: the full-text configuration, the embedding model and the reranker are English.
 - Only Markdown and plain text are ingested. There is no PDF, HTML or office-document parsing, no tables, no images.
 - With 70 answerable test cases the confidence intervals are wide. No difference in Recall@10 between strategies is detectable.
@@ -39,8 +39,12 @@ Grounded Access v0.1 is a reference system: it shows one way to put authorizatio
 - **Reranking capacity is about one query per second on a CPU.** Beyond that, queries are answered in the fused order and marked `rerank_unavailable`. Its model calls end within the 5 s deadline (each retrieval statement has its own 2 s limit on top), but under 8 concurrent clients it still takes about 2 s at the median and most searches are not reranked ([admission report](../../benchmarks/reports/h-admission/README.md)).
 - **Ingestion and searches share the model service's CPU.** They no longer share a queue, but a passage embedding running next to a query embedding still slows it. Separate processes or machines would be the next step; no measurement here has shown the need yet.
 - The model service bounds its queues per lane, but there is no rate limiting per caller (R7): one caller can fill a lane for everyone.
-- A computation that has started is not interrupted: the model service drops work whose caller's deadline passed before it started, but finishes work its caller gave up on later.
+- **A revocation does not reach requests already running.** Each retrieval statement applies the predicate as of its start; a search can return a row from a statement that ran just before a revocation, and an answer keeps evidence revoked while it was generated. Evidence sent to the chat model cannot be recalled ([ADR-0011](../adr/0011-what-a-request-sees.md)).
+- **Citations are snapshots.** A response carries its evidence text; `key@version` cannot be read back once a newer version exists.
+- **Audit rows are kept indefinitely.** Nothing deletes `audit_event` or `query_execution`; one search adds a row to each. Retention, export and storage alerts are left to the operator, and a database that cannot store them stops requests.
 - **One index profile per database.** Processes with another configuration are refused when they write; a different profile needs a new database.
+- A computation that has started is not interrupted: the model service drops work whose caller's deadline passed before it started, but finishes work its caller gave up on later.
+- The reranker's tokenizer helps decide where long chunks are split (ADR-0009) but is not part of the index profile. Replacing the reranker with one that tokenizes differently can change how new documents are chunked without the profile changing; do it together with a reload.
 - The model service is unauthenticated inside the deployment network (R4).
 - Audit rows are ordinary table rows without tamper evidence (R6).
 - Logs are checked for sensitive text on the failure paths the tests exercise, not on every line a dependency could write (R5).
@@ -51,5 +55,6 @@ Grounded Access v0.1 is a reference system: it shows one way to put authorizatio
 
 - CI scans both images for high and critical vulnerabilities that have a fix, scans the history for secrets, checks dependency licenses and publishes an SBOM per image. Model weights are pinned by Hugging Face commit in this repository and downloaded by that commit at image build time; the files themselves are not checked against a digest kept here, so the pin trusts the hub to serve what a commit names.
 - Base images are referenced by tag, not by digest, so two builds of the same commit can differ.
-- Two vulnerabilities in a base-image binary that is never executed are accepted and listed with the reason in `ops/supply-chain/trivyignore.yaml`.
+- Four vulnerabilities in a base-image binary that is never executed (`/usr/bin/pebble`) are accepted and listed with the reason in `ops/supply-chain/trivyignore.yaml`.
+- The model service runs pillow 13 although fastembed asks for a version below 13, because the fixes are only in 13; pillow is imported but never handles input. The override in `apps/model-service/pyproject.toml` goes when fastembed allows pillow 13.
 - Images are not signed and not published to a registry; they are built locally from source.
