@@ -54,12 +54,25 @@ io.groundedaccess
 
 Dependency rules, enforced by tests:
 
-- `authorization` depends only on `identity` types and has no Spring web dependencies.
+- Each package may use only the packages listed for it, and the packages form no cycle. Tested (`ArchitectureTest.ALLOWED`); a new dependency changes the table in the same pull request.
+
+```text
+identity, telemetry, modelclient   nothing of this application
+authorization                      identity
+audit                              authorization, identity
+corpus                             audit, authorization, identity, modelclient, telemetry
+retrieval, ingestion               audit, authorization, corpus, identity, modelclient, telemetry
+answering                          audit, identity, modelclient, retrieval, telemetry
+api                                everything above
+```
+
+- `authorization` depends only on `identity` types and has no Spring web dependencies. Tested.
 - `authorization` does not depend on web, retrieval or persistence classes. Tested.
 - `retrieval` gets its predicate from `authorization`. Any query against `chunk` must go through `AuthorizedChunkQuery`. A test searches the main source for SQL that reads from or joins the `chunk` table outside that class and outside the writer. It is a regression guard on the code as written, not a proof: it does not see SQL assembled from fragments, schema-qualified names or SQL in resource files.
 - Controllers do not touch the database. Tested.
 - No module other than `modelclient` knows the model-service wire format. Tested.
-- `answering` receives `RetrievedChunk` rows from `RetrievalService`, which only returns rows the predicate admitted. That is a calling convention, not a type guarantee: `RetrievedChunk` is a public record, and nothing prevents other code from constructing one.
+- `answering` receives `RetrievedChunk` rows from `RetrievalService`, which only returns rows the predicate admitted. It uses neither JDBC nor `corpus` nor `ingestion`. Tested.
+- Only `AuthorizedChunkQuery` constructs `RetrievedChunk` and `AuthorizedChunk` rows, from the results of a query that applied the predicate; `RetrievedChunk` also derives re-ranked copies of itself. Tested. It is still not a type guarantee: both are public records, and the test sees only the code in this repository.
 
 ## 4. Data model
 
