@@ -16,7 +16,7 @@
     <img src="https://img.shields.io/badge/Spring%20Boot-4.1-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot 4.1" />
     <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12" />
     <img src="https://img.shields.io/badge/PostgreSQL-17%20%2B%20pgvector-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL 17 + pgvector" />
-    <a href="https://poppycoder.netlify.app/grounded-access/"><img src="https://img.shields.io/badge/docs-codesphere-06B6D4" alt="Docs" /></a>
+    <a href="https://domaindrivenkit.com/grounded-access/"><img src="https://img.shields.io/badge/docs-codesphere-06B6D4" alt="Docs" /></a>
 </p>
 
 <p align="center">
