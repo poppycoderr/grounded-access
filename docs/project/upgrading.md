@@ -10,7 +10,7 @@ documents, labels and audit rows survive the migrations, but searching needs the
 
 | Area | Change | Why it matters for the upgrade |
 |---|---|---|
-| Schema | Migrations V9–V14: keyword index with heading paths, metadata compared by value (fingerprint columns dropped), index profiles, chunk length limits, the database's index anchor, the chunking tokenizers in the profile | Applied automatically at startup. V10 drops columns, so a v0.1.0 control plane cannot use a migrated database |
+| Schema | Migrations V9–V15: keyword index with heading paths, metadata compared by value (fingerprint columns dropped), index profiles, chunk length limits, the database's index anchor, the chunking tokenizers in the profile, the record of audit exports | Applied automatically at startup. V10 drops columns, so a v0.1.0 control plane cannot use a migrated database |
 | Index | Chunker release 4 (ADR-0009), index profile with pinned model revisions (ADR-0007) | Existing versions get a profile with release 3, which the new control plane refuses |
 | Model service | Pinned weights, `/v1/tokenize` with the identity of its tokenizers, token-limit refusals, lanes and `X-Deadline-Ms` (ADR-0010), `prefix` and `query_truncated` in responses | The control plane and the model service must be upgraded together |
 | Text storage | The database stores chunks and a content hash, not the document text | A new index needs the source documents again |

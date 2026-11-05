@@ -1,0 +1,12 @@
+# One audit export, then exit (ADR-0013): no web server, no scheduled work, no index profile check.
+spring:
+  main:
+    web-application-type: none
+ga:
+  corpus:
+    cleanup:
+      enabled: false
+    profile-check-at-startup: false
+  ingestion:
+    worker:
+      enabled: false

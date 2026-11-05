@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Copy every audit event and execution record created before a cut-off off the database (ADR-0013). Writes audit_event.ndjson,
+# query_execution.ndjson and manifest.json into the directory and records the export in the audit_export table. Deletes nothing.
+# The cut-off is an ISO-8601 instant at least one hour in the past. PostgreSQL must be running (docker compose up -d).
+#
+#   ./scripts/export-audit 2026-11-01T00:00:00Z exports/2026-11-01
+set -euo pipefail
+cd "$(dirname "$0")/.."
+if [ $# -ne 2 ]; then
+    echo "usage: $0 <cut-off, ISO-8601 instant> <directory>" >&2
+    exit 64
+fi
+through=$1
+mkdir -p "$2"
+directory=$(cd "$2" && pwd)
+exec docker compose run --rm --no-deps --user "$(id -u):$(id -g)" -v "$directory:/export" control-plane \
+    --spring.profiles.active=audit-export --ga.audit.export.through="$through" --ga.audit.export.directory=/export

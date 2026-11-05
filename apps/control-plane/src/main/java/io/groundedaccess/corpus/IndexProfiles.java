@@ -22,6 +22,7 @@ import jakarta.annotation.PreDestroy;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -63,6 +64,8 @@ public class IndexProfiles implements ApplicationRunner {
 
     private final boolean embeddingContext;
 
+    private final boolean startupCheck;
+
     private volatile @Nullable Established established;
 
     /** Establishes the profile off the request path; at most one attempt runs at a time. */
@@ -70,8 +73,18 @@ public class IndexProfiles implements ApplicationRunner {
 
     private final AtomicBoolean establishing = new AtomicBoolean();
 
+    public IndexProfiles(JdbcClient jdbc, EmbeddingClient embeddings, int chunkMaxWords, int chunkOverlapWords, boolean embeddingContext) {
+        this(jdbc, embeddings, chunkMaxWords, chunkOverlapWords, embeddingContext, true);
+    }
+
+    /**
+     * {@code checkAtStartup} is false only for one-off commands that do not index or search, such as the audit export.
+     */
+    @Autowired
     public IndexProfiles(JdbcClient jdbc, EmbeddingClient embeddings, @Value("${ga.corpus.chunk-max-words:180}") int chunkMaxWords,
-            @Value("${ga.corpus.chunk-overlap-words:30}") int chunkOverlapWords, @Value("${ga.corpus.embedding-context:true}") boolean embeddingContext) {
+            @Value("${ga.corpus.chunk-overlap-words:30}") int chunkOverlapWords, @Value("${ga.corpus.embedding-context:true}") boolean embeddingContext,
+            @Value("${ga.corpus.profile-check-at-startup:true}") boolean checkAtStartup) {
+        this.startupCheck = checkAtStartup;
         this.jdbc = jdbc;
         this.embeddings = embeddings;
         this.chunker = new DocumentChunker(chunkMaxWords, chunkOverlapWords);
@@ -89,7 +102,9 @@ public class IndexProfiles implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        checkAtStartup();
+        if (startupCheck) {
+            checkAtStartup();
+        }
     }
 
     void checkAtStartup() {
