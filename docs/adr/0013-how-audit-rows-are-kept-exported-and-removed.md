@@ -71,8 +71,9 @@ The two tables are not the same kind of record:
 
 ### Storage is watched, not guessed
 
-- **Metrics.** Two gauges, `ga.audit.rows` (an estimate from the table statistics, per table) and `ga.audit.oldest_age`, and a panel on
-  the Grafana dashboard.
+- **Metrics.** Two gauges, `ga.audit.rows` (an estimate from the table statistics, per table) and `ga.audit.oldest_age`, and panels on
+  the Grafana dashboard. They are refreshed on a schedule, so exporting metrics runs no SQL. Finding the oldest row, like cleanup and
+  export, reads the tables by time across tenants, so each table has an index on its timestamp (migration V16).
 - **Alerting is the operator's.** The failure stays as it is: auditing fails closed, so a full disk refuses requests.
 
 ### What this does not change
@@ -93,9 +94,9 @@ This ADR is the contract. The implementation is split into three v0.2 items, in 
    - nothing is deleted without an export;
    - only rows past both conditions are deleted;
    - a batch is bounded and does not block a search.
-3. The two gauges and the dashboard panel.
+3. The two gauges and the dashboard panels, with the time indexes they and cleanup need (**delivered**).
 
-Without a configured retention nothing deletes rows; item 3 is still open.
+All three items are delivered. Without a configured retention nothing deletes rows.
 
 ## Consequences
 

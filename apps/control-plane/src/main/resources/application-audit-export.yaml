@@ -4,6 +4,8 @@ spring:
     web-application-type: none
 ga:
   audit:
+    gauges:
+      enabled: false
     retention:
       cleanup:
         enabled: false

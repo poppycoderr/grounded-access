@@ -28,6 +28,10 @@ ga:
     # Each audit write is cancelled after this and the request is refused (audit fails closed); whole seconds
     sql-timeout: ${GA_AUDIT_SQL_TIMEOUT:2s}
     # How long audit events and execution records are kept, as ISO-8601 durations (for example P400D); unset keeps them (ADR-0013)
+    # How often ga.audit.rows and ga.audit.oldest_age are refreshed
+    gauges:
+      enabled: true
+      interval: 1m
     retention:
       events: ${GA_AUDIT_RETENTION:}
       executions: ${GA_EXECUTION_RETENTION:}

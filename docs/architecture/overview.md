@@ -337,13 +337,15 @@ Never recorded: query text, chunk text, prompts, model output, embeddings, docum
 
 By default nothing is sent anywhere: spans are created and discarded, and metrics stay in the process. `GA_TRACE_SAMPLING` sets the sampled share of requests and defaults to `1.0`.
 
-**Metrics.** Three metrics describe the pipeline, and their tags take values from fixed sets only:
+**Metrics.** These metrics describe the pipeline and the audit storage, and their tags take values from fixed sets only:
 
 | Metric | Tags | Meaning |
 |---|---|---|
 | `ga.stage` (timer) | `stage`, `outcome` (`ok`, `error`) | duration of each stage, one per span of the tree above |
 | `ga.degraded` (counter) | `reason` | results returned without part of their plan |
 | `ga.answers` (counter) | `status` | answers by `answered`, `no_answer`, `evidence_only` |
+| `ga.audit.rows` (gauge) | `table` | estimated rows of `audit_event` and `query_execution`, from the table statistics, refreshed every minute |
+| `ga.audit.oldest_age` (gauge, seconds) | `table` | age of each audit table's oldest row; 0 when it is empty |
 
 Request rate, latency and status come from the standard `http.server.requests` timer, tagged with the route template.
 
