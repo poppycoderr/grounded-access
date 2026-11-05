@@ -36,7 +36,7 @@ class ModelServiceEmbeddingClientTest {
     private final List<String> deadlines = new CopyOnWriteArrayList<>();
 
     /** The tokenize response, given the texts of the request. */
-    private volatile java.util.function.Function<List<String>, String> tokenized = texts -> "{\"max_tokens\":512,\"fitting_chars\":"
+    private volatile java.util.function.Function<List<String>, String> tokenized = texts -> "{\"tokenizer\":\"sha256:t\",\"max_tokens\":512,\"fitting_chars\":"
             + texts.stream().map(t -> Integer.toString(t.length())).toList() + "}";
 
     private final List<String> tokenizeRequests = new CopyOnWriteArrayList<>();
@@ -152,19 +152,34 @@ class ModelServiceEmbeddingClientTest {
 
     @Test
     void asksHowMuchOfEachTextFitsTheBudgetInBatches() {
-        tokenized = texts -> "{\"max_tokens\":512,\"fitting_chars\":" + texts.stream().map(t -> Integer.toString(t.length() - 1)).toList() + "}";
+        tokenized = texts -> "{\"tokenizer\":\"sha256:t\",\"max_tokens\":512,\"fitting_chars\":" + texts.stream().map(t -> Integer.toString(t.length() - 1)).toList() + "}";
 
-        assertThat(client().fittingChars(List.of("aa", "bbb", "cccc"), 384)).containsExactly(1, 2, 3);
+        TokenFit fit = client().fittingChars(List.of("aa", "bbb", "cccc"), 384);
+
+        assertThat(fit.fittingChars()).containsExactly(1, 2, 3);
+        assertThat(fit.tokenizer()).isEqualTo("sha256:t");
         assertThat(tokenizeRequests).containsExactly("{\"texts\":[\"aa\",\"bbb\"],\"budget\":384}", "{\"texts\":[\"cccc\"],\"budget\":384}");
     }
 
     @Test
-    void refusesFittingLengthsThatDoNotMatchTheTexts() {
+    void refusesFittingLengthsWithoutTokenizersOrFromTwoTokenizersInOneCall() {
         tokenized = texts -> "{\"max_tokens\":512,\"fitting_chars\":[1]}";
+        assertThatThrownBy(() -> client().fittingChars(List.of("aa"), 384)).isInstanceOf(InvalidModelResponseException.class)
+                .hasMessageContaining("did not report its tokenizers");
+
+        var batches = new java.util.concurrent.atomic.AtomicInteger();
+        tokenized = texts -> "{\"tokenizer\":\"sha256:t%d\",\"max_tokens\":512,\"fitting_chars\":[1,1]}".formatted(batches.getAndIncrement());
+        assertThatThrownBy(() -> client().fittingChars(List.of("aa", "bb", "cc"), 384)).isInstanceOf(InvalidModelResponseException.class)
+                .hasMessageContaining("changed its tokenizers from sha256:t0 to sha256:t1");
+    }
+
+    @Test
+    void refusesFittingLengthsThatDoNotMatchTheTexts() {
+        tokenized = texts -> "{\"tokenizer\":\"sha256:t\",\"max_tokens\":512,\"fitting_chars\":[1]}";
         assertThatThrownBy(() -> client().fittingChars(List.of("aa", "bb"), 384)).isInstanceOf(InvalidModelResponseException.class)
                 .hasMessageContaining("expected 2 fitting lengths, got 1");
 
-        tokenized = texts -> "{\"max_tokens\":512,\"fitting_chars\":[3]}";
+        tokenized = texts -> "{\"tokenizer\":\"sha256:t\",\"max_tokens\":512,\"fitting_chars\":[3]}";
         assertThatThrownBy(() -> client().fittingChars(List.of("aa"), 384)).isInstanceOf(InvalidModelResponseException.class)
                 .hasMessageContaining("outside its text");
     }

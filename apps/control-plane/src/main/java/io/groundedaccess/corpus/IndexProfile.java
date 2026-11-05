@@ -27,14 +27,17 @@ public record IndexProfile(
 
         int chunkMaxChars,
 
-        int headingMaxChars) {
+        int headingMaxChars,
+
+        String chunkTokenizer) {
 
     /**
      * For error messages and logs. The prefixes are instructions written by the model authors, not user text.
      */
     public String describe() {
         return ("%s@%s, %d dimensions, query prefix \"%s\", passage prefix \"%s\", embedding context %s, chunker release %s, %d/%d words, "
-                + "%d tokens, %d characters, heading %d characters").formatted(embeddingModel, embeddingRevision, dimensions, queryPrefix, passagePrefix,
-                        embeddingContext ? "on" : "off", chunkerRelease, chunkMaxWords, chunkOverlapWords, chunkMaxTokens, chunkMaxChars, headingMaxChars);
+                + "%d tokens, %d characters, heading %d characters, tokenizers %s").formatted(embeddingModel, embeddingRevision, dimensions, queryPrefix,
+                        passagePrefix, embeddingContext ? "on" : "off", chunkerRelease, chunkMaxWords, chunkOverlapWords, chunkMaxTokens, chunkMaxChars,
+                        headingMaxChars, chunkTokenizer);
     }
 }

@@ -58,6 +58,10 @@ class TokenizeRequest(BaseModel):
 
 
 class TokenizeResponse(BaseModel):
+    tokenizer: str = Field(
+        description="Identity of the tokenizers applied, embedding model first: sha256 over their file digests (ADR-0012). Equal identities cut "
+        "chunks alike; the control plane records it in the index profile."
+    )
     max_tokens: int = Field(description="The smaller of the two models' input limits, special tokens included.")
     counts: list[int] = Field(description="Tokens per text as a passage, the larger count of the two tokenizers.")
     fitting_chars: list[int] | None = Field(

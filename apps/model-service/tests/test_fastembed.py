@@ -87,6 +87,13 @@ def test_both_models_accept_512_tokens_and_a_fitting_prefix_fits(embedder, reran
         assert long_text.startswith(prefix)
 
 
+def test_the_two_real_tokenizers_have_different_digests(embedder, reranker):
+    digests = [embedder.tokens.digest, reranker.tokens.digest]
+
+    assert all(len(d) == 64 for d in digests)
+    assert digests[0] != digests[1]
+
+
 def test_the_real_service_refuses_an_input_it_would_have_cut(embedder, reranker):
     from fastapi.testclient import TestClient
 

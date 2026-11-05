@@ -137,6 +137,7 @@ class SlowCount:
         self._tokens = tokens
         self._seconds = seconds
         self.max_tokens = tokens.max_tokens
+        self.digest = tokens.digest
 
     def count(self, text: str, pair: str | None = None) -> int:
         time.sleep(self._seconds)

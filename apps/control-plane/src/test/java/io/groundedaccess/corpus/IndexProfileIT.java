@@ -22,6 +22,7 @@ import io.groundedaccess.ingestion.IngestionWorker;
 import io.groundedaccess.modelclient.EmbeddingClient;
 import io.groundedaccess.modelclient.Embeddings;
 import io.groundedaccess.modelclient.InputType;
+import io.groundedaccess.modelclient.TokenFit;
 
 import java.util.List;
 import java.util.Set;
@@ -67,6 +68,8 @@ class IndexProfileIT {
 
     private static final AtomicBoolean DOWN = new AtomicBoolean();
 
+    private static final AtomicReference<String> REPORTED_TOKENIZER = new AtomicReference<>(HashingEmbeddingClient.TOKENIZER);
+
     @TestConfiguration
     static class Models {
 
@@ -83,6 +86,14 @@ class IndexProfileIT {
                     Embeddings hashed = super.embed(texts, inputType);
                     return new Embeddings(hashed.model(), REVISION.get(), inputType == InputType.QUERY ? QUERY_PREFIX.get() : "", DIMENSIONS.get(),
                             hashed.vectors());
+                }
+
+                @Override
+                public TokenFit fittingChars(List<String> texts, int budget) {
+                    if (DOWN.get()) {
+                        throw new ResourceAccessException("model service unavailable");
+                    }
+                    return new TokenFit(REPORTED_TOKENIZER.get(), super.fittingChars(texts, budget).fittingChars());
                 }
             };
         }
@@ -114,6 +125,7 @@ class IndexProfileIT {
         QUERY_PREFIX.set("");
         DIMENSIONS.set(384);
         DOWN.set(false);
+        REPORTED_TOKENIZER.set(HashingEmbeddingClient.TOKENIZER);
     }
 
     @Test
@@ -185,6 +197,74 @@ class IndexProfileIT {
                 .andExpect(jsonPath("$.attempts").value(1));
         assertThat(jdbc.sql("select count(*) from document_version").query(Integer.class).single()).isOne();
         assertThat(jdbc.sql("select content from chunk").query(String.class).list()).containsExactly("Employees receive two paid volunteer days.");
+    }
+
+    /**
+     * A reranker whose tokenizer counts differently would cut new documents differently under the same profile (review 2026-10-21, N5).
+     * Writing is refused; searching is not affected, because it cuts nothing (ADR-0012).
+     */
+    @Test
+    void chunksCutByOtherTokenizersAreRefusedBeforeWritingWhileSearchesContinue() throws Exception {
+        ingestion.ingest("northstar", List.of(document("handbook", "Employees receive two paid volunteer days.")));
+        REPORTED_TOKENIZER.set("sha256:another-reranker");
+
+        assertThatThrownBy(() -> ingestion.ingest("northstar", List.of(document("handbook", "Employees receive three paid volunteer days."))))
+                .isInstanceOf(IndexProfileMismatchException.class)
+                .hasMessageContaining("tokenizers sha256:another-reranker")
+                .hasMessageContaining("tokenizers words");
+        String location = mvc.perform(post("/api/v1/ingestion-jobs").header("Authorization", "Bearer " + ADMIN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"documents":[{"key":"guide","title":"Guide","content":"Travel is booked through the portal.","format":"text"}]}
+                        """)).andExpect(status().isAccepted()).andReturn().getResponse().getHeader("Location");
+        worker.drain();
+
+        mvc.perform(get(String.valueOf(location)).header("Authorization", "Bearer " + ADMIN))
+                .andExpect(jsonPath("$.status").value("failed"))
+                .andExpect(jsonPath("$.errorCode").value("INDEX_PROFILE_MISMATCH"))
+                .andExpect(jsonPath("$.attempts").value(1));
+        assertThat(jdbc.sql("select content from chunk").query(String.class).list()).containsExactly("Employees receive two paid volunteer days.");
+        search("volunteer days", "hybrid-rrf").andExpect(jsonPath("$.degraded", empty()))
+                .andExpect(jsonPath("$.results[*].documentKey", contains("handbook")));
+    }
+
+    @Test
+    void refusesToStartWhenTheModelServiceCutsChunksWithOtherTokenizers() {
+        ingestion.ingest("northstar", List.of(document("handbook", "Employees receive two paid volunteer days.")));
+        REPORTED_TOKENIZER.set("sha256:another-reranker");
+
+        assertThatThrownBy(() -> fresh(180, 30, true).checkAtStartup()).isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("tokenizers words")
+                .hasMessageContaining("tokenizers sha256:another-reranker");
+    }
+
+    @Test
+    void refusesToStartOnProfilesWhoseTokenizersWereNeverRecorded() {
+        ingestion.ingest("northstar", List.of(document("handbook", "Employees receive two paid volunteer days.")));
+        UUID unrecorded = profileRow("hashing", "test", "", "unrecorded");
+        jdbc.sql("update document_version set index_profile_id = :unrecorded").param("unrecorded", unrecorded).update();
+        jdbc.sql("update index_anchor set index_profile_id = :unrecorded").param("unrecorded", unrecorded).update();
+
+        assertThatThrownBy(() -> fresh(180, 30, true).checkAtStartup()).hasMessageContaining("tokenizers unrecorded");
+    }
+
+    @Test
+    void aProcessWithOtherTokenizersIsRefusedByTheDatabaseEvenIfItStartedWhileItWasEmpty() {
+        IndexProfiles first = fresh(180, 30, true);
+        first.establish();
+        REPORTED_TOKENIZER.set("sha256:another-reranker");
+        IndexProfiles second = fresh(180, 30, true);
+        second.establish();
+
+        REPORTED_TOKENIZER.set(HashingEmbeddingClient.TOKENIZER);
+        new IngestionService(writer, embeddings, transactions, first).ingest("northstar", List.of(document("first", "Employees receive two paid volunteer days.")));
+        REPORTED_TOKENIZER.set("sha256:another-reranker");
+
+        assertThatThrownBy(() -> new IngestionService(writer, embeddings, transactions, second)
+                .ingest("northstar", List.of(document("second", "Travel is booked through the portal.")))).isInstanceOf(IndexProfileMismatchException.class)
+                .hasMessageContaining("tokenizers words")
+                .hasMessageContaining("tokenizers sha256:another-reranker");
+        assertThat(jdbc.sql("select count(*) from document where external_key = 'second'").query(Integer.class).single()).isZero();
     }
 
     @Test
@@ -332,14 +412,23 @@ class IndexProfileIT {
     }
 
     private UUID profileRow(String model, String revision, String queryPrefix) {
+        return profileRow(model, revision, queryPrefix, HashingEmbeddingClient.TOKENIZER);
+    }
+
+    private UUID profileRow(String model, String revision, String queryPrefix, String tokenizer) {
         UUID id = UUID.randomUUID();
         jdbc.sql("""
                 insert into index_profile (id, embedding_model, embedding_revision, dimensions, query_prefix, passage_prefix, embedding_context,
-                    chunker_release, chunk_max_words, chunk_overlap_words, chunk_max_tokens, chunk_max_chars, heading_max_chars)
-                values (:id, :model, :revision, 384, :prefix, '', true, '4', 180, 30, 384, 2000, 200)
+                    chunker_release, chunk_max_words, chunk_overlap_words, chunk_max_tokens, chunk_max_chars, heading_max_chars, chunk_tokenizer)
+                values (:id, :model, :revision, 384, :prefix, '', true, '4', 180, 30, 384, 2000, 200, :tokenizer)
                 on conflict do nothing
-                """).param("id", id).param("model", model).param("revision", revision).param("prefix", queryPrefix).update();
-        return jdbc.sql("select id from index_profile where embedding_model = :model and embedding_revision = :revision and query_prefix = :prefix")
+                """).param("id", id).param("model", model).param("revision", revision).param("prefix", queryPrefix).param("tokenizer", tokenizer).update();
+        return jdbc.sql("""
+                select id from index_profile
+                where embedding_model = :model and embedding_revision = :revision and query_prefix = :prefix and chunk_tokenizer = :tokenizer
+                    and chunker_release = '4' and embedding_context
+                """)
+                .param("tokenizer", tokenizer)
                 .param("model", model)
                 .param("revision", revision)
                 .param("prefix", queryPrefix)

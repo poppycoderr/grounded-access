@@ -23,7 +23,7 @@ from model_service.schemas import (
     TokenizeResponse,
 )
 from model_service.settings import Settings
-from model_service.tokens import TokenCounter
+from model_service.tokens import TokenCounter, identity
 
 REQUEST_ID_HEADER = "x-request-id"
 
@@ -113,11 +113,13 @@ def create_app(embedder: Embedder, reranker: Reranker, settings: Settings) -> Fa
         if any(len(t) > settings.max_chars_per_text for t in request.texts):
             raise ModelServiceError(422, "TEXT_TOO_LONG", f"each text must be at most {settings.max_chars_per_text} characters")
         counters = (embedder.tokens, reranker.tokens)
+        tokenizer = identity(counters)
         prefix = embedder.info.passage_prefix or ""
 
         def work(admitted: Admitted) -> TokenizeResponse:
             admitted.check()
             return TokenizeResponse(
+                tokenizer=tokenizer,
                 max_tokens=min(c.max_tokens for c in counters),
                 counts=[max(c.count(prefix + t) for c in counters) for t in request.texts],
                 fitting_chars=None

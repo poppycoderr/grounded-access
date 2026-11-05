@@ -10,9 +10,9 @@ documents, labels and audit rows survive the migrations, but searching needs the
 
 | Area | Change | Why it matters for the upgrade |
 |---|---|---|
-| Schema | Migrations V9–V13: keyword index with heading paths, metadata compared by value (fingerprint columns dropped), index profiles, chunk length limits, the database's index anchor | Applied automatically at startup. V10 drops columns, so a v0.1.0 control plane cannot use a migrated database |
+| Schema | Migrations V9–V14: keyword index with heading paths, metadata compared by value (fingerprint columns dropped), index profiles, chunk length limits, the database's index anchor, the chunking tokenizers in the profile | Applied automatically at startup. V10 drops columns, so a v0.1.0 control plane cannot use a migrated database |
 | Index | Chunker release 4 (ADR-0009), index profile with pinned model revisions (ADR-0007) | Existing versions get a profile with release 3, which the new control plane refuses |
-| Model service | Pinned weights, `/v1/tokenize`, token-limit refusals, lanes and `X-Deadline-Ms` (ADR-0010), `prefix` and `query_truncated` in responses | The control plane and the model service must be upgraded together |
+| Model service | Pinned weights, `/v1/tokenize` with the identity of its tokenizers, token-limit refusals, lanes and `X-Deadline-Ms` (ADR-0010), `prefix` and `query_truncated` in responses | The control plane and the model service must be upgraded together |
 | Text storage | The database stores chunks and a content hash, not the document text | A new index needs the source documents again |
 
 New settings, all optional:
@@ -46,6 +46,10 @@ Runs made with this release write manifest version 2: its corpus digest covers t
 
 Run the v0.1.0 images against the v0.1.0 database you kept, or restore it from the backup. There is no downgrade of a migrated database.
 
+### A database written from `main` after v0.1.0
+
+A database that a build of `main` wrote before migration V14 has profiles whose tokenizers were not recorded (`unrecorded`, ADR-0012). The control plane refuses to start against it once it reaches the model service. Load the corpus into a new database, as in the steps above.
+
 ### The demo stack
 
 The demo corpus is fictional and reloads in under a minute, so `docker compose down -v` followed by `docker compose up -d --build --wait`
@@ -53,6 +57,6 @@ and `./scripts/load-demo` is the shortest upgrade. It deletes the local database
 
 ## Changing the index profile later
 
-The same rules apply to any later change of the embedding model or revision, `GA_EMBEDDING_CONTEXT`, the chunk size, or the chunker release:
+The same rules apply to any later change of the embedding model or revision, the reranker's tokenizer files, `GA_EMBEDDING_CONTEXT`, the chunk size, or the chunker release:
 load the corpus into a new database. The database stays anchored to the profile of its first written version, and emptying it does not
 release it (ADR-0011). Rebuilding next to the live index is open question Q15.

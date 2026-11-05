@@ -83,6 +83,9 @@ class IndexProfileMigrationIT {
         assertThat(jdbc.sql("select distinct chunk_max_tokens + chunk_max_chars + heading_max_chars from index_profile").query(Integer.class).list())
                 .as("profiles of releases before 4 had no length limits")
                 .containsExactly(0);
+        assertThat(jdbc.sql("select distinct chunk_tokenizer from index_profile").query(String.class).list())
+                .as("no existing profile recorded the tokenizers that cut its chunks (V14, ADR-0012)")
+                .containsExactly("unrecorded");
         assertThat(jdbc.sql("select count(*) from document_version where embedding_model like 'BAAI/%'").query(Integer.class).single()).isEqualTo(3);
     }
 

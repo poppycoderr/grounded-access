@@ -1,7 +1,10 @@
 import json
 from pathlib import Path
 
+from conftest import WordTokens
+
 from model_service.contract import openapi_document
+from model_service.tokens import identity
 
 CONTRACT = Path(__file__).resolve().parents[3] / "packages" / "contracts" / "model-service.openapi.json"
 
@@ -118,12 +121,22 @@ def test_embed_refuses_a_text_over_the_token_limit_instead_of_cutting_it(client,
     assert embedder.calls == [(["a b c d e f"], "passage")]
 
 
-def test_tokenize_counts_under_the_stricter_tokenizer_without_returning_text(client):
+def test_tokenize_counts_under_the_stricter_tokenizer_without_returning_text(client, embedder, reranker):
     response = client.post("/v1/tokenize", json={"texts": ["one two three", "a b c d e f g h i j"], "budget": 5})
 
     assert response.status_code == 200
-    assert response.json() == {"max_tokens": 8, "counts": [5, 12], "fitting_chars": [13, 5]}
+    tokenizer = identity([embedder.tokens, reranker.tokens])
+    assert response.json() == {"tokenizer": tokenizer, "max_tokens": 8, "counts": [5, 12], "fitting_chars": [13, 5]}
     assert client.post("/v1/tokenize", json={"texts": ["x"]}).json()["fitting_chars"] is None
+
+
+def test_tokenize_names_the_tokenizers_it_applied_and_a_new_one_changes_the_name(client, embedder, reranker):
+    before = client.post("/v1/tokenize", json={"texts": ["x"]}).json()["tokenizer"]
+    reranker.tokens = WordTokens(reranker.tokens.max_tokens, digest="other")
+    after = client.post("/v1/tokenize", json={"texts": ["x"]}).json()["tokenizer"]
+
+    assert before.startswith("sha256:") and after.startswith("sha256:")
+    assert before != after
 
 
 def test_rerank_cuts_a_query_that_does_not_fit_with_the_longest_passage_and_says_so(client, reranker):

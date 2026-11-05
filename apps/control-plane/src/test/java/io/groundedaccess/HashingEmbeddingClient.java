@@ -3,6 +3,7 @@ package io.groundedaccess;
 import io.groundedaccess.modelclient.EmbeddingClient;
 import io.groundedaccess.modelclient.Embeddings;
 import io.groundedaccess.modelclient.InputType;
+import io.groundedaccess.modelclient.TokenFit;
 
 import java.util.List;
 import java.util.Locale;
@@ -13,6 +14,9 @@ import java.util.regex.Pattern;
  * Deterministic stand-in for the model service: hashes lowercase words into 384 buckets and normalizes, so texts sharing words are close.
  */
 public class HashingEmbeddingClient implements EmbeddingClient {
+
+    /** The tokenizer identity this stand-in reports (ADR-0012). */
+    public static final String TOKENIZER = "words";
 
     @Override
     public String modelName() {
@@ -28,8 +32,8 @@ public class HashingEmbeddingClient implements EmbeddingClient {
      * One token per whitespace-separated word, plus two special tokens, the way a word-piece tokenizer counts plain English at best.
      */
     @Override
-    public List<Integer> fittingChars(List<String> texts, int budget) {
-        return texts.stream().map(text -> {
+    public TokenFit fittingChars(List<String> texts, int budget) {
+        return new TokenFit(TOKENIZER, texts.stream().map(text -> {
             Matcher words = WORD.matcher(text);
             int count = 2;
             int end = 0;
@@ -40,7 +44,7 @@ public class HashingEmbeddingClient implements EmbeddingClient {
                 end = words.end();
             }
             return text.codePointCount(0, text.length());
-        }).toList();
+        }).toList());
     }
 
     private static final Pattern WORD = Pattern.compile("\\S+");

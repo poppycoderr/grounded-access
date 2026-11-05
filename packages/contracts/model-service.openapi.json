@@ -354,9 +354,15 @@
             "description": "The smaller of the two models' input limits, special tokens included.",
             "title": "Max Tokens",
             "type": "integer"
+          },
+          "tokenizer": {
+            "description": "Identity of the tokenizers applied, embedding model first: sha256 over their file digests (ADR-0012). Equal identities cut chunks alike; the control plane records it in the index profile.",
+            "title": "Tokenizer",
+            "type": "string"
           }
         },
         "required": [
+          "tokenizer",
           "max_tokens",
           "counts"
         ],

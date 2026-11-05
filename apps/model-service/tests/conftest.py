@@ -23,8 +23,9 @@ SETTINGS = Settings(
 class WordTokens:
     """One token per whitespace-separated word, plus [CLS] and [SEP] (and one more [SEP] for a pair)."""
 
-    def __init__(self, max_tokens: int) -> None:
+    def __init__(self, max_tokens: int, digest: str = "words") -> None:
         self.max_tokens = max_tokens
+        self.digest = digest
 
     def count(self, text: str, pair: str | None = None) -> int:
         return len(text.split()) + 2 + (len(pair.split()) + 1 if pair is not None else 0)
