@@ -230,7 +230,7 @@ io.groundedaccess
 | **M3** 重排与回答 | 带降级的 cross-encoder 重排及公开结果；带引用校验与拒答的回答、提示注入测试文档、回答指标及已发布的本地运行 | ✅ 已完成 · `v0.1.0-alpha.3` |
 | **M4** 运维与发布 | 带属性白名单的 trace、JSON 日志、dashboard；故障与压力测试；供应链扫描与 SBOM；v0.1 benchmark 报告与已知限制 | ✅ 已完成 · `v0.1.0` |
 
-第一阶段明确不做：知识图谱与 GraphRAG、自主 Agent、更多向量数据库、OCR 与多模态、模型微调、Kubernetes 与多云、低代码编排。详见 [docs/project/milestones.md](./docs/project/milestones.md)。
+第一阶段明确不做：知识图谱与 GraphRAG、自主 Agent、更多向量数据库、OCR 与多模态、模型微调、Kubernetes 与多云、低代码编排。详见 [docs/project/milestones.md](./docs/project/milestones.md)。下一步见 [v0.2 计划](./docs/project/v0.2-plan.md)：先扩充评测数据和负载测量，再做检索优化。
 
 ## 文档
 
@@ -243,7 +243,7 @@ io.groundedaccess
 - [架构决策记录](./docs/adr/)——模块化单体、PostgreSQL FTS + pgvector、检索时授权、Python 模型服务、`asOf` 的含义、文档版本的定义
 - [v0.1 benchmark 报告](./benchmarks/reports/v0.1.md)——所有测量结果汇总，以及十个逐条分析的失败案例
 - [已知限制](./docs/project/known-limitations.md)——v0.1 不做的、做得不好的，以及测出来有问题的地方
-- [里程碑](./docs/project/milestones.md)、[发布清单](./docs/project/release-checklist.md)与[待决问题](./docs/project/open-questions.md)
+- [里程碑](./docs/project/milestones.md)、[v0.2 计划](./docs/project/v0.2-plan.md)、[发布清单](./docs/project/release-checklist.md)与[待决问题](./docs/project/open-questions.md)
 
 ## 参与贡献
 

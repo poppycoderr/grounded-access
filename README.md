@@ -230,7 +230,7 @@ io.groundedaccess
 | **M3** Reranking and answers | Cross-encoder reranking with fallback and a published result; cited answers with validation and refusal, prompt-injection test documents, answer metrics and a published local run | ✅ Done · `v0.1.0-alpha.3` |
 | **M4** Operations and release | Traces with an attribute allow-list, JSON logs, a dashboard; failure and load tests; supply-chain scans and SBOMs; the v0.1 benchmark report and known limitations | ✅ Done · `v0.1.0` |
 
-Not in the first phase: knowledge graphs or GraphRAG, autonomous agents, extra vector databases, OCR and multimodal input, fine-tuning, Kubernetes and multi-cloud, a no-code builder. See [docs/project/milestones.md](./docs/project/milestones.md).
+Not in the first phase: knowledge graphs or GraphRAG, autonomous agents, extra vector databases, OCR and multimodal input, fine-tuning, Kubernetes and multi-cloud, a no-code builder. See [docs/project/milestones.md](./docs/project/milestones.md). Next: the [v0.2 plan](./docs/project/v0.2-plan.md) grows the evaluation data and load measurements before any retrieval optimization.
 
 ## Documentation
 
@@ -243,7 +243,7 @@ Not in the first phase: knowledge graphs or GraphRAG, autonomous agents, extra v
 - [Architecture decisions](./docs/adr/) — modular monolith, PostgreSQL FTS + pgvector, retrieval-time authorization, the Python model service, what `asOf` means, what a document version is
 - [v0.1 benchmark report](./benchmarks/reports/v0.1.md) — every measurement in one place, with ten failure cases read one by one
 - [Known limitations](./docs/project/known-limitations.md) — what v0.1 does not do, does badly, or was measured to get wrong
-- [Milestones](./docs/project/milestones.md), [release checklist](./docs/project/release-checklist.md) and [open questions](./docs/project/open-questions.md)
+- [Milestones](./docs/project/milestones.md), the [v0.2 plan](./docs/project/v0.2-plan.md), [release checklist](./docs/project/release-checklist.md) and [open questions](./docs/project/open-questions.md)
 
 ## Contributing
 

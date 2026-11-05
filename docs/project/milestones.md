@@ -1,5 +1,7 @@
 # Milestones (v0.1)
 
+v0.1 is complete. What comes next, and in which order, is in the [v0.2 plan](./v0.2-plan.md).
+
 **Time budget assumption:** one maintainer working 10–15 hours a week. One "day" below means about 6 focused hours. Calendar estimates assume about 2 days of work per week. Revisit the plan after M0, once there is a measured pace.
 
 **Rules for every milestone:**
