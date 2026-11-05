@@ -13,22 +13,34 @@ from pathlib import Path
 
 from ga_eval.client import ApiClient
 
-MANIFEST_VERSION = "1"
+MANIFEST_VERSION = "2"
 
 # A change in any of these between the first and the last request means the run measured two systems.
 DRIFT_FIELDS = {
     "server commit": ("server", "build", "commit"),
     "index profile": ("server", "indexProfile"),
     "reranker": ("server", "reranker"),
+    "retrieval settings": ("server", "retrieval"),
     "corpus": ("corpus", "digest"),
 }
 
 
 def corpus_digest(listings: dict[str, tuple[str, list[dict]]]) -> str:
-    """SHA-256 over every chunk each principal can list: who lists it, document, version, chunker version and offsets. A reload, a new
-    version, a label change or a re-chunking all change it."""
+    """SHA-256 over every chunk each principal can list: who lists it, document, version, chunker version, offsets, and the title, heading
+    path and text that are ranked. A reload, a new version, a label change, a re-chunking or different text at the same offsets all change
+    it (manifest version 2; version 1 left the text out)."""
     rows = sorted(
-        (principal, c["documentKey"], c["versionNo"], c["chunkerVersion"], c["charStart"], c["charEnd"])
+        (
+            principal,
+            c["documentKey"],
+            c["versionNo"],
+            c["chunkerVersion"],
+            c["charStart"],
+            c["charEnd"],
+            c.get("title") or "",
+            c.get("sectionPath") or "",
+            hashlib.sha256(c["text"].encode()).hexdigest(),
+        )
         for principal, (_, chunks) in listings.items()
         for c in chunks
     )

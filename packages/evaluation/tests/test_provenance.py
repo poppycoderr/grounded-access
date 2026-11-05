@@ -115,10 +115,27 @@ def _corpus(system, chunks):
         chunks[0]["versionNo"] += 1
 
 
+def _text(system, chunks):
+    if chunks is not None:
+        chunks[0]["text"] = "x"
+
+
+def _retrieval(system, chunks):
+    if system:
+        system["retrieval"]["candidates"] = 99
+
+
 @pytest.mark.parametrize(
     ("change", "named"),
-    [(_commit, "server commit"), (_revision, "index profile"), (_reranker, "reranker"), (_corpus, "corpus")],
-    ids=["server commit", "index profile", "reranker", "corpus"],
+    [
+        (_commit, "server commit"),
+        (_revision, "index profile"),
+        (_reranker, "reranker"),
+        (_retrieval, "retrieval settings"),
+        (_corpus, "corpus"),
+        (_text, "corpus"),
+    ],
+    ids=["server commit", "index profile", "reranker", "retrieval settings", "corpus version", "corpus text"],
 )
 def test_a_system_that_changed_during_the_run_makes_it_invalid(change, named):
     with pytest.raises(runner.DriftError, match=named) as drifted:
@@ -139,6 +156,22 @@ def test_the_corpus_digest_ignores_order_but_not_who_lists_what():
     assert provenance.corpus_digest(one) == provenance.corpus_digest(reordered)
     assert provenance.corpus_digest(one) != provenance.corpus_digest(other_principal)
     assert provenance.corpus_digest(one) != provenance.corpus_digest(moved)
+
+
+@pytest.mark.parametrize("field", ["text", "title", "sectionPath"])
+def test_the_corpus_digest_covers_what_is_ranked_not_only_where_it_is(field):
+    original = chunk("hr-volunteer-policy", 1) | {"text": "safe", "title": "Volunteer policy", "sectionPath": "Leave"}
+    edited = original | {field: "fake"}
+
+    assert provenance.corpus_digest({"alice": ("abac/1", [original])}) != provenance.corpus_digest({"alice": ("abac/1", [edited])})
+
+
+def test_every_retrieval_setting_the_server_reports_is_checked_for_drift():
+    start = {"server": fake_system.system(), "corpus": {"digest": "same"}}
+    for setting in start["server"]["retrieval"]:
+        end = {"server": fake_system.system(), "corpus": {"digest": "same"}}
+        end["server"]["retrieval"][setting] = "changed"
+        assert provenance.drift(start, end) == ["retrieval settings"], setting
 
 
 def test_an_answer_run_records_the_system_and_is_invalid_when_it_changed():

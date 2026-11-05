@@ -21,15 +21,17 @@ Nothing checks that the server, the index or the corpus stayed the same from the
 
 ### Every run carries a manifest
 
-`run.json` gets a `manifest` object with its own version (`manifest_version: 1`). It holds:
+`run.json` gets a `manifest` object with its own version (`manifest_version: 2`; see the note below the table). It holds:
 
 | Part | Content | Source |
 |---|---|---|
 | Dataset | version, digest of cases, labels, principals, manifests and corpus files (as today) | evaluator |
-| Corpus as served | digest over every chunk the evaluation principals can list: document key, version, chunker version, offsets | evaluator, from `GET /retrieval/chunks` |
+| Corpus as served | digest over every chunk the evaluation principals can list: document key, version, chunker version, offsets, title, heading path and a SHA-256 of the text | evaluator, from `GET /retrieval/chunks` |
 | Server | build commit (or `unknown`), application version, index profile with its id, reranker name and revision, retrieval switches that are not part of a plan, CPU model and processor count | new `GET /api/v1/system` |
 | Evaluator | its git SHA and whether the checkout had uncommitted changes, `ga-eval` version, CPU model, platform | evaluator |
 | Run | strategies, `k`, splits, attempt limit, warmup requests, metrics version | evaluator |
+
+Manifest version 1 hashed the corpus without its text, title and heading path, so different text at the same offsets kept the same digest. Version 2 adds them; digests of the two versions are not comparable.
 
 - **`GET /api/v1/system`** describes the deployment, not a tenant: no document, label or principal data. It needs an authenticated token with the `debug` scope, which the evaluation tokens carry. The build commit comes from a build argument (`GA_BUILD_COMMIT`) that CI sets; a local image reports `unknown`, and the evaluator never fills it in with its own SHA.
 - **Warmup is recorded, not added.** No request is sent before measuring, so the manifest says `warmup_requests: 0` and latency figures include cold starts. Adding a warmup is a separate change that would only affect latency.
@@ -38,7 +40,7 @@ Nothing checks that the server, the index or the corpus stayed the same from the
 
 ### A run whose system changed is invalid
 
-The evaluator reads `GET /api/v1/system` and the corpus digest before the first request and again after the last. If the server commit, the index profile, the reranker revision or the corpus digest differs, the run is written with `status: invalid` and the reason `drift`, like a run invalidated by repeated degraded answers. Its results stay on disk and cannot be compared.
+The evaluator reads `GET /api/v1/system` and the corpus digest before the first request and again after the last. If the server commit, the index profile, the reranker revision, any retrieval setting the server reports (`server.retrieval`) or the corpus digest differs, the run is written with `status: invalid` and the reason `drift`, like a run invalidated by repeated degraded answers. Its results stay on disk and cannot be compared. The check compares two observations: a setting changed and changed back between them is not seen, and no single response is tied to the server state it was answered with. Answering settings are not reported by the server and are not checked; `ga-eval answers` records the chat model and prompt version each response names. Manifest version 1 did not check the retrieval settings.
 
 ### What a comparison requires
 
