@@ -132,11 +132,11 @@ Each run writes `results/<run-id>/`:
 
 - `run.json` — `status` (`complete` or `invalid`, with the reason), dataset version and `dataset_digest` (a SHA-256 over the cases, visibility labels, principals, manifests and corpus files), `metrics_version`, each strategy's `RetrievalPlan` and hash, policy and chunker versions, repeated requests, date, bootstrap seed, the result of the keyword ranking check, and a `manifest`:
   - **server**, as `GET /api/v1/system` reports it: the commit the image was built from (`unknown` unless the build passed `GA_BUILD_COMMIT`; CI does), the index profile, the reranker and its revision, the retrieval settings, the server's CPU and processor count;
-  - **corpus**: a SHA-256 over every chunk the evaluation principals can list (who lists it, document, version, chunker version, offsets);
+  - **corpus**: a SHA-256 over every chunk the evaluation principals can list (who lists it, document, version, chunker version, offsets, title, heading path and the text's SHA-256);
   - **evaluator**: its git SHA, whether its checkout had uncommitted changes, the `ga-eval` version, CPU and platform;
   - **run**: strategies, `k`, splits, the attempt limit, `warmup_requests` (0: nothing is sent before measuring, so latency includes cold starts) and the metrics version.
 
-  The server and the corpus are read before the first request and again after the last. If the server commit, the index profile, the reranker or the corpus changed, the run is written with `status: invalid` and the reason `drift`, and cannot be compared. `ga-eval answers` writes the same manifest with its chat models and prompt versions;
+  The server and the corpus are read before the first request and again after the last. If the server commit, the index profile, the reranker, the retrieval settings or the corpus changed, the run is written with `status: invalid` and the reason `drift`, and cannot be compared. Only the two observations are compared, so a change that is undone before the end goes unnoticed. `ga-eval answers` writes the same manifest with its chat models and prompt versions;
 - `cases.jsonl` — per-case ranks, metrics, any degraded flags, and every attempt of each request with its degraded reasons and latency;
 - `report.md` — rendered from the two files above, never edited by hand.
 

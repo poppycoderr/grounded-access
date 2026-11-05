@@ -22,6 +22,10 @@ New settings, all optional:
 - the lane sizes `GA_QUERY_SLOTS`, `GA_QUERY_QUEUE`, `GA_PASSAGE_*`, `GA_RERANK_*`, `GA_TOKENIZE_*`;
 - `GA_BUILD_COMMIT`, a build argument.
 
+### Evaluation results
+
+Runs made with this release write manifest version 2: its corpus digest covers the text, so it differs from every version 1 digest even on the same corpus. `ga-eval compare` lists the two digests as a manifest difference; it is not evidence that the corpus changed. Published reports keep the manifest they were written with.
+
 ### Steps
 
 1. **Keep what you have.** Back up the v0.1.0 database (`pg_dump`) and keep the v0.1.0 images. Do not start the new control plane against

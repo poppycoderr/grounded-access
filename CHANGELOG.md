@@ -14,6 +14,8 @@ Upgrading from v0.1.0 needs a new database and the corpus loaded again; see [upg
 - **Retrieval SQL had no time limit.** Each retrieval statement is cancelled after `GA_RETRIEVAL_SQL_TIMEOUT` (2 s) and fails as `503 DATABASE_TIMEOUT`; a request that gets no pooled connection within `GA_DB_CONNECTION_TIMEOUT_MS` (3 s) fails as `503 DATABASE_UNAVAILABLE`. Neither is reported as a degraded model channel.
 - **Model-service admission had gaps.** Token counting and `/v1/tokenize` ran outside the lanes, a request's deadline started only once it reached its lane, waiting requests held worker threads, and a caller could ask for any wait. Endpoints now admit on the event loop before taking a thread, deadlines count from arrival and are capped by the lane, the deadline is checked again before the model runs, tokenizing has its own lane, and the health check needs no worker thread.
 
+- **Evaluation drift checks missed two kinds of change.** The corpus digest covered document, version and offsets but not the text, so different text at the same offsets kept the same digest; and a retrieval setting changed during a run (for example `candidates`) did not make it invalid. The digest now also covers each chunk's title, heading path and text, and every setting under `server.retrieval` is checked for drift (manifest version 2). A corpus digest of version 1 cannot be compared with one of version 2.
+
 ### Documentation (review 2026-10-21)
 
 - [ADR-0011](./docs/adr/0011-what-a-request-sees.md) states what a request sees: authorization per statement, no re-check of requests already running, evidence as a snapshot, one index profile per database, audit rows kept indefinitely. `RevocationBoundaryIT` pins the in-flight behaviour.
