@@ -61,7 +61,9 @@ The authorization predicate is applied in SQL, and a label change, a disable or 
 - **No retention.** `audit_event` and `query_execution` have no retention period. Nothing deletes them, and both grow with use: one execution
   record and one audit event per search, and one more event per answer. Choosing a retention period, an export and an alert on storage is an
   operator decision. Until one is made, the rows are kept.
-- **Storage failure stops requests.** Because auditing fails closed (Q8), a database that cannot store them stops requests.
+- **Storage failure stops requests.** Because auditing fails closed (Q8), a database that cannot store them stops requests. Each audit
+  statement is cancelled after `GA_AUDIT_SQL_TIMEOUT` (2 s), so a write that cannot finish refuses its request instead of holding it and its
+  connection.
 
 ## Consequences
 

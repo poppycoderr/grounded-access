@@ -252,6 +252,7 @@ How `/query` decides, in order:
 | Chat output is not the expected JSON | Evidence-only response | `degraded: generation_invalid` |
 | Chat output cites unknown ids, or a statement has no citation | Those statements are dropped. If none remain, `no_answer` | `rejectedStatements` in the audit event |
 | Audit write fails | The request fails closed with 503 `AUDIT_UNAVAILABLE`: a search returns no results, and an administrative change is rolled back | error log with the trace id |
+| An audit write exceeds `GA_AUDIT_SQL_TIMEOUT` (2 s), for example behind a lock | PostgreSQL cancels it, and the request fails closed as above; an execution record and its audit event are written together or not at all | 503 `AUDIT_UNAVAILABLE` |
 | Model service unavailable at query time, `dense-only` | 503 `MODEL_SERVICE_UNAVAILABLE`: there is no other channel to answer from | error log with the trace id |
 | Index profile mismatch at query time, `dense-only` | 503 `INDEX_PROFILE_MISMATCH` | error log with the trace id |
 | Query longer than the embedding model accepts, any strategy with a dense channel | 400 `QUERY_TOO_LONG`; `sparse-only` still answers | the response |
@@ -361,7 +362,7 @@ Grafana is at `http://localhost:3000`, with the dashboard `Grounded Access` (`op
 
 ### Audit
 
-The audit log is a separate record. Audit events are never sampled, and they are written synchronously and fail closed: a search whose audit write fails returns nothing, and an administrative change is in the same transaction as its event.
+The audit log is a separate record. Audit events are never sampled, and they are written synchronously, with their own statement timeout (`GA_AUDIT_SQL_TIMEOUT`), and fail closed: a search whose audit write fails or times out returns nothing, and an administrative change is in the same transaction as its event.
 
 | Action | Resource | Attributes |
 |---|---|---|

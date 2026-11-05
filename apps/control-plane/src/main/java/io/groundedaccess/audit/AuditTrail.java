@@ -3,6 +3,7 @@ package io.groundedaccess.audit;
 import io.groundedaccess.authorization.TextArrays;
 import io.groundedaccess.identity.Principal;
 
+import java.time.Duration;
 import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
@@ -10,8 +11,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import javax.sql.DataSource;
+
 import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -20,6 +25,11 @@ import org.springframework.transaction.support.TransactionTemplate;
  * Writes audit events and query execution records. Every method names the attributes it stores, and the JSON is built in SQL from typed
  * parameters, so only identifiers, counts and versions can be recorded. A failed write raises {@link AuditUnavailableException}; callers let it
  * propagate, which rolls back the surrounding transaction or stops the response.
+ *
+ * <p>
+ * Every statement runs with the audit SQL timeout ({@code ga.audit.sql-timeout}, whole seconds, at least one). A write that cannot finish in
+ * time, for example behind a lock or on a stalled disk, is cancelled and fails like any other audit write: the request is refused, not let
+ * through unaudited. Inside a transaction with its own timeout, Spring applies the shorter remaining time instead.
  */
 @Repository
 public class AuditTrail {
@@ -33,8 +43,10 @@ public class AuditTrail {
 
     private final TransactionTemplate transactions;
 
-    public AuditTrail(JdbcClient jdbc, TransactionTemplate transactions) {
-        this.jdbc = jdbc;
+    public AuditTrail(DataSource dataSource, TransactionTemplate transactions, @Value("${ga.audit.sql-timeout:2s}") Duration sqlTimeout) {
+        JdbcTemplate template = new JdbcTemplate(dataSource);
+        template.setQueryTimeout((int) Math.max(1, (sqlTimeout.toMillis() + 999) / 1000));
+        this.jdbc = JdbcClient.create(template);
         this.transactions = transactions;
     }
 
