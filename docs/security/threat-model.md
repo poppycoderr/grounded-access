@@ -96,7 +96,7 @@ flowchart LR
 | # | Threat | Control | Verified by |
 |---|---|---|---|
 | V1 | Act while the audit store is unavailable | Audit is synchronous and fails closed: no results, and administrative changes roll back | Integration tests |
-| V2 | Alter or delete audit rows | None inside the application's reach | **Residual risk R6** |
+| V2 | Alter or delete audit rows | The application never alters audit rows. It deletes them only through audit cleanup, which runs only when an operator configures a retention of at least one day, removes only rows past it and covered by a recorded export (unless the operator turns that condition off), and audits every batch with an `audit.purge` event in the same transaction (ADR-0013). Anyone with database access can still alter or delete rows | `AuditCleanupIT`; otherwise **residual risk R6** |
 | V3 | Exhaust the service with large ingestion bodies or many queries | Request size limits per document and per batch; one rerank call at a time, so overlapping queries degrade to the fused order instead of stalling the model service (measured in the load smoke report); no rate limiting; exact vector search is linear in the authorized corpus | **Residual risk R7** |
 
 ## 5. Residual risks

@@ -3,6 +3,10 @@ spring:
   main:
     web-application-type: none
 ga:
+  audit:
+    retention:
+      cleanup:
+        enabled: false
   corpus:
     cleanup:
       enabled: false

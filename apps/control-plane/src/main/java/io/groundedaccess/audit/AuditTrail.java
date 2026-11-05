@@ -4,6 +4,7 @@ import io.groundedaccess.authorization.TextArrays;
 import io.groundedaccess.identity.Principal;
 
 import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
@@ -155,6 +156,28 @@ public class AuditTrail {
                 jsonb_build_object('status', cast(:status as text), 'evidenceCount', cast(:evidence as int), 'statementCount', cast(:statements as int),
                     'rejectedStatements', cast(:rejected as int), 'chatModel', cast(:chatModel as text), 'promptVersion', cast(:promptVersion as text))""",
                 values);
+    }
+
+    /**
+     * One batch of rows removed by audit cleanup (ADR-0013), written in the transaction that removed them. It is a system action: the tenant
+     * is empty, which no token can carry, and the principal names the cleanup.
+     */
+    void recordPurge(String table, OffsetDateTime cutOff, int rows) {
+        guarded(() -> jdbc.sql(EVENT.formatted("""
+                        jsonb_build_object('table', cast(:table as text), 'cutOff', cast(:cutOff as timestamptz), 'rows', cast(:rows as int))"""))
+                .param("id", UUID.randomUUID())
+                .param("tenant", "")
+                .param("principal", "system:audit-cleanup")
+                .param("action", "audit.purge")
+                .param("resourceType", "audit_table")
+                .param("resourceId", table)
+                .param("decision", "allow")
+                .param("policyVersion", null)
+                .param("trace", "")
+                .param("table", table)
+                .param("cutOff", cutOff)
+                .param("rows", rows)
+                .update());
     }
 
     /**

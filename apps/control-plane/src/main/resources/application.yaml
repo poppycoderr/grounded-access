@@ -27,6 +27,16 @@ ga:
   audit:
     # Each audit write is cancelled after this and the request is refused (audit fails closed); whole seconds
     sql-timeout: ${GA_AUDIT_SQL_TIMEOUT:2s}
+    # How long audit events and execution records are kept, as ISO-8601 durations (for example P400D); unset keeps them (ADR-0013)
+    retention:
+      events: ${GA_AUDIT_RETENTION:}
+      executions: ${GA_EXECUTION_RETENTION:}
+      cleanup:
+        enabled: true
+        interval: 1h
+        batch-size: 1000
+        # Only rows older than the latest recorded export (./scripts/export-audit) are removed, unless this is false
+        require-export: ${GA_AUDIT_CLEANUP_REQUIRE_EXPORT:true}
   identity:
     issuer: ${GA_JWT_ISSUER:grounded-access-demo}
     audience: ${GA_JWT_AUDIENCE:grounded-access}
