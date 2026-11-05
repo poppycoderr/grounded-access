@@ -18,6 +18,7 @@ documents, labels and audit rows survive the migrations, but searching needs the
 New settings, all optional:
 - `GA_EMBEDDING_REVISION` and `GA_RERANKER_REVISION`;
 - `GA_RETRIEVAL_DEADLINE` and `GA_RETRIEVAL_SQL_TIMEOUT`;
+- `GA_AUDIT_SQL_TIMEOUT`;
 - `GA_DB_CONNECTION_TIMEOUT_MS`;
 - the lane sizes `GA_QUERY_SLOTS`, `GA_QUERY_QUEUE`, `GA_PASSAGE_*`, `GA_RERANK_*`, `GA_TOKENIZE_*`;
 - `GA_BUILD_COMMIT`, a build argument.
