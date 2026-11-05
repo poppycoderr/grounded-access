@@ -59,13 +59,15 @@ public record SystemResponse(
 
             int chunkMaxChars,
 
-            int headingMaxChars) {
+            int headingMaxChars,
+
+            String chunkTokenizer) {
 
         static IndexProfile from(IndexProfiles.Established established) {
             var p = established.profile();
             return new IndexProfile(established.id(), p.embeddingModel(), p.embeddingRevision(), p.dimensions(), p.queryPrefix(), p.passagePrefix(),
                     p.embeddingContext(), p.chunkerRelease(), p.chunkMaxWords(), p.chunkOverlapWords(), p.chunkMaxTokens(), p.chunkMaxChars(),
-                    p.headingMaxChars());
+                    p.headingMaxChars(), p.chunkTokenizer());
         }
     }
 

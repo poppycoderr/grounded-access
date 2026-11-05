@@ -131,8 +131,9 @@ public class ModelServiceEmbeddingClient implements EmbeddingClient {
     }
 
     @Override
-    public List<Integer> fittingChars(List<String> texts, int budget) {
+    public TokenFit fittingChars(List<String> texts, int budget) {
         List<Integer> fitting = new ArrayList<>(texts.size());
+        String tokenizer = null;
         for (int from = 0; from < texts.size(); from += properties.batchSize()) {
             List<String> batch = texts.subList(from, Math.min(from + properties.batchSize(), texts.size()));
             TokenizeResponse response = Objects.requireNonNull(http.post()
@@ -146,6 +147,14 @@ public class ModelServiceEmbeddingClient implements EmbeddingClient {
                         throw new HttpServerErrorException(refused.getStatusCode(), body);
                     })
                     .body(TokenizeResponse.class));
+            String reported = response.tokenizer();
+            if (reported == null || reported.isBlank()) {
+                throw new InvalidModelResponseException("the model service did not report its tokenizers");
+            }
+            if (tokenizer != null && !tokenizer.equals(reported)) {
+                throw new InvalidModelResponseException("the model service changed its tokenizers from %s to %s within one call".formatted(tokenizer, reported));
+            }
+            tokenizer = reported;
             List<@Nullable Integer> counted = response.fittingChars();
             if (counted == null || counted.size() != batch.size()) {
                 throw new InvalidModelResponseException("expected %d fitting lengths, got %s".formatted(batch.size(), counted == null ? "none" : counted.size()));
@@ -158,7 +167,7 @@ public class ModelServiceEmbeddingClient implements EmbeddingClient {
                 fitting.add(value);
             }
         }
-        return fitting;
+        return new TokenFit(Objects.requireNonNull(tokenizer, "no text was tokenized"), fitting);
     }
 
     /**
@@ -225,6 +234,8 @@ public class ModelServiceEmbeddingClient implements EmbeddingClient {
     }
 
     record TokenizeResponse(
+            @Nullable String tokenizer,
+
             int max_tokens,
 
             @Nullable List<@Nullable Integer> fitting_chars) {

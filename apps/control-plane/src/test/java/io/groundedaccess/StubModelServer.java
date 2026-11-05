@@ -159,7 +159,8 @@ public final class StubModelServer {
             case TOKENIZE -> {
                 List<String> texts = new ArrayList<>();
                 request.path("texts").forEach(text -> texts.add(text.asString()));
-                yield JSON.writeValueAsString(Map.of("max_tokens", 512, "fitting_chars", hashing.fittingChars(texts, request.path("budget").asInt())));
+                yield JSON.writeValueAsString(Map.of("tokenizer", HashingEmbeddingClient.TOKENIZER, "max_tokens", 512, "fitting_chars",
+                        hashing.fittingChars(texts, request.path("budget").asInt()).fittingChars()));
             }
             default -> JSON.writeValueAsString(
                     Map.of("model", "stub-chat", "choices", List.of(Map.of("message", Map.of("role", "assistant", "content", chatContent)))));

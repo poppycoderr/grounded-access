@@ -78,7 +78,8 @@ public class IngestionService {
         IndexProfiles.Established index = profiles.establish();
         List<ChunkDraft> planned = chunker.chunk(normalized, source.format());
         // Tokenized before embedding, so that no chunk is embedded from a cut input (ADR-0009)
-        List<ChunkDraft> chunks = planned.isEmpty() ? planned : DocumentChunker.fit(planned, normalized, embeddingContext, embeddings::fittingChars);
+        List<ChunkDraft> chunks = planned.isEmpty() ? planned : DocumentChunker.fit(planned, normalized, embeddingContext,
+                (texts, budget) -> profiles.checkTokenizer(embeddings.fittingChars(texts, budget)));
         List<float[]> vectors = List.of();
         if (!chunks.isEmpty()) {
             Embeddings embedded = embeddings.embed(chunks.stream()

@@ -27,9 +27,9 @@ public interface EmbeddingClient {
 
     /**
      * How many leading Unicode code points of each passage text fit in {@code budget} tokens under the tokenizers of both models, special
-     * tokens included (ADR-0009).
+     * tokens included (ADR-0009), and the identity of those tokenizers (ADR-0012).
      */
-    List<Integer> fittingChars(List<String> texts, int budget);
+    TokenFit fittingChars(List<String> texts, int budget);
 
     /**
      * Name of the model this client produces vectors with, without a revision. Vectors from two models are not comparable, so callers use it to

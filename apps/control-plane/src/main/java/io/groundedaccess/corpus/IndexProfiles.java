@@ -4,6 +4,7 @@ import io.groundedaccess.modelclient.EmbeddingClient;
 import io.groundedaccess.modelclient.Embeddings;
 import io.groundedaccess.modelclient.InputType;
 import io.groundedaccess.modelclient.InvalidModelResponseException;
+import io.groundedaccess.modelclient.TokenFit;
 import io.groundedaccess.telemetry.Failures;
 
 import java.sql.ResultSet;
@@ -34,7 +35,7 @@ import org.springframework.web.client.RestClientException;
  *
  * <p>
  * The profile is established once: from two probe embeddings (one query, one passage) that report model, revision, dimensions and prefixes,
- * plus this process's chunking settings. It is established only if every active version has that same profile, or there is none yet, and the
+ * a probe tokenization that reports the tokenizers chunks are cut with (ADR-0012), plus this process's chunking settings. It is established only if every active version has that same profile, or there is none yet, and the
  * vector column has its dimensions. From then on every embedding must report the same model, revision, dimensions and prefix, so a model
  * service replaced while running is noticed on its first answer.
  *
@@ -52,7 +53,7 @@ public class IndexProfiles implements ApplicationRunner {
 
     private static final String COLUMNS = """
             embedding_model, embedding_revision, dimensions, query_prefix, passage_prefix, embedding_context, chunker_release, chunk_max_words,
-            chunk_overlap_words, chunk_max_tokens, chunk_max_chars, heading_max_chars""";
+            chunk_overlap_words, chunk_max_tokens, chunk_max_chars, heading_max_chars, chunk_tokenizer""";
 
     private final JdbcClient jdbc;
 
@@ -126,6 +127,19 @@ public class IndexProfiles implements ApplicationRunner {
      */
     UUID checkPassages(Embeddings passages) {
         return check(passages, InputType.PASSAGE);
+    }
+
+    /**
+     * Checks that the tokenizers that measured a new version's chunks are the profile's, and returns the fitting lengths (ADR-0012). Chunks cut
+     * by other tokenizers are refused before anything is written, as vectors of another model are.
+     */
+    List<Integer> checkTokenizer(TokenFit fit) {
+        IndexProfile profile = establish().profile();
+        if (!fit.tokenizer().equals(profile.chunkTokenizer())) {
+            throw new IndexProfileMismatchException("The model service now cuts chunks with tokenizers %s; the index is %s".formatted(fit.tokenizer(),
+                    profile.describe()));
+        }
+        return fit.fittingChars();
     }
 
     DocumentChunker chunker() {
@@ -210,9 +224,10 @@ public class IndexProfiles implements ApplicationRunner {
             throw new IndexProfileMismatchException(
                     "The model service changed from %s to %s between two calls".formatted(query.modelId(), passage.modelId()));
         }
+        TokenFit tokenized = embeddings.fittingChars(List.of(PROBE), DocumentChunker.MAX_TOKENS);
         IndexProfile observed = new IndexProfile(query.model(), query.revision(), query.dimensions(), query.prefix(), passage.prefix(), embeddingContext,
                 DocumentChunker.release(), chunker.maxWords(), chunker.overlapWords(), DocumentChunker.MAX_TOKENS, DocumentChunker.MAX_CHARS,
-                DocumentChunker.HEADING_MAX_CHARS);
+                DocumentChunker.HEADING_MAX_CHARS, tokenized.tokenizer());
         int column = vectorColumnDimensions();
         if (observed.dimensions() != column) {
             throw new IndexProfileMismatchException(
@@ -263,7 +278,7 @@ public class IndexProfiles implements ApplicationRunner {
         jdbc.sql("""
                         insert into index_profile (id, %s)
                         values (:id, :model, :revision, :dimensions, :queryPrefix, :passagePrefix, :context, :release, :maxWords, :overlap, :maxTokens,
-                            :maxChars, :headingChars)
+                            :maxChars, :headingChars, :tokenizer)
                         on conflict do nothing
                         """.formatted(COLUMNS))
                 .param("id", UUID.randomUUID())
@@ -279,13 +294,14 @@ public class IndexProfiles implements ApplicationRunner {
                 .param("maxTokens", profile.chunkMaxTokens())
                 .param("maxChars", profile.chunkMaxChars())
                 .param("headingChars", profile.headingMaxChars())
+                .param("tokenizer", profile.chunkTokenizer())
                 .update();
         return jdbc.sql("""
                         select id from index_profile
                         where embedding_model = :model and embedding_revision = :revision and dimensions = :dimensions and query_prefix = :queryPrefix
                             and passage_prefix = :passagePrefix and embedding_context = :context and chunker_release = :release
                             and chunk_max_words = :maxWords and chunk_overlap_words = :overlap and chunk_max_tokens = :maxTokens
-                            and chunk_max_chars = :maxChars and heading_max_chars = :headingChars
+                            and chunk_max_chars = :maxChars and heading_max_chars = :headingChars and chunk_tokenizer = :tokenizer
                         """)
                 .param("model", profile.embeddingModel())
                 .param("revision", profile.embeddingRevision())
@@ -299,6 +315,7 @@ public class IndexProfiles implements ApplicationRunner {
                 .param("maxTokens", profile.chunkMaxTokens())
                 .param("maxChars", profile.chunkMaxChars())
                 .param("headingChars", profile.headingMaxChars())
+                .param("tokenizer", profile.chunkTokenizer())
                 .query(UUID.class)
                 .single();
     }
@@ -312,6 +329,7 @@ public class IndexProfiles implements ApplicationRunner {
     private static IndexProfile profile(ResultSet rs) throws SQLException {
         return new IndexProfile(rs.getString("embedding_model"), rs.getString("embedding_revision"), rs.getInt("dimensions"), rs.getString("query_prefix"),
                 rs.getString("passage_prefix"), rs.getBoolean("embedding_context"), rs.getString("chunker_release"), rs.getInt("chunk_max_words"),
-                rs.getInt("chunk_overlap_words"), rs.getInt("chunk_max_tokens"), rs.getInt("chunk_max_chars"), rs.getInt("heading_max_chars"));
+                rs.getInt("chunk_overlap_words"), rs.getInt("chunk_max_tokens"), rs.getInt("chunk_max_chars"), rs.getInt("heading_max_chars"),
+                rs.getString("chunk_tokenizer"));
     }
 }

@@ -15,6 +15,7 @@ SYSTEM = {
         "chunkerRelease": "3",
         "chunkMaxWords": 180,
         "chunkOverlapWords": 30,
+        "chunkTokenizer": "sha256:test",
     },
     "reranker": {"model": "reranker", "revision": "rev2"},
     "retrieval": {"candidates": 50, "rrfK": 60, "rerankCandidates": 20, "sparseContext": True, "rerankContext": False},
