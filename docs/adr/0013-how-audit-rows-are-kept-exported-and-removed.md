@@ -49,6 +49,11 @@ The two tables are not the same kind of record:
 - **What it records.** In the same transaction, the export inserts a row into a new table `audit_export`: `through`, the row counts, the
   manifest's SHA-256 and when it ran. The export is the evidence that rows were taken off the database before anything deletes them.
 - **Where the files go.** The project writes the files. Where they are kept, and for how long, is the operator's decision.
+- **How old the cut-off must be.** At least one hour, by the database clock. A transaction that started before the cut-off and commits
+  after the export's snapshot carries a timestamp before the cut-off but is not in the snapshot; a cleanup relying on the export would
+  remove it unexported. One hour is longer than any transaction that writes audit rows. Added while implementing item 1.
+- **Each export is complete.** It covers every row before its cut-off, not only rows since the previous export, so any single export is
+  enough to restore what it covers. Its files are never overwritten, and an export that fails records nothing and leaves no files.
 
 ### Cleanup removes only what is old and exported
 
@@ -79,7 +84,8 @@ The two tables are not the same kind of record:
 
 This ADR is the contract. The implementation is split into three v0.2 items, in this order:
 
-1. `audit_export` (migration), the export command, and a test that the files and manifest describe one snapshot.
+1. `audit_export` (migration V15), the export command (`scripts/export-audit`, the control plane under the `audit-export` profile),
+   and tests that the files, the manifest and the recorded row agree. **Delivered.**
 2. The retention settings with their floor, the cleanup job, `audit.purge`, and tests:
    - nothing is deleted without retention;
    - nothing is deleted without an export;
@@ -87,7 +93,7 @@ This ADR is the contract. The implementation is split into three v0.2 items, in 
    - a batch is bounded and does not block a search.
 3. The two gauges and the dashboard panel.
 
-Until they ship, rows are kept indefinitely, as ADR-0011 states.
+Until items 2 and 3 ship, nothing deletes rows: they are kept indefinitely, as ADR-0011 states.
 
 ## Consequences
 

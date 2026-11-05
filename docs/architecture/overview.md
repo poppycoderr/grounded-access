@@ -364,6 +364,8 @@ Grafana is at `http://localhost:3000`, with the dashboard `Grounded Access` (`op
 
 The audit log is a separate record. Audit events are never sampled, and they are written synchronously, with their own statement timeout (`GA_AUDIT_SQL_TIMEOUT`), and fail closed: a search whose audit write fails or times out returns nothing, and an administrative change is in the same transaction as its event.
 
+Rows are kept indefinitely. `./scripts/export-audit <cut-off> <directory>` copies every event and execution record before a cut-off at least an hour old to NDJSON files with a manifest, from one snapshot, and records the export in `audit_export`; it deletes nothing ([ADR-0013](../adr/0013-how-audit-rows-are-kept-exported-and-removed.md)). Retention and cleanup that rely on recorded exports are planned.
+
 | Action | Resource | Attributes |
 |---|---|---|
 | `retrieval.search` | the execution record | strategy, `k`, plan hash, result count, returned documents as `key@version`, degraded reasons, scope |
