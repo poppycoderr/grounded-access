@@ -364,7 +364,7 @@ Grafana is at `http://localhost:3000`, with the dashboard `Grounded Access` (`op
 
 The audit log is a separate record. Audit events are never sampled, and they are written synchronously, with their own statement timeout (`GA_AUDIT_SQL_TIMEOUT`), and fail closed: a search whose audit write fails or times out returns nothing, and an administrative change is in the same transaction as its event.
 
-Rows are kept indefinitely. `./scripts/export-audit <cut-off> <directory>` copies every event and execution record before a cut-off at least an hour old to NDJSON files with a manifest, from one snapshot, and records the export in `audit_export`; it deletes nothing ([ADR-0013](../adr/0013-how-audit-rows-are-kept-exported-and-removed.md)). Retention and cleanup that rely on recorded exports are planned.
+Rows are kept unless an operator configures a retention. `./scripts/export-audit <cut-off> <directory>` copies every event and execution record before a cut-off at least an hour old to NDJSON files with a manifest, from one snapshot, and records the export in `audit_export`; it deletes nothing ([ADR-0013](../adr/0013-how-audit-rows-are-kept-exported-and-removed.md)). An operator can set a retention per table (`GA_AUDIT_RETENTION`, `GA_EXECUTION_RETENTION`, ISO-8601 durations of at least a day). Hourly cleanup then removes, in batches of 1,000 that never wait for a locked row, rows past their retention that the latest recorded export covers (`GA_AUDIT_CLEANUP_REQUIRE_EXPORT=false` drops that condition, with a warning at startup), and writes an `audit.purge` event in each batch's transaction.
 
 | Action | Resource | Attributes |
 |---|---|---|

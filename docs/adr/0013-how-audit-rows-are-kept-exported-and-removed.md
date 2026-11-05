@@ -62,8 +62,10 @@ The two tables are not the same kind of record:
   second condition, and the control plane logs a warning at startup when it is set.
 - **How it runs.** A scheduled job outside the request path, like corpus cleanup, deletes in batches of a bounded size. Each batch is its
   own short transaction with the audit statement timeout. It never waits for a request, and a request never waits for it.
-- **What it leaves behind.** Each run writes an `audit.purge` event with the table, the cut-off and the number of rows removed. The purge
-  is itself audited, and its own event is newer than any cut-off, so the run does not remove it.
+- **What it leaves behind.** Each batch writes an `audit.purge` event with the table, the cut-off and the number of rows removed, in the
+  transaction that removed them, so a deletion is never unaudited. The event is a system action: its tenant is empty, which no token can
+  carry, and its principal is `system:audit-cleanup`. It is newer than any cut-off, so the run does not remove it.
+- **It never waits.** A batch skips rows that another transaction holds (`FOR UPDATE SKIP LOCKED`); a later run removes them.
 - **No partitioning yet.** Batched deletes are enough until a load evaluation shows that they are not. Partitioning by month would make
   removal cheap, but it changes the primary keys and the migrations, and nothing measured asks for it.
 
@@ -86,14 +88,14 @@ This ADR is the contract. The implementation is split into three v0.2 items, in 
 
 1. `audit_export` (migration V15), the export command (`scripts/export-audit`, the control plane under the `audit-export` profile),
    and tests that the files, the manifest and the recorded row agree. **Delivered.**
-2. The retention settings with their floor, the cleanup job, `audit.purge`, and tests:
+2. The retention settings with their floor, the cleanup job, `audit.purge`, and tests (**delivered**):
    - nothing is deleted without retention;
    - nothing is deleted without an export;
    - only rows past both conditions are deleted;
    - a batch is bounded and does not block a search.
 3. The two gauges and the dashboard panel.
 
-Until items 2 and 3 ship, nothing deletes rows: they are kept indefinitely, as ADR-0011 states.
+Without a configured retention nothing deletes rows; item 3 is still open.
 
 ## Consequences
 
