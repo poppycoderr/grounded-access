@@ -48,7 +48,7 @@ Chunker release 4 adds two rules to release 3:
 2. **Token budget.** Every embedding input must fit in **384 tokens**. The input is the heading path, a blank line and the chunk. The remaining 128 are the reranker's room for the query and its separators. After packing, the control plane tokenizes all of a document's embedding inputs in one call. A chunk that does not fit is split where its fitting prefix ends, using the line break, whitespace, cap order above, and the remainder is checked again. Tokenizers are deterministic, so the same document always gets the same chunks.
 
 - **Heading path.** What is embedded of it is limited to 200 characters. The outermost headings are dropped first, because the nearest heading says most about the chunk; a single heading longer than that is cut at the limit. The stored `section_path` is not changed.
-- **Index profile.** The budget, the cap and the heading limit become part of the profile (ADR-0007), as `chunk_max_tokens`, `chunk_max_chars` and `heading_max_chars`. A tokenizer is part of the model revision that is already in the profile.
+- **Index profile.** The budget, the cap and the heading limit become part of the profile (ADR-0007), as `chunk_max_tokens`, `chunk_max_chars` and `heading_max_chars`. The embedding model's tokenizer is fixed by its revision, which is already in the profile. The reranker's is not, and [ADR-0012](./0012-the-tokenizers-that-cut-chunks.md) adds the identity of both tokenizers to the profile.
 
 ### Errors name the cause
 

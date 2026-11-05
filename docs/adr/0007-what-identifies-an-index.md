@@ -62,7 +62,7 @@ An embedding response is accepted only if:
 - there is exactly one vector per input text, each with that many values;
 - every value is finite and no vector is all zeros, because a cosine distance with such a vector is not a number.
 
-Every batch of one call is checked the same way, so one call cannot mix revisions. A reranking response is accepted only if it has one finite score per passage, with the passage ids that were sent. The reranker's revision is recorded in the execution record. It is not part of the index profile, because it reads text, not stored vectors.
+Every batch of one call is checked the same way, so one call cannot mix revisions. A reranking response is accepted only if it has one finite score per passage, with the passage ids that were sent. The reranker's revision is recorded in the execution record. Its weights are not part of the index profile, because they read text, not stored vectors. Its tokenizer helps cut chunks since ADR-0009 and is identified in the profile by [ADR-0012](./0012-the-tokenizers-that-cut-chunks.md).
 
 ### What happens when a check fails
 
