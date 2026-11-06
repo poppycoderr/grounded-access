@@ -111,8 +111,13 @@ class Dataset:
         return Span(evidence.document, evidence.version, start, start + len(evidence.quote))
 
 
+def load_manifests(root: Path) -> list[Manifest]:
+    """The manifests under `root/manifests`, whose files are relative to `root`."""
+    return [Manifest.model_validate(yaml.safe_load(p.read_text())) for p in sorted((root / "manifests").glob("*.yaml"))]
+
+
 def load(root: Path, version: str = "v4") -> Dataset:
-    manifests = [Manifest.model_validate(yaml.safe_load(p.read_text())) for p in sorted((root / "manifests").glob("*.yaml"))]
+    manifests = load_manifests(root)
     texts: dict[str, str] = {}
     current_version: dict[str, int] = {}
     tenant_of: dict[str, str] = {}

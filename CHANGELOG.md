@@ -50,6 +50,8 @@ Upgrading from v0.1.0 needs a new database and the corpus loaded again; see [upg
 
 ### Evaluation
 
+- **Generated distractors** (v0.2 plan, step 1a). `ga-eval distractors --seed N --documents M --out DIR` writes deterministic, labelled, fictional distractor documents with their own per-principal `visibility.yaml`, outside the labelled dataset; `ga-eval load --manifests DIR` loads them. `ga-eval load` now sends at most 200 documents per ingestion job, the demo corpus still in one.
+
 - The README now quotes [`benchmarks/reports/metrics-v2`](./benchmarks/reports/metrics-v2/), the CI run of `b878bb5`: the first published run with EC@10, a manifest and chunker release 4. Every ranked list equals the previous published run's, so Recall and MRR are unchanged; the latency ratio of reranking to dense on that runner is about ten instead of eleven.
 
 - **Run manifest.** `run.json` records what was measured: the server's build commit, index profile, reranker revision, retrieval settings and CPU (from the new `GET /api/v1/system`, debug scope), a digest of the corpus as listed, the evaluator's commit and whether it had uncommitted changes, the attempt limit and `warmup_requests: 0`. Every attempt of a retried request is kept. The server and corpus are read again after the last request, and a run during which any of them changed is invalid (`drift`). `ga-eval answers` records the same ([ADR-0008](./docs/adr/0008-what-an-evaluation-run-records-and-measures.md)).
