@@ -1,0 +1,31 @@
+{
+  "dataset_version": "v4",
+  "git_sha": "415c1ab",
+  "created_at": "2026-11-06T15:34:30+00:00",
+  "platform": "macOS-27.2-arm64-arm-64bit",
+  "cpu": "arm",
+  "workers": 1,
+  "requests": 128,
+  "principals": 1,
+  "k": 10,
+  "seconds": 4.4,
+  "requests_per_second": 29.1,
+  "failed": 0,
+  "degraded": 0,
+  "security_violations": 0,
+  "repeated_trace_ids": 0,
+  "strategies": {
+    "dense-only": {
+      "requests": 128,
+      "statuses": {
+        "200": 128
+      },
+      "degraded": {},
+      "violations": 0,
+      "p50_ms": 30.2,
+      "p95_ms": 59.0,
+      "max_ms": 135.6
+    }
+  },
+  "distractor_documents": 4200
+}

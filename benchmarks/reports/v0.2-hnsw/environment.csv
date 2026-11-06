@@ -1,0 +1,7 @@
+pgvector,0.8.7
+postgres,17.11 (Debian 17.11-1.pgdg12+2)
+chunks,33283
+host_load_at_start,2.03 2.96 4.99
+hnsw_build_seconds,6
+hnsw_size_bytes,68173824
+host_load_at_end,2.93 3.80 4.83
