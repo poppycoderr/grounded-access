@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+# Compare exact dense search with HNSW on the running stack (ADR-0002, v0.2 plan step 1c). The stack must already hold the labelled corpus and
+# the distractors named by DISTRACTORS (for example after ./scripts/scale-run). For each configuration it changes only the index and the
+# database's HNSW settings, restarts the control plane so its connections pick them up, and sends all evaluation queries as each principal
+# through the real dense path, recording the results. `ga-eval ann-recall` then compares every configuration with exact search.
+#
+# It creates and drops indexes, so run it only against a throwaway database:
+#   DISTRACTORS=results/scale-<timestamp>/size-4200/distractors COMPOSE_PROJECT_NAME=ga-scale ./scripts/hnsw-run
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+distractors=${DISTRACTORS:?set DISTRACTORS to the directory the stack was loaded with}
+out=${OUT:-results/hnsw-$(date -u +%Y%m%dT%H%M%SZ)}
+principals=(alice-engineer bob-support carol-manager dave-contractor mallory-outsider)
+eval_cli=(uv run --project packages/evaluation ga-eval)
+mkdir -p "$out"
+
+sql() {
+    docker compose exec -T postgres psql -At -F, -U grounded_access -d grounded_access -c "$1"
+}
+
+index_scans() {
+    sql "select coalesce(sum(idx_scan), 0) from pg_stat_user_indexes where indexrelname like 'chunk_embedding_hnsw%'"
+}
+
+restart_control_plane() {
+    docker compose restart control-plane > /dev/null
+    docker compose up -d --wait control-plane > /dev/null
+}
+
+measure() {
+    local name=$1
+    restart_control_plane
+    mkdir -p "$out/$name"
+    local before
+    before=$(index_scans)
+    for principal in "${principals[@]}"; do
+        "${eval_cli[@]}" load-test --strategy dense-only --workers 1 --requests 128 --as-principal "$principal" --record-results \
+            --distractors "$distractors" --out "$out/$name/$principal" > /dev/null
+    done
+    echo "index_scans,$(( $(index_scans) - before ))" > "$out/$name/index-use.csv"
+    for principal in "${principals[@]}"; do
+        cat "$out/$name/$principal/requests.jsonl"
+    done > "$out/$name/requests.jsonl"
+    echo "{}" > "$out/$name/run.json"
+    echo "$name: $(cat "$out/$name/index-use.csv")"
+}
+
+{
+    echo "pgvector,$(sql "select extversion from pg_extension where extname = 'vector'")"
+    echo "postgres,$(sql "show server_version")"
+    echo "chunks,$(sql "select count(*) from chunk")"
+    echo "host_load_at_start,$(uptime | sed 's/.*load averages*: //')"
+} > "$out/environment.csv"
+
+sql "alter database grounded_access reset all" > /dev/null
+sql "drop index if exists chunk_embedding_hnsw" > /dev/null
+sql "drop index if exists chunk_embedding_hnsw_external" > /dev/null
+measure exact
+
+started=$(date +%s)
+sql "create index chunk_embedding_hnsw on chunk using hnsw (embedding vector_cosine_ops)" > /dev/null
+echo "hnsw_build_seconds,$(( $(date +%s) - started ))" >> "$out/environment.csv"
+echo "hnsw_size_bytes,$(sql "select pg_relation_size('chunk_embedding_hnsw')")" >> "$out/environment.csv"
+sql "analyze chunk" > /dev/null
+# With the index available the planner decides; at demo scale it keeps the exact plan, which index-use.csv shows
+measure hnsw-planner
+
+# enable_sort = off leaves the ordered index scan as the only way to satisfy ORDER BY: the index returns its nearest rows and the
+# authorization predicate filters them afterwards. A measuring device for what the planner would do once the index is cheaper, not a setting.
+sql "alter database grounded_access set enable_sort = off" > /dev/null
+measure hnsw-forced
+sql "alter database grounded_access set hnsw.iterative_scan = strict_order" > /dev/null
+measure hnsw-forced-iterative-strict
+sql "alter database grounded_access set hnsw.iterative_scan = relaxed_order" > /dev/null
+measure hnsw-forced-iterative-relaxed
+
+sql "alter database grounded_access reset all" > /dev/null
+sql "drop index chunk_embedding_hnsw" > /dev/null
+sql "create index chunk_embedding_hnsw_external on chunk using hnsw (embedding vector_cosine_ops) where tenant_id = 'external'" > /dev/null
+sql "analyze chunk" > /dev/null
+sql "alter database grounded_access set enable_sort = off" > /dev/null
+measure hnsw-forced-partial-external
+
+sql "alter database grounded_access reset all" > /dev/null
+sql "drop index chunk_embedding_hnsw_external" > /dev/null
+echo "host_load_at_end,$(uptime | sed 's/.*load averages*: //')" >> "$out/environment.csv"
+for name in hnsw-planner hnsw-forced hnsw-forced-iterative-strict hnsw-forced-iterative-relaxed hnsw-forced-partial-external; do
+    "${eval_cli[@]}" ann-recall "$out/exact" "$out/$name" --out "$out/$name" > /dev/null
+done
+echo "results in $out"

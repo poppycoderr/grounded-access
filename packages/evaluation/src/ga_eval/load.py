@@ -35,7 +35,15 @@ def with_distractors(dataset: Dataset, directory: Path) -> Dataset:
     return replace(dataset, visibility=visibility, current_version=dataset.current_version | dict.fromkeys(distractor_keys, 1))
 
 
-def run(dataset: Dataset, client: ApiClient, strategies: list[str], workers: int, requests: int, k: int) -> dict:
+def as_principal(dataset: Dataset, principal: str) -> Dataset:
+    """Every case asked by one principal, for measurements that compare two configurations and need no labels, such as the recall of an
+    approximate index against exact search. Results are still checked against that principal's visible set."""
+    if principal not in dataset.visibility:
+        raise ValueError(f"{principal} has no visibility labels")
+    return replace(dataset, cases=[c.model_copy(update={"principal": principal}) for c in dataset.cases])
+
+
+def run(dataset: Dataset, client: ApiClient, strategies: list[str], workers: int, requests: int, k: int, record_results: bool = False) -> dict:
     tokens_by_principal = {
         p: tokens.mint(dataset.root, p, dataset.principals[p], scope="query debug") for p in sorted({c.principal for c in dataset.cases})
     }
@@ -61,6 +69,9 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], workers: int
                 "violations": metrics.violations(results, dataset.visibility[case.principal], dataset.current_version),
                 "trace_id": response["traceId"],
             }
+            if record_results:
+                # Document, version and offset identify a chunk across two runs on the same stack; the score says how close it was
+                record["results"] = [[r.document, r.version, r.start, item["score"]] for r, item in zip(results, response["results"], strict=True)]
         record["latency_ms"] = round((time.perf_counter() - started) * 1000, 1)
         return record
 
