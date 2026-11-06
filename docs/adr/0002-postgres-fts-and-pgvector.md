@@ -34,6 +34,15 @@ A benchmark case with a **highly selective filter** (for example a project that 
 
 The same benchmark supplies the evidence for the article on why post-filtering hurts recall.
 
+**Measured in v0.2** ([report](../../benchmarks/reports/v0.2-hnsw/README.md)): 33,283 chunks, a principal who may read 1.2% of them.
+
+- **The planner keeps exact search.** With an HNSW index available, it keeps the exact plan (67 ms) for every principal.
+- **Forced, the index loses recall.** Post-filtering empties most selective searches, and iterative scans recover them only partly
+  (recall 0.863 with relaxed order).
+- **The generated corpus makes it worse.** It also keeps the graph search from reaching the labelled chunks.
+
+The decision stands: exact search, and any approximate index has to pass that comparison on a written corpus first.
+
 ## Alternatives considered
 
 - **BM25 extension (e.g. ParadeDB `pg_search`):** a stronger sparse channel, but it is AGPL-licensed and adds another extension to operate. Reconsider it if the calibration row shows a large gap.

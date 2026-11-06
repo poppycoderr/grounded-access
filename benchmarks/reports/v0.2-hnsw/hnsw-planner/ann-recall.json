@@ -1,0 +1,58 @@
+{
+  "k": 10,
+  "principals": {
+    "alice-engineer": {
+      "searches": 128,
+      "recall": 1.0,
+      "distance_recall": 1.0,
+      "fewer_results": 0,
+      "empty": 0
+    },
+    "bob-support": {
+      "searches": 128,
+      "recall": 1.0,
+      "distance_recall": 1.0,
+      "fewer_results": 0,
+      "empty": 0
+    },
+    "carol-manager": {
+      "searches": 128,
+      "recall": 1.0,
+      "distance_recall": 1.0,
+      "fewer_results": 0,
+      "empty": 0
+    },
+    "dave-contractor": {
+      "searches": 128,
+      "recall": 1.0,
+      "distance_recall": 1.0,
+      "fewer_results": 0,
+      "empty": 0
+    },
+    "mallory-outsider": {
+      "searches": 128,
+      "recall": 1.0,
+      "distance_recall": 1.0,
+      "fewer_results": 0,
+      "empty": 0
+    }
+  },
+  "all": {
+    "searches": 640,
+    "recall": 1.0,
+    "distance_recall": 1.0,
+    "fewer_results": 0,
+    "empty": 0
+  },
+  "latency": {
+    "exact": {
+      "p50_ms": 66.8,
+      "p95_ms": 86.8
+    },
+    "candidate": {
+      "p50_ms": 69.9,
+      "p95_ms": 119.3
+    }
+  },
+  "exact_score_spread_p50": 0.06804435521402386
+}

@@ -158,6 +158,13 @@ Rules: no case is removed after a failure, all configurations are published rath
   scale-report` renders the summary from those files.
 - **Why it does not gate CI.** Distractors are not labelled for quality, and the absolute numbers depend on the machine.
 
+### Approximate index runs
+
+`scripts/hnsw-run` compares exact dense search with HNSW configurations on a throwaway stack. It sends every query as each principal
+(`ga-eval load-test --as-principal --record-results`). `ga-eval ann-recall` then reports, per principal, recall@10 against exact search,
+distance recall, and searches that came back with fewer results. Index use is read from `pg_stat_user_indexes`. Like scale runs, these
+runs measure cost and recall, not quality, and do not gate CI.
+
 ### Comparing two runs
 
 `ga-eval compare <before> <after>` pairs the same strategy on the same cases across two runs. What an experiment changes may differ between the runs: the index, the chunker, the models, the retrieval plans. What must not differ is checked, and the comparison is refused otherwise: the dataset version, the `dataset_digest` and `metrics_version` when both runs record them, `k`, and the set of cases of each strategy in the split. A case recorded twice, a case present in one run only, an empty split, and a run that is invalid or failed its security or scope gate are all refused. `--allow-subset` compares only the shared cases, lists the others and marks the result as a subset, which is not a full result. A run made before `dataset_digest` and `metrics_version` were recorded is compared and named as legacy in the output; the missing values are not assumed.
