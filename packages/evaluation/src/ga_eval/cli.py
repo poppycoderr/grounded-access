@@ -8,7 +8,7 @@ from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
-from ga_eval import answers, between, demo, distractors, load, rankings, runner, scale, tokens
+from ga_eval import ann, answers, between, demo, distractors, load, rankings, runner, scale, tokens
 from ga_eval import dataset as ds
 from ga_eval.client import ApiClient, IngestionFailedError
 
@@ -29,6 +29,11 @@ def main(argv: list[str] | None = None) -> int:
     load_corpus_parser.add_argument(
         "--manifests", type=Path, help="load the manifests and corpus of this directory instead, for example generated distractors"
     )
+    ann_parser = commands.add_parser("ann-recall", help="recall of an approximate index against exact search, from two recorded load tests")
+    ann_parser.add_argument("exact", type=Path)
+    ann_parser.add_argument("candidate", type=Path)
+    ann_parser.add_argument("--k", type=int, default=10)
+    ann_parser.add_argument("--out", type=Path, help="write ann-recall.json and ann-recall.md into this directory")
     scale_parser = commands.add_parser("scale-report", help="render summary.json and summary.md of a scripts/scale-run directory")
     scale_parser.add_argument("directory", type=Path)
     distractors_parser = commands.add_parser("distractors", help="write generated, labelled distractor documents for scale and load runs")
@@ -56,6 +61,8 @@ def main(argv: list[str] | None = None) -> int:
     load_parser.add_argument("--k", type=int, default=10)
     load_parser.add_argument("--allow-degraded", action="store_true", help="report degraded results instead of failing on them")
     load_parser.add_argument("--out", type=Path, help="output directory (default: results/load-<timestamp>)")
+    load_parser.add_argument("--as-principal", help="send every case as this principal instead of its own")
+    load_parser.add_argument("--record-results", action="store_true", help="keep each request's ranked results, for ga-eval ann-recall")
     load_parser.add_argument(
         "--distractors", type=Path, help="a directory written by `ga-eval distractors` and loaded into the stack; its documents are checked too"
     )
@@ -79,6 +86,19 @@ def main(argv: list[str] | None = None) -> int:
     mint_parser.add_argument("--scope")
     args = parser.parse_args(argv)
 
+    if args.command == "ann-recall":
+        try:
+            comparison = ann.compare(args.exact, args.candidate, args.k)
+        except ann.MismatchedRunsError as mismatch:
+            print(f"error: {mismatch}", file=sys.stderr)
+            return 1
+        report = ann.render(comparison, args.exact.name, args.candidate.name)
+        if args.out:
+            args.out.mkdir(parents=True, exist_ok=True)
+            (args.out / "ann-recall.json").write_text(json.dumps(comparison, indent=2) + "\n")
+            (args.out / "ann-recall.md").write_text(report)
+        print(report)
+        return 0
     if args.command == "scale-report":
         summary = scale.summarize(args.directory)
         (args.directory / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
@@ -241,7 +261,9 @@ def _loaded_documents(dataset: ds.Dataset, client: ApiClient, tenant: str) -> se
 def _load_test(dataset: ds.Dataset, client: ApiClient, args: argparse.Namespace) -> int:
     if args.distractors:
         dataset = load.with_distractors(dataset, args.distractors)
-    output = load.run(dataset, client, args.strategy or list(runner.SYSTEM_STRATEGIES), args.workers, args.requests, args.k)
+    if args.as_principal:
+        dataset = load.as_principal(dataset, args.as_principal)
+    output = load.run(dataset, client, args.strategy or list(runner.SYSTEM_STRATEGIES), args.workers, args.requests, args.k, args.record_results)
     output["run"]["distractor_documents"] = sum(len(m.documents) for m in ds.load_manifests(args.distractors)) if args.distractors else 0
     out_dir = args.out or Path("results") / f"load-{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}"
     load.write(output, out_dir)

@@ -26,7 +26,7 @@ class ScriptedClient:
             )
             raise httpx.HTTPStatusError("503", request=request, response=response)
         degraded = ["rerank_unavailable"] if strategy == "hybrid-rrf-rerank" else []
-        results = [{"documentKey": self._document, "versionNo": 1, "charStart": 0, "charEnd": 1, "rank": 1}]
+        results = [{"documentKey": self._document, "versionNo": 1, "charStart": 0, "charEnd": 1, "rank": 1, "score": 0.5}]
         return {"results": results, "degraded": degraded, "traceId": f"{next(self._ids):032x}"}
 
 
@@ -79,3 +79,26 @@ def test_distractors_join_the_visible_sets_from_their_own_labels(tmp_path):
     leaked = load.run(replace(scaled, cases=alice), ScriptedClient(hidden.key), ["sparse-only"], 2, len(alice), 5)["run"]
     assert clean["security_violations"] == 0
     assert leaked["security_violations"] == len(alice)
+
+
+def test_results_are_recorded_only_when_asked_for():
+    data = ds.load(DATA)
+    document = next(iter(data.visibility["alice-engineer"]))
+    alice = [c for c in data.cases if c.principal == "alice-engineer"][:3]
+
+    plain = load.run(replace(data, cases=alice), ScriptedClient(document), ["dense-only"], 1, 3, 5)["requests"]
+    recorded = load.run(replace(data, cases=alice), ScriptedClient(document), ["dense-only"], 1, 3, 5, record_results=True)["requests"]
+
+    assert all("results" not in r for r in plain)
+    assert [r["results"] for r in recorded] == [[[document, 1, 0, 0.5]]] * 3
+
+
+def test_every_case_can_be_asked_by_one_principal_and_is_checked_against_its_visible_set():
+    data = ds.load(DATA)
+    hidden = next(d for d in data.current_version if d not in data.visibility["mallory-outsider"])
+
+    mallory = load.as_principal(data, "mallory-outsider")
+    leaked = load.run(mallory, ScriptedClient(hidden), ["dense-only"], 4, len(mallory.cases), 5)["run"]
+
+    assert len(mallory.cases) == len(data.cases) and {c.principal for c in mallory.cases} == {"mallory-outsider"}
+    assert leaked["security_violations"] == len(data.cases)
