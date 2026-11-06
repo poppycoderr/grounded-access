@@ -79,8 +79,12 @@ public class AuthorizedChunkQuery {
      * Exact cosine search over authorized rows; there is deliberately no ANN index in v0.1, so filtering cannot reduce recall (ADR-0002). Only
      * rows of the index profile the query vector was made with are compared with it (ADR-0007).
      */
+    /**
+     * The query vector is cast once, in an uncorrelated subquery. Cast inline, a generic plan (which PostgreSQL may choose once the driver
+     * prepares the statement on the server, after five executions) cast it again for every row it was compared with.
+     */
     public List<RetrievedChunk> dense(float[] queryVector, UUID indexProfileId, AuthorizationPredicate predicate, Scope scope, int limit) {
-        String distance = "(c.embedding <=> cast(:vector as vector))";
+        String distance = "(c.embedding <=> (select cast(:vector as vector)))";
         String sql = SELECT.formatted("1 - " + distance, predicate.sql(), scope.sql()) + " and c.embedding is not null and v.index_profile_id = :profile order by "
                 + distance + ", " + TIE_BREAK + " limit :limit";
         return run(sql, predicate, scope, false, limit, Map.of("vector", Vectors.toLiteral(queryVector), "profile", indexProfileId));
