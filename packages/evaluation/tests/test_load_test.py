@@ -1,10 +1,11 @@
 import itertools
+from dataclasses import replace
 from pathlib import Path
 
 import httpx
 
 from ga_eval import dataset as ds
-from ga_eval import load
+from ga_eval import distractors, load
 
 DATA = Path(__file__).resolve().parents[3] / "data"
 
@@ -20,7 +21,10 @@ class ScriptedClient:
     def search(self, token: str, query: str, strategy: str, k: int, as_of: str | None = None, region: str | None = None) -> dict:
         if strategy == self._refuse:
             request = httpx.Request("POST", "http://test/api/v1/retrieval/search")
-            raise httpx.HTTPStatusError("503", request=request, response=httpx.Response(503, request=request))
+            response = httpx.Response(
+                503, request=request, json={"code": "DATABASE_TIMEOUT", "detail": "a retrieval statement exceeded its time limit"}
+            )
+            raise httpx.HTTPStatusError("503", request=request, response=response)
         degraded = ["rerank_unavailable"] if strategy == "hybrid-rrf-rerank" else []
         results = [{"documentKey": self._document, "versionNo": 1, "charStart": 0, "charEnd": 1, "rank": 1}]
         return {"results": results, "degraded": degraded, "traceId": f"{next(self._ids):032x}"}
@@ -37,7 +41,7 @@ def test_counts_refused_and_degraded_requests_per_strategy():
     assert info["failed"] == 10
     assert info["degraded"] == 10
     assert info["repeated_trace_ids"] == 0
-    assert info["strategies"]["dense-only"]["statuses"] == {"503": 10}
+    assert info["strategies"]["dense-only"]["statuses"] == {"503 DATABASE_TIMEOUT": 10}
     assert info["strategies"]["hybrid-rrf-rerank"]["degraded"] == {"rerank_unavailable": 10}
     assert info["strategies"]["sparse-only"]["statuses"] == {"200": 10}
 
@@ -57,3 +61,21 @@ def test_a_result_outside_the_asking_principals_visible_set_is_a_violation():
 def test_percentiles_of_few_samples_do_not_run_off_the_end():
     assert load.percentile([1.0, 2.0, 3.0], 0.95) == 3.0
     assert load.percentile([], 0.95) is None
+
+
+def test_distractors_join_the_visible_sets_from_their_own_labels(tmp_path):
+    data = ds.load(DATA)
+    generated = distractors.generate(2, 300, data.principals)
+    distractors.write(generated, tmp_path)
+    scaled = load.with_distractors(data, tmp_path)
+    readable = next(d for d in generated.documents if distractors.visible(data.principals["alice-engineer"], d))
+    hidden = next(d for d in generated.documents if not distractors.visible(data.principals["alice-engineer"], d))
+
+    assert readable.key in scaled.visibility["alice-engineer"] and hidden.key not in scaled.visibility["alice-engineer"]
+    assert scaled.current_version[readable.key] == 1
+    assert data.visibility["alice-engineer"] <= scaled.visibility["alice-engineer"], "the labelled sets are kept"
+    alice = [c for c in data.cases if c.principal == "alice-engineer"]
+    clean = load.run(replace(scaled, cases=alice), ScriptedClient(readable.key), ["sparse-only"], 2, len(alice), 5)["run"]
+    leaked = load.run(replace(scaled, cases=alice), ScriptedClient(hidden.key), ["sparse-only"], 2, len(alice), 5)["run"]
+    assert clean["security_violations"] == 0
+    assert leaked["security_violations"] == len(alice)

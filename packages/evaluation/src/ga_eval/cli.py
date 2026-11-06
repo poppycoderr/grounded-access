@@ -8,7 +8,7 @@ from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
-from ga_eval import answers, between, demo, distractors, load, rankings, runner, tokens
+from ga_eval import answers, between, demo, distractors, load, rankings, runner, scale, tokens
 from ga_eval import dataset as ds
 from ga_eval.client import ApiClient, IngestionFailedError
 
@@ -29,6 +29,8 @@ def main(argv: list[str] | None = None) -> int:
     load_corpus_parser.add_argument(
         "--manifests", type=Path, help="load the manifests and corpus of this directory instead, for example generated distractors"
     )
+    scale_parser = commands.add_parser("scale-report", help="render summary.json and summary.md of a scripts/scale-run directory")
+    scale_parser.add_argument("directory", type=Path)
     distractors_parser = commands.add_parser("distractors", help="write generated, labelled distractor documents for scale and load runs")
     distractors_parser.add_argument("--seed", type=int, default=1)
     distractors_parser.add_argument("--documents", type=int, default=2000)
@@ -54,6 +56,9 @@ def main(argv: list[str] | None = None) -> int:
     load_parser.add_argument("--k", type=int, default=10)
     load_parser.add_argument("--allow-degraded", action="store_true", help="report degraded results instead of failing on them")
     load_parser.add_argument("--out", type=Path, help="output directory (default: results/load-<timestamp>)")
+    load_parser.add_argument(
+        "--distractors", type=Path, help="a directory written by `ga-eval distractors` and loaded into the stack; its documents are checked too"
+    )
     compare_parser = commands.add_parser("compare", help="paired comparison of two runs of the same cases, strategy by strategy")
     compare_parser.add_argument("before", type=Path)
     compare_parser.add_argument("after", type=Path)
@@ -74,6 +79,12 @@ def main(argv: list[str] | None = None) -> int:
     mint_parser.add_argument("--scope")
     args = parser.parse_args(argv)
 
+    if args.command == "scale-report":
+        summary = scale.summarize(args.directory)
+        (args.directory / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
+        (args.directory / "summary.md").write_text(scale.render(summary))
+        print((args.directory / "summary.md").read_text())
+        return 0
     if args.command == "rankings":
         run_info, records = between.load(args.run_dir)
         try:
@@ -228,7 +239,10 @@ def _loaded_documents(dataset: ds.Dataset, client: ApiClient, tenant: str) -> se
 
 
 def _load_test(dataset: ds.Dataset, client: ApiClient, args: argparse.Namespace) -> int:
+    if args.distractors:
+        dataset = load.with_distractors(dataset, args.distractors)
     output = load.run(dataset, client, args.strategy or list(runner.SYSTEM_STRATEGIES), args.workers, args.requests, args.k)
+    output["run"]["distractor_documents"] = sum(len(m.documents) for m in ds.load_manifests(args.distractors)) if args.distractors else 0
     out_dir = args.out or Path("results") / f"load-{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}"
     load.write(output, out_dir)
     print((out_dir / "report.md").read_text())

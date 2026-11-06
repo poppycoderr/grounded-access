@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# Measure the running stack at growing corpus sizes (v0.2 plan, step 1c). For each size it loads that many generated distractors on top of
+# the labelled corpus, then runs the load test sequentially and with concurrent clients, checks every result against the principals'
+# visible sets (labelled and generated), and reads the per-stage timings of those searches and the growth of the audit tables from the
+# database. Needs a stack started from an empty database and loaded with ./scripts/load-demo. Results go to results/scale-<timestamp>.
+#
+#   ./scripts/scale-run              # sizes 0 400 4200: the labelled corpus alone, then about 25x and 250x its chunks
+#   SIZES="0 400" ./scripts/scale-run
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+sizes=${SIZES:-0 400 4200}
+seed=${SEED:-1}
+out=${OUT:-results/scale-$(date -u +%Y%m%dT%H%M%SZ)}
+strategies=(--strategy sparse-only --strategy dense-only --strategy hybrid-rrf)
+eval_cli=(uv run --project packages/evaluation ga-eval)
+mkdir -p "$out"
+
+# What the numbers depend on besides the code: the container runtime's CPUs and memory, and the database settings that bound a scan
+{
+    echo "docker_cpus,$(docker info --format '{{.NCPU}}')"
+    echo "docker_memory_bytes,$(docker info --format '{{.MemTotal}}')"
+    for setting in max_connections shared_buffers work_mem max_parallel_workers_per_gather statement_timeout; do
+        echo "$setting,$(docker compose exec -T postgres psql -At -U grounded_access -d grounded_access -c "show $setting")"
+    done
+} > "$out/environment.csv"
+
+sql() {
+    docker compose exec -T postgres psql -At -F, -U grounded_access -d grounded_access -c "$1"
+}
+
+# Per strategy: requests, then p50 and p95 of the sparse and dense stage as the execution records time them. The dense stage includes the
+# query embedding, which does not depend on the corpus size.
+stages() {
+    sql "select plan->>'strategy', count(*),
+                percentile_cont(0.5) within group (order by (latency_ms->>'sparse')::int), percentile_cont(0.95) within group (order by (latency_ms->>'sparse')::int),
+                percentile_cont(0.5) within group (order by (latency_ms->>'dense')::int), percentile_cont(0.95) within group (order by (latency_ms->>'dense')::int)
+         from query_execution where created_at >= '$1' group by 1 order by 1"
+}
+
+audit_bytes() {
+    sql "select pg_total_relation_size('audit_event') + pg_total_relation_size('query_execution'), (select count(*) from audit_event) + (select count(*) from query_execution)"
+}
+
+for size in $sizes; do
+    run="$out/size-$size"
+    mkdir -p "$run"
+    distractors=()
+    if [ "$size" -gt 0 ]; then
+        "${eval_cli[@]}" distractors --seed "$seed" --documents "$size" --out "$run/distractors"
+        "${eval_cli[@]}" load --manifests "$run/distractors" > "$run/load.log"
+        distractors=(--distractors "$run/distractors")
+    fi
+    sql "select count(*) from chunk" > "$run/chunks.txt"
+    for workers in 1 16; do
+        requests=$((workers == 1 ? 300 : 600))
+        started=$(sql "select now()")
+        before=$(audit_bytes)
+        # Refused requests are part of the measurement and do not stop the run; an unauthorized result (exit code 2) does
+        status=0
+        "${eval_cli[@]}" load-test "${strategies[@]}" --workers "$workers" --requests "$requests" --allow-degraded \
+            ${distractors[@]+"${distractors[@]}"} --out "$run/workers-$workers" > /dev/null || status=$?
+        echo "$status" > "$run/workers-$workers/exit-code.txt"
+        if [ "$status" -eq 2 ]; then
+            echo "SECURITY GATE FAILED at size $size with $workers clients" >&2
+            exit 2
+        fi
+        echo "before,$before" > "$run/workers-$workers/audit.csv"
+        echo "after,$(audit_bytes)" >> "$run/workers-$workers/audit.csv"
+        echo "strategy,requests,sparse_p50_ms,sparse_p95_ms,dense_p50_ms,dense_p95_ms" > "$run/workers-$workers/stages.csv"
+        stages "$started" >> "$run/workers-$workers/stages.csv"
+    done
+    echo "size $size: $(cat "$run/chunks.txt") chunks"
+done
+echo "results in $out"
