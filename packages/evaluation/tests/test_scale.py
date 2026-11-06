@@ -48,3 +48,13 @@ def test_sizes_are_ordered_by_number_and_every_figure_comes_from_the_files(tmp_p
     assert run["audit_rows_per_1000"] == 2000 and run["audit_kib_per_1000"] == 800
     assert "| 33,000 | 1 | `sparse-only` | 10 | 1 | 2 | 0 | 5.0 | 40.0 | 41.0 |" in report
     assert "| 328 | 16 | `sparse-only` | 3 / 4.5 | – / – |" in report
+
+
+def test_an_interrupted_run_shows_its_audit_growth_as_unknown(tmp_path):
+    write_run(tmp_path, 0, 328, 1, 9.0)
+    (tmp_path / "size-0" / "workers-1" / "audit.csv").write_text("before,8192,0\nafter,\n")
+
+    run = scale.summarize(tmp_path)["sizes"][0]["runs"][0]
+
+    assert run["audit_rows_per_1000"] is None
+    assert "| 328 | 1 | 20.0 | – | – |" in scale.render(scale.summarize(tmp_path))
