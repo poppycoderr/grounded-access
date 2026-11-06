@@ -14,10 +14,12 @@ def summarize(directory: Path) -> dict:
             info = json.loads((run_dir / "run.json").read_text())
             with (run_dir / "stages.csv").open() as f:
                 stages = {row["strategy"]: row for row in csv.DictReader(f)}
-            audit = {row[0]: (int(row[1]), int(row[2])) for row in csv.reader((run_dir / "audit.csv").open())}
+            audit = {row[0]: row[1:] for row in csv.reader((run_dir / "audit.csv").open())}
             searches = info["requests"]
-            grown_bytes = audit["after"][0] - audit["before"][0]
-            grown_rows = audit["after"][1] - audit["before"][1]
+            # An interrupted run leaves the audit reading after it empty; its growth is then unknown, not zero
+            known = all(len(audit.get(side, [])) == 2 and all(audit[side]) for side in ("before", "after"))
+            grown_bytes = int(audit["after"][0]) - int(audit["before"][0]) if known else None
+            grown_rows = int(audit["after"][1]) - int(audit["before"][1]) if known else None
             runs.append(
                 {
                     "workers": info["workers"],
@@ -28,8 +30,8 @@ def summarize(directory: Path) -> dict:
                     "security_violations": info["security_violations"],
                     "strategies": info["strategies"],
                     "stages": stages,
-                    "audit_rows_per_1000": round(grown_rows * 1000 / searches) if searches else None,
-                    "audit_kib_per_1000": round(grown_bytes * 1000 / searches / 1024) if searches else None,
+                    "audit_rows_per_1000": round(grown_rows * 1000 / searches) if searches and grown_rows is not None else None,
+                    "audit_kib_per_1000": round(grown_bytes * 1000 / searches / 1024) if searches and grown_bytes is not None else None,
                     "cpu": info["cpu"],
                     "git_sha": info["git_sha"],
                 }
@@ -93,7 +95,7 @@ def render(summary: dict) -> str:
     ]
     for size in summary["sizes"]:
         for run in size["runs"]:
-            growth = f"{run['audit_rows_per_1000']} | {run['audit_kib_per_1000']}"
+            growth = " | ".join("–" if run[key] is None else str(run[key]) for key in ("audit_rows_per_1000", "audit_kib_per_1000"))
             lines.append(f"| {size['chunks']:,} | {run['workers']} | {run['requests_per_second']} | {growth} |")
     return "\n".join(lines) + "\n"
 

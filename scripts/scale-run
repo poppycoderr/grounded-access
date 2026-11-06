@@ -20,6 +20,7 @@ mkdir -p "$out"
 {
     echo "docker_cpus,$(docker info --format '{{.NCPU}}')"
     echo "docker_memory_bytes,$(docker info --format '{{.MemTotal}}')"
+    echo "host_load_at_start,$(uptime | sed 's/.*load averages*: //')"
     for setting in max_connections shared_buffers work_mem max_parallel_workers_per_gather statement_timeout; do
         echo "$setting,$(docker compose exec -T postgres psql -At -U grounded_access -d grounded_access -c "show $setting")"
     done
@@ -72,4 +73,5 @@ for size in $sizes; do
     done
     echo "size $size: $(cat "$run/chunks.txt") chunks"
 done
+echo "host_load_at_end,$(uptime | sed 's/.*load averages*: //')" >> "$out/environment.csv"
 echo "results in $out"
