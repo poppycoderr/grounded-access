@@ -1,0 +1,9 @@
+docker_cpus,7
+docker_memory_bytes,12480720896
+host_load_at_start,4.30 6.65 7.10
+max_connections,100
+shared_buffers,128MB
+work_mem,4MB
+max_parallel_workers_per_gather,2
+statement_timeout,0
+host_load_at_end,5.00 6.13 6.84

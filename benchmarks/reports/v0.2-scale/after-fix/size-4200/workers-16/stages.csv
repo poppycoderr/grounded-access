@@ -1,0 +1,4 @@
+strategy,requests,sparse_p50_ms,sparse_p95_ms,dense_p50_ms,dense_p95_ms
+dense-only,200,0,0,330.5,566.4999999999999
+hybrid-rrf,200,378.5,1041.1,323.5,562.3499999999999
+sparse-only,200,384.5,1008.6999999999999,0,0
