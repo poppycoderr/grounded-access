@@ -11,17 +11,28 @@ import platform
 import time
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
+import yaml
 
 from ga_eval import metrics, tokens
 from ga_eval.client import ApiClient
-from ga_eval.dataset import Case, Dataset
+from ga_eval.dataset import Case, Dataset, load_manifests
 from ga_eval.metrics import Result
 from ga_eval.provenance import cpu_model
 from ga_eval.runner import _git_sha
+
+
+def with_distractors(dataset: Dataset, directory: Path) -> Dataset:
+    """The dataset with generated distractors (`ga-eval distractors`) added to each principal's visible set as their own visibility.yaml
+    states it, so a load run on a stack that has them loaded checks them like every other document. Cases are unchanged."""
+    labelled = yaml.safe_load((directory / "visibility.yaml").read_text())["principals"]
+    visibility = {p: dataset.visibility.get(p, set()) | set(labelled.get(p, [])) for p in dataset.visibility.keys() | labelled.keys()}
+    distractor_keys = {d.key for m in load_manifests(directory) for d in m.documents}
+    return replace(dataset, visibility=visibility, current_version=dataset.current_version | dict.fromkeys(distractor_keys, 1))
 
 
 def run(dataset: Dataset, client: ApiClient, strategies: list[str], workers: int, requests: int, k: int) -> dict:
@@ -39,6 +50,7 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], workers: int
             response = client.search(tokens_by_principal[case.principal], case.query, strategy, k, as_of, case.region)
         except httpx.HTTPStatusError as refused:
             record["status"] = refused.response.status_code
+            record["code"] = _code(refused.response)
         except httpx.HTTPError as failed:
             record["error"] = type(failed).__name__
         else:
@@ -82,7 +94,9 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], workers: int
 
 def summarize(records: list[dict]) -> dict:
     ordered = sorted(r["latency_ms"] for r in records)
-    statuses = Counter(str(r["status"]) if r["status"] else r.get("error", "error") for r in records)
+    statuses = Counter(
+        (f"{r['status']} {r['code']}" if r.get("code") else str(r["status"])) if r["status"] else r.get("error", "error") for r in records
+    )
     return {
         "requests": len(records),
         "statuses": dict(sorted(statuses.items())),
@@ -92,6 +106,15 @@ def summarize(records: list[dict]) -> dict:
         "p95_ms": percentile(ordered, 0.95),
         "max_ms": ordered[-1] if ordered else None,
     }
+
+
+def _code(response: httpx.Response) -> str | None:
+    """The error code of a refusal (`DATABASE_TIMEOUT`, `BUSY`, ...), which says which limit refused it; never its message."""
+    try:
+        code = response.json().get("code")
+    except ValueError:
+        return None
+    return code if isinstance(code, str) else None
 
 
 def percentile(ordered: list[float], share: float) -> float | None:
