@@ -1,0 +1,462 @@
+{
+  "sizes": [
+    {
+      "distractor_documents": 0,
+      "chunks": 135,
+      "runs": [
+        {
+          "workers": 1,
+          "requests": 300,
+          "requests_per_second": 60.5,
+          "failed": 0,
+          "degraded": 0,
+          "security_violations": 0,
+          "strategies": {
+            "sparse-only": {
+              "requests": 100,
+              "statuses": {
+                "200": 100
+              },
+              "degraded": {},
+              "violations": 0,
+              "p50_ms": 4.9,
+              "p95_ms": 7.4,
+              "max_ms": 45.4
+            },
+            "dense-only": {
+              "requests": 100,
+              "statuses": {
+                "200": 100
+              },
+              "degraded": {},
+              "violations": 0,
+              "p50_ms": 21.3,
+              "p95_ms": 27.5,
+              "max_ms": 46.1
+            },
+            "hybrid-rrf": {
+              "requests": 100,
+              "statuses": {
+                "200": 100
+              },
+              "degraded": {},
+              "violations": 0,
+              "p50_ms": 22.5,
+              "p95_ms": 29.1,
+              "max_ms": 33.9
+            }
+          },
+          "stages": {
+            "dense-only": {
+              "strategy": "dense-only",
+              "requests": "100",
+              "sparse_p50_ms": "0",
+              "sparse_p95_ms": "0",
+              "dense_p50_ms": "16",
+              "dense_p95_ms": "22"
+            },
+            "hybrid-rrf": {
+              "strategy": "hybrid-rrf",
+              "requests": "100",
+              "sparse_p50_ms": "0.5",
+              "sparse_p95_ms": "1",
+              "dense_p50_ms": "16",
+              "dense_p95_ms": "22"
+            },
+            "sparse-only": {
+              "strategy": "sparse-only",
+              "requests": "100",
+              "sparse_p50_ms": "1",
+              "sparse_p95_ms": "1",
+              "dense_p50_ms": "0",
+              "dense_p95_ms": "0"
+            }
+          },
+          "audit_rows_per_1000": 2000,
+          "audit_kib_per_1000": 1627,
+          "cpu": "arm",
+          "git_sha": "5599870"
+        },
+        {
+          "workers": 16,
+          "requests": 600,
+          "requests_per_second": 155.1,
+          "failed": 0,
+          "degraded": 0,
+          "security_violations": 0,
+          "strategies": {
+            "sparse-only": {
+              "requests": 200,
+              "statuses": {
+                "200": 200
+              },
+              "degraded": {},
+              "violations": 0,
+              "p50_ms": 11.8,
+              "p95_ms": 36.0,
+              "max_ms": 79.3
+            },
+            "dense-only": {
+              "requests": 200,
+              "statuses": {
+                "200": 200
+              },
+              "degraded": {},
+              "violations": 0,
+              "p50_ms": 136.0,
+              "p95_ms": 204.1,
+              "max_ms": 261.5
+            },
+            "hybrid-rrf": {
+              "requests": 200,
+              "statuses": {
+                "200": 200
+              },
+              "degraded": {},
+              "violations": 0,
+              "p50_ms": 144.3,
+              "p95_ms": 223.5,
+              "max_ms": 245.9
+            }
+          },
+          "stages": {
+            "dense-only": {
+              "strategy": "dense-only",
+              "requests": "200",
+              "sparse_p50_ms": "0",
+              "sparse_p95_ms": "0",
+              "dense_p50_ms": "123",
+              "dense_p95_ms": "185"
+            },
+            "hybrid-rrf": {
+              "strategy": "hybrid-rrf",
+              "requests": "200",
+              "sparse_p50_ms": "1",
+              "sparse_p95_ms": "8",
+              "dense_p50_ms": "129",
+              "dense_p95_ms": "199.39999999999992"
+            },
+            "sparse-only": {
+              "strategy": "sparse-only",
+              "requests": "200",
+              "sparse_p50_ms": "1",
+              "sparse_p95_ms": "9",
+              "dense_p50_ms": "0",
+              "dense_p95_ms": "0"
+            }
+          },
+          "audit_rows_per_1000": 2000,
+          "audit_kib_per_1000": 1560,
+          "cpu": "arm",
+          "git_sha": "5599870"
+        }
+      ]
+    },
+    {
+      "distractor_documents": 400,
+      "chunks": 3263,
+      "runs": [
+        {
+          "workers": 1,
+          "requests": 300,
+          "requests_per_second": 24.3,
+          "failed": 0,
+          "degraded": 0,
+          "security_violations": 0,
+          "strategies": {
+            "sparse-only": {
+              "requests": 100,
+              "statuses": {
+                "200": 100
+              },
+              "degraded": {},
+              "violations": 0,
+              "p50_ms": 11.3,
+              "p95_ms": 29.4,
+              "max_ms": 41.6
+            },
+            "dense-only": {
+              "requests": 100,
+              "statuses": {
+                "200": 100
+              },
+              "degraded": {},
+              "violations": 0,
+              "p50_ms": 25.7,
+              "p95_ms": 113.2,
+              "max_ms": 135.1
+            },
+            "hybrid-rrf": {
+              "requests": 100,
+              "statuses": {
+                "200": 100
+              },
+              "degraded": {},
+              "violations": 0,
+              "p50_ms": 33.2,
+              "p95_ms": 128.5,
+              "max_ms": 151.4
+            }
+          },
+          "stages": {
+            "dense-only": {
+              "strategy": "dense-only",
+              "requests": "100",
+              "sparse_p50_ms": "0",
+              "sparse_p95_ms": "0",
+              "dense_p50_ms": "21",
+              "dense_p95_ms": "108.05"
+            },
+            "hybrid-rrf": {
+              "strategy": "hybrid-rrf",
+              "requests": "100",
+              "sparse_p50_ms": "6.5",
+              "sparse_p95_ms": "25",
+              "dense_p50_ms": "21",
+              "dense_p95_ms": "108.05"
+            },
+            "sparse-only": {
+              "strategy": "sparse-only",
+              "requests": "100",
+              "sparse_p50_ms": "7",
+              "sparse_p95_ms": "22.149999999999988",
+              "dense_p50_ms": "0",
+              "dense_p95_ms": "0"
+            }
+          },
+          "audit_rows_per_1000": 2000,
+          "audit_kib_per_1000": 1760,
+          "cpu": "arm",
+          "git_sha": "5599870"
+        },
+        {
+          "workers": 16,
+          "requests": 600,
+          "requests_per_second": 50.3,
+          "failed": 0,
+          "degraded": 0,
+          "security_violations": 0,
+          "strategies": {
+            "sparse-only": {
+              "requests": 200,
+              "statuses": {
+                "200": 200
+              },
+              "degraded": {},
+              "violations": 0,
+              "p50_ms": 108.1,
+              "p95_ms": 326.7,
+              "max_ms": 499.1
+            },
+            "dense-only": {
+              "requests": 200,
+              "statuses": {
+                "200": 200
+              },
+              "degraded": {},
+              "violations": 0,
+              "p50_ms": 363.4,
+              "p95_ms": 623.1,
+              "max_ms": 984.7
+            },
+            "hybrid-rrf": {
+              "requests": 200,
+              "statuses": {
+                "200": 200
+              },
+              "degraded": {},
+              "violations": 0,
+              "p50_ms": 507.9,
+              "p95_ms": 831.1,
+              "max_ms": 1001.0
+            }
+          },
+          "stages": {
+            "dense-only": {
+              "strategy": "dense-only",
+              "requests": "200",
+              "sparse_p50_ms": "0",
+              "sparse_p95_ms": "0",
+              "dense_p50_ms": "354",
+              "dense_p95_ms": "605.3499999999999"
+            },
+            "hybrid-rrf": {
+              "strategy": "hybrid-rrf",
+              "requests": "200",
+              "sparse_p50_ms": "97.5",
+              "sparse_p95_ms": "274.24999999999994",
+              "dense_p50_ms": "342.5",
+              "dense_p95_ms": "628.05"
+            },
+            "sparse-only": {
+              "strategy": "sparse-only",
+              "requests": "200",
+              "sparse_p50_ms": "95.5",
+              "sparse_p95_ms": "270.59999999999974",
+              "dense_p50_ms": "0",
+              "dense_p95_ms": "0"
+            }
+          },
+          "audit_rows_per_1000": 2000,
+          "audit_kib_per_1000": 1320,
+          "cpu": "arm",
+          "git_sha": "5599870"
+        }
+      ]
+    },
+    {
+      "distractor_documents": 4200,
+      "chunks": 33283,
+      "runs": [
+        {
+          "workers": 1,
+          "requests": 300,
+          "requests_per_second": 1.8,
+          "failed": 0,
+          "degraded": 0,
+          "security_violations": 0,
+          "strategies": {
+            "sparse-only": {
+              "requests": 100,
+              "statuses": {
+                "200": 100
+              },
+              "degraded": {},
+              "violations": 0,
+              "p50_ms": 122.3,
+              "p95_ms": 293.7,
+              "max_ms": 409.6
+            },
+            "dense-only": {
+              "requests": 100,
+              "statuses": {
+                "200": 100
+              },
+              "degraded": {},
+              "violations": 0,
+              "p50_ms": 793.9,
+              "p95_ms": 981.7,
+              "max_ms": 990.3
+            },
+            "hybrid-rrf": {
+              "requests": 100,
+              "statuses": {
+                "200": 100
+              },
+              "degraded": {},
+              "violations": 0,
+              "p50_ms": 918.2,
+              "p95_ms": 1228.8,
+              "max_ms": 1375.8
+            }
+          },
+          "stages": {
+            "dense-only": {
+              "strategy": "dense-only",
+              "requests": "100",
+              "sparse_p50_ms": "0",
+              "sparse_p95_ms": "0",
+              "dense_p50_ms": "789",
+              "dense_p95_ms": "976.05"
+            },
+            "hybrid-rrf": {
+              "strategy": "hybrid-rrf",
+              "requests": "100",
+              "sparse_p50_ms": "117",
+              "sparse_p95_ms": "304.2",
+              "dense_p50_ms": "790.5",
+              "dense_p95_ms": "976.05"
+            },
+            "sparse-only": {
+              "strategy": "sparse-only",
+              "requests": "100",
+              "sparse_p50_ms": "116.5",
+              "sparse_p95_ms": "287.09999999999997",
+              "dense_p50_ms": "0",
+              "dense_p95_ms": "0"
+            }
+          },
+          "audit_rows_per_1000": 2000,
+          "audit_kib_per_1000": 1573,
+          "cpu": "arm",
+          "git_sha": "5599870"
+        },
+        {
+          "workers": 16,
+          "requests": 600,
+          "requests_per_second": 9.5,
+          "failed": 169,
+          "degraded": 0,
+          "security_violations": 0,
+          "strategies": {
+            "sparse-only": {
+              "requests": 200,
+              "statuses": {
+                "200": 200
+              },
+              "degraded": {},
+              "violations": 0,
+              "p50_ms": 679.5,
+              "p95_ms": 1717.7,
+              "max_ms": 2465.2
+            },
+            "dense-only": {
+              "requests": 200,
+              "statuses": {
+                "200": 117,
+                "503 DATABASE_TIMEOUT": 83
+              },
+              "degraded": {},
+              "violations": 0,
+              "p50_ms": 2119.4,
+              "p95_ms": 3244.4,
+              "max_ms": 4260.8
+            },
+            "hybrid-rrf": {
+              "requests": 200,
+              "statuses": {
+                "200": 114,
+                "503 DATABASE_TIMEOUT": 86
+              },
+              "degraded": {},
+              "violations": 0,
+              "p50_ms": 2813.9,
+              "p95_ms": 4494.4,
+              "max_ms": 5306.8
+            }
+          },
+          "stages": {
+            "dense-only": {
+              "strategy": "dense-only",
+              "requests": "117",
+              "sparse_p50_ms": "0",
+              "sparse_p95_ms": "0",
+              "dense_p50_ms": "514",
+              "dense_p95_ms": "2696.399999999999"
+            },
+            "hybrid-rrf": {
+              "strategy": "hybrid-rrf",
+              "requests": "114",
+              "sparse_p50_ms": "477.5",
+              "sparse_p95_ms": "1583.75",
+              "dense_p50_ms": "516",
+              "dense_p95_ms": "2744.1499999999996"
+            },
+            "sparse-only": {
+              "strategy": "sparse-only",
+              "requests": "200",
+              "sparse_p50_ms": "633",
+              "sparse_p95_ms": "1507.4499999999994",
+              "dense_p50_ms": "0",
+              "dense_p95_ms": "0"
+            }
+          },
+          "audit_rows_per_1000": 1437,
+          "audit_kib_per_1000": 1053,
+          "cpu": "arm",
+          "git_sha": "5599870"
+        }
+      ]
+    }
+  ]
+}

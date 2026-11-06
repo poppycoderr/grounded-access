@@ -1,0 +1,53 @@
+{
+  "dataset_version": "v4",
+  "git_sha": "718f16f",
+  "created_at": "2026-11-06T14:15:27+00:00",
+  "platform": "macOS-27.2-arm64-arm-64bit",
+  "cpu": "arm",
+  "workers": 16,
+  "requests": 600,
+  "principals": 5,
+  "k": 10,
+  "seconds": 2.87,
+  "requests_per_second": 209.1,
+  "failed": 0,
+  "degraded": 0,
+  "security_violations": 0,
+  "repeated_trace_ids": 0,
+  "strategies": {
+    "sparse-only": {
+      "requests": 200,
+      "statuses": {
+        "200": 200
+      },
+      "degraded": {},
+      "violations": 0,
+      "p50_ms": 10.7,
+      "p95_ms": 33.7,
+      "max_ms": 57.3
+    },
+    "dense-only": {
+      "requests": 200,
+      "statuses": {
+        "200": 200
+      },
+      "degraded": {},
+      "violations": 0,
+      "p50_ms": 102.9,
+      "p95_ms": 162.4,
+      "max_ms": 196.8
+    },
+    "hybrid-rrf": {
+      "requests": 200,
+      "statuses": {
+        "200": 200
+      },
+      "degraded": {},
+      "violations": 0,
+      "p50_ms": 105.3,
+      "p95_ms": 155.8,
+      "max_ms": 192.2
+    }
+  },
+  "distractor_documents": 0
+}
