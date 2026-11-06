@@ -8,9 +8,15 @@ from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
-from ga_eval import answers, between, demo, load, rankings, runner, tokens
+from ga_eval import answers, between, demo, distractors, load, rankings, runner, tokens
 from ga_eval import dataset as ds
 from ga_eval.client import ApiClient, IngestionFailedError
+
+# Documents per ingestion job; the control plane accepts at most 500
+LOAD_BATCH = 200
+
+# Documents per ingestion job; the control plane accepts at most 500
+LOAD_BATCH = 200
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -19,7 +25,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--base-url", default=os.getenv("GA_BASE_URL", "http://localhost:8080"))
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("validate", help="check cases, quotes and visibility labels against the corpus")
-    commands.add_parser("load", help="ingest every manifest into its tenant")
+    load_corpus_parser = commands.add_parser("load", help="ingest every manifest into its tenant")
+    load_corpus_parser.add_argument(
+        "--manifests", type=Path, help="load the manifests and corpus of this directory instead, for example generated distractors"
+    )
+    distractors_parser = commands.add_parser("distractors", help="write generated, labelled distractor documents for scale and load runs")
+    distractors_parser.add_argument("--seed", type=int, default=1)
+    distractors_parser.add_argument("--documents", type=int, default=2000)
+    distractors_parser.add_argument("--out", type=Path, required=True)
     answers_parser = commands.add_parser("answers", help="evaluate generated answers; needs a chat model configured in the control plane")
     answers_parser.add_argument("--out", type=Path, help="output directory (default: results/answers-<timestamp>)")
     answers_parser.add_argument("--split", action="append", choices=["dev", "test"], help="repeatable; default: both")
@@ -95,7 +108,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "answers":
         return _answers(dataset, client, args)
     if args.command == "load":
-        return _load(dataset, client)
+        if args.manifests:
+            return _load(dataset, client, ds.load_manifests(args.manifests), args.manifests)
+        return _load(dataset, client, dataset.manifests, dataset.root)
+    if args.command == "distractors":
+        distractors.write(distractors.generate(args.seed, args.documents, dataset.principals), args.out)
+        print(f"wrote {args.documents} distractor documents (seed {args.seed}) to {args.out}")
+        return 0
     if args.command == "demo":
         try:
             demo.Tour(dataset, client, (lambda: input("\n[Enter] ")) if args.pause else (lambda: None)).run()
@@ -171,8 +190,8 @@ def _validate(dataset: ds.Dataset) -> int:
     return 1 if problems else 0
 
 
-def _load(dataset: ds.Dataset, client: ApiClient) -> int:
-    for manifest in dataset.manifests:
+def _load(dataset: ds.Dataset, client: ApiClient, manifests: list[ds.Manifest], files: Path) -> int:
+    for manifest in manifests:
         admin = f"{manifest.tenant}-admin"
         token = tokens.mint(dataset.root, admin, dataset.principals[admin])
         # Documents with a history are ingested oldest version first, so their version numbers match the labels in the dataset. A document
@@ -182,17 +201,19 @@ def _load(dataset: ds.Dataset, client: ApiClient) -> int:
         rounds = max(len(versions) for versions in pending.values())
         for number in range(rounds):
             documents = [
-                _document(dataset, d, pending[d.key][number - (rounds - len(pending[d.key]))])
+                _document(files, d, pending[d.key][number - (rounds - len(pending[d.key]))])
                 for d in manifest.documents
                 if number >= rounds - len(pending[d.key])
             ]
-            try:
-                job = client.ingest(token, documents)
-            except IngestionFailedError as failure:
-                print(f"{manifest.tenant}: {failure}", file=sys.stderr)
-                return 1
-            counts = ", ".join(f"{job[field]} {field}" for field in ("created", "updated", "unchanged", "chunks"))
-            print(f"{manifest.tenant}: job {job['jobId']} succeeded after {job['attempts']} attempt(s): {counts}")
+            # One job takes at most 500 documents; the demo corpus fits in one
+            for start in range(0, len(documents), LOAD_BATCH):
+                try:
+                    job = client.ingest(token, documents[start : start + LOAD_BATCH])
+                except IngestionFailedError as failure:
+                    print(f"{manifest.tenant}: {failure}", file=sys.stderr)
+                    return 1
+                counts = ", ".join(f"{job[field]} {field}" for field in ("created", "updated", "unchanged", "chunks"))
+                print(f"{manifest.tenant}: job {job['jobId']} succeeded after {job['attempts']} attempt(s): {counts}")
     return 0
 
 
@@ -243,11 +264,11 @@ def _answers(dataset: ds.Dataset, client: ApiClient, args: argparse.Namespace) -
     return _gate_exit(output["run"], 0)
 
 
-def _document(dataset: ds.Dataset, document: ds.ManifestDocument, version: ds.ManifestVersion) -> dict:
+def _document(files: Path, document: ds.ManifestDocument, version: ds.ManifestVersion) -> dict:
     return {
         "key": document.key,
         "title": document.title,
-        "content": (dataset.root / version.file).read_text(encoding="utf-8"),
+        "content": (files / version.file).read_text(encoding="utf-8"),
         "format": _format(version.file),
         "classification": version.classification,
         "allowedDepartments": version.allowed_departments,
