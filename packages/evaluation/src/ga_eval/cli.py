@@ -17,9 +17,6 @@ from ga_eval.client import ApiClient, IngestionFailedError
 # Documents per ingestion job; the control plane accepts at most 500
 LOAD_BATCH = 200
 
-# Documents per ingestion job; the control plane accepts at most 500
-LOAD_BATCH = 200
-
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ga-eval")
@@ -244,7 +241,7 @@ def _load(dataset: ds.Dataset, client: ApiClient, manifests: list[ds.Manifest], 
                 for d in manifest.documents
                 if number >= rounds - len(pending[d.key])
             ]
-            # One job takes at most 500 documents; the demo corpus fits in one
+            # A round is split into jobs of LOAD_BATCH documents; every earlier version is in an earlier round, so it is ingested first
             for start in range(0, len(documents), LOAD_BATCH):
                 try:
                     job = client.ingest(token, documents[start : start + LOAD_BATCH])
