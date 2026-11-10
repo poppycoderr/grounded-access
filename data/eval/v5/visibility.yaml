@@ -40,6 +40,14 @@ principals:
     - hr-learning-budget
     - security-incident-response
     - eng-postgres-major-upgrade
+    # dataset v5, batch 2
+    - eng-incident-2026-07-search
+    - eng-observability-standard
+    - eng-api-versioning
+    - hr-hiring-process
+    - hr-equipment-policy
+    - security-phishing-reporting
+    - eng-atlas-data-validation
   # support, no projects, clearance internal: the unrestricted documents and the support-department documents
   bob-support:
     - hr-volunteer-policy
@@ -77,6 +85,15 @@ principals:
     - hr-learning-budget
     - security-incident-response
     - support-account-data-export
+    # dataset v5, batch 2
+    - eng-incident-2026-07-search
+    - eng-observability-standard
+    - eng-api-versioning
+    - hr-hiring-process
+    - hr-equipment-policy
+    - security-phishing-reporting
+    - support-reply-style-guide
+    - sales-partner-program
   # engineering, projects atlas and borealis, clearance confidential: adds the confidential documents outside sales and every Atlas and Borealis document
   carol-manager:
     - hr-volunteer-policy
@@ -118,12 +135,23 @@ principals:
     - eng-postgres-major-upgrade
     - security-vendor-risk-review
     - eng-borealis-load-test
+    # dataset v5, batch 2
+    - eng-incident-2026-07-search
+    - eng-observability-standard
+    - eng-api-versioning
+    - hr-hiring-process
+    - hr-equipment-policy
+    - security-phishing-reporting
+    - eng-atlas-data-validation
+    - eng-performance-calibration
   # no department, no projects, clearance public: only the public documents
   dave-contractor:
     - hr-volunteer-policy
     - sales-product-overview
     # dataset v5, batch 1
     - eng-api-error-catalog
+    # dataset v5, batch 2
+    - eng-api-versioning
   # another tenant: only its own documents
   mallory-outsider:
     - volunteer-handbook
@@ -132,4 +160,7 @@ principals:
     - security-basics
     # dataset v5, batch 1
     - corporate-card
+    # dataset v5, batch 2
+    - incident-response
+    - learning-budget
   # security-key-ceremony is restricted and sales-deal-desk is confidential to sales; no demo principal may see either.
