@@ -11,3 +11,13 @@ documents:
   - {key: onboarding, title: "Your First Week at Orbit Labs", file: corpus/external/onboarding.md}
   - {key: code-review, title: "Code Review at Orbit Labs", file: corpus/external/code-review.md}
   - {key: internal-moves, title: "Changing Teams at Orbit Labs", file: corpus/external/internal-moves.md}
+  - {key: probation, title: Probation at Orbit Labs, file: corpus/external/probation.md}
+  - {key: code-of-conduct, title: Orbit Labs Code of Conduct, file: corpus/external/code-of-conduct.md}
+  - {key: office-hours, title: Office Hours at Orbit Labs, file: corpus/external/office-hours.md}
+  - {key: meeting-rooms, title: Meeting Rooms at Orbit Labs, file: corpus/external/meeting-rooms.md}
+  - {key: gifts, title: Gifts at Orbit Labs, file: corpus/external/gifts.md}
+  - {key: bereavement, title: Bereavement Leave at Orbit Labs, file: corpus/external/bereavement.md}
+  - {key: fire-safety, title: Fire Safety at Orbit Labs, file: corpus/external/fire-safety.md}
+  - {key: printing, title: Printing at Orbit Labs, file: corpus/external/printing.md}
+  - {key: part-time, title: Part-time Work at Orbit Labs, file: corpus/external/part-time.md}
+  - {key: it-help, title: IT Help at Orbit Labs, file: corpus/external/it-help.md}
