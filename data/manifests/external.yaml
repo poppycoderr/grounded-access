@@ -34,3 +34,15 @@ documents:
   - {key: contracts, title: Contracts at Orbit Labs, file: corpus/external/contracts.md}
   - {key: brand, title: The Orbit Labs Brand, file: corpus/external/brand.md}
   - {key: survey, title: Customer Survey at Orbit Labs, file: corpus/external/survey.md}
+  - {key: invoices, title: Invoices at Orbit Labs, file: corpus/external/invoices.md}
+  - {key: purchase-orders, title: Purchases at Orbit Labs, file: corpus/external/purchase-orders.md}
+  - {key: regions, title: Hosting at Orbit Labs, file: corpus/external/regions.md}
+  - {key: maintenance, title: Maintenance at Orbit Labs, file: corpus/external/maintenance.md}
+  - {key: api-keys, title: API Keys at Orbit Labs, file: corpus/external/api-keys.md}
+  - {key: office-attendance, title: Office Days at Orbit Labs, file: corpus/external/office-attendance.md}
+  - {key: month-end, title: Month-end at Orbit Labs, file: corpus/external/month-end.md}
+  - {key: user-roles, title: Roles in Orbit Labs Tools, file: corpus/external/user-roles.md}
+  - {key: sandbox, title: Test Systems at Orbit Labs, file: corpus/external/sandbox.md}
+  - {key: release-notes, title: Orbit Labs Release Notes, file: corpus/external/release-notes.md}
+  - {key: error-budgets, title: Reliability at Orbit Labs, file: corpus/external/error-budgets.md}
+  - {key: synthetic-checks, title: Monitoring at Orbit Labs, file: corpus/external/synthetic-checks.md}
