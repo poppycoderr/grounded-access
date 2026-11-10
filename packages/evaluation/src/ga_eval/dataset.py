@@ -117,7 +117,7 @@ def load_manifests(root: Path) -> list[Manifest]:
     return [Manifest.model_validate(yaml.safe_load(p.read_text())) for p in sorted((root / "manifests").glob("*.yaml"))]
 
 
-def load(root: Path, version: str = "v4") -> Dataset:
+def load(root: Path, version: str = "v5") -> Dataset:
     manifests = load_manifests(root)
     texts: dict[str, str] = {}
     current_version: dict[str, int] = {}

@@ -117,7 +117,7 @@ def test_a_principal_that_cannot_list_a_visible_document_aborts_the_run():
     data = ds.load(DATA)
 
     with pytest.raises(runner.VisibilityMismatchError, match="dave-contractor cannot list hr-volunteer-policy"):
-        runner.check_visibility(data, Listing({"sales-product-overview": 1}).listings("dave-contractor"))
+        runner.check_visibility(data, Listing({"sales-product-overview": 1, "eng-api-error-catalog": 1}).listings("dave-contractor"))
 
 
 def test_a_run_records_the_cpu_that_produced_it():

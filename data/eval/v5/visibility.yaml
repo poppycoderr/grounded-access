@@ -3,7 +3,7 @@
 # file. Every listed document is visible in its current version only. Visibility is about access only: a document that applies to another
 # region or another year is still listed here, because the principal is authorized to read it. Cases say what is out of scope.
 principals:
-  # engineering, project atlas, clearance internal: the 17 unrestricted documents, the Atlas plan and the engineering-only standard
+  # engineering, project atlas, clearance internal: the unrestricted documents, the Atlas plan and the engineering-only documents
   alice-engineer:
     - hr-volunteer-policy
     - hr-travel-policy
@@ -31,7 +31,16 @@ principals:
     - support-chatbot-notes
     - eng-wiki-migration-note
     - hr-faq-archive
-  # support, no projects, clearance internal: the 17 unrestricted documents and the two support-department documents
+    # dataset v5, batch 1
+    - eng-deploy-pipeline
+    - eng-log-retention-standard
+    - eng-api-error-catalog
+    - support-ticket-priorities
+    - hr-corporate-card
+    - hr-learning-budget
+    - security-incident-response
+    - eng-postgres-major-upgrade
+  # support, no projects, clearance internal: the unrestricted documents and the support-department documents
   bob-support:
     - hr-volunteer-policy
     - hr-travel-policy
@@ -59,7 +68,16 @@ principals:
     - support-chatbot-notes
     - eng-wiki-migration-note
     - hr-faq-archive
-  # engineering, projects atlas and borealis, clearance confidential: adds both confidential documents and both project documents
+    # dataset v5, batch 1
+    - eng-deploy-pipeline
+    - eng-log-retention-standard
+    - eng-api-error-catalog
+    - support-ticket-priorities
+    - hr-corporate-card
+    - hr-learning-budget
+    - security-incident-response
+    - support-account-data-export
+  # engineering, projects atlas and borealis, clearance confidential: adds the confidential documents outside sales and every Atlas and Borealis document
   carol-manager:
     - hr-volunteer-policy
     - hr-travel-policy
@@ -89,14 +107,29 @@ principals:
     - support-chatbot-notes
     - eng-wiki-migration-note
     - hr-faq-archive
-  # no department, no projects, clearance public: only the two public documents
+    # dataset v5, batch 1
+    - eng-deploy-pipeline
+    - eng-log-retention-standard
+    - eng-api-error-catalog
+    - support-ticket-priorities
+    - hr-corporate-card
+    - hr-learning-budget
+    - security-incident-response
+    - eng-postgres-major-upgrade
+    - security-vendor-risk-review
+    - eng-borealis-load-test
+  # no department, no projects, clearance public: only the public documents
   dave-contractor:
     - hr-volunteer-policy
     - sales-product-overview
+    # dataset v5, batch 1
+    - eng-api-error-catalog
   # another tenant: only its own documents
   mallory-outsider:
     - volunteer-handbook
     - it-faq
     - remote-work
     - security-basics
-  # security-key-ceremony is restricted; no demo principal may see it.
+    # dataset v5, batch 1
+    - corporate-card
+  # security-key-ceremony is restricted and sales-deal-desk is confidential to sales; no demo principal may see either.
