@@ -68,6 +68,50 @@ principals:
     - eng-api-pagination
     - support-holiday-coverage-2025
     - eng-atlas-rollback
+    # dataset v5, batch 5
+    - hr-probation-period
+    - hr-bereavement-leave
+    - hr-jury-duty
+    - hr-blood-donation
+    - hr-name-change
+    - hr-employment-references
+    - hr-code-of-conduct
+    - hr-whistleblowing
+    - hr-conflicts-of-interest
+    - hr-gifts-hospitality
+    - hr-outside-work
+    - hr-social-media
+    - hr-photo-consent
+    - hr-emergency-contacts
+    - hr-workplace-adjustments
+    - hr-part-time
+    - hr-leaving-the-company
+    - hr-employee-survey
+    - hr-recognition-program
+    - hr-anniversaries
+    - facilities-desk-booking
+    - facilities-meeting-rooms
+    - facilities-lockers
+    - facilities-bike-parking
+    - facilities-car-parking
+    - facilities-kitchen
+    - facilities-fire-safety
+    - facilities-first-aid
+    - facilities-ergonomics
+    - facilities-printing
+    - facilities-mail
+    - facilities-quiet-rooms
+    - facilities-office-hours
+    - it-software-requests
+    - it-monitors-peripherals
+    - it-service-desk
+    - it-shared-drives
+    - it-chat-guidelines
+    - it-email-guidelines
+    - it-video-meetings
+    - hr-travel-safety
+    - hr-relocation-faq
+    - hr-volunteering-teams
   # support, no projects, clearance internal: the unrestricted documents and the support-department documents
   bob-support:
     - hr-volunteer-policy
@@ -133,6 +177,50 @@ principals:
     - eng-api-pagination
     - support-holiday-coverage-2025
     - support-knowledge-base
+    # dataset v5, batch 5
+    - hr-probation-period
+    - hr-bereavement-leave
+    - hr-jury-duty
+    - hr-blood-donation
+    - hr-name-change
+    - hr-employment-references
+    - hr-code-of-conduct
+    - hr-whistleblowing
+    - hr-conflicts-of-interest
+    - hr-gifts-hospitality
+    - hr-outside-work
+    - hr-social-media
+    - hr-photo-consent
+    - hr-emergency-contacts
+    - hr-workplace-adjustments
+    - hr-part-time
+    - hr-leaving-the-company
+    - hr-employee-survey
+    - hr-recognition-program
+    - hr-anniversaries
+    - facilities-desk-booking
+    - facilities-meeting-rooms
+    - facilities-lockers
+    - facilities-bike-parking
+    - facilities-car-parking
+    - facilities-kitchen
+    - facilities-fire-safety
+    - facilities-first-aid
+    - facilities-ergonomics
+    - facilities-printing
+    - facilities-mail
+    - facilities-quiet-rooms
+    - facilities-office-hours
+    - it-software-requests
+    - it-monitors-peripherals
+    - it-service-desk
+    - it-shared-drives
+    - it-chat-guidelines
+    - it-email-guidelines
+    - it-video-meetings
+    - hr-travel-safety
+    - hr-relocation-faq
+    - hr-volunteering-teams
   # engineering, projects atlas and borealis, clearance confidential: adds the confidential documents outside sales and every Atlas and Borealis document
   carol-manager:
     - hr-volunteer-policy
@@ -204,6 +292,50 @@ principals:
     - eng-api-pagination
     - support-holiday-coverage-2025
     - eng-atlas-rollback
+    # dataset v5, batch 5
+    - hr-probation-period
+    - hr-bereavement-leave
+    - hr-jury-duty
+    - hr-blood-donation
+    - hr-name-change
+    - hr-employment-references
+    - hr-code-of-conduct
+    - hr-whistleblowing
+    - hr-conflicts-of-interest
+    - hr-gifts-hospitality
+    - hr-outside-work
+    - hr-social-media
+    - hr-photo-consent
+    - hr-emergency-contacts
+    - hr-workplace-adjustments
+    - hr-part-time
+    - hr-leaving-the-company
+    - hr-employee-survey
+    - hr-recognition-program
+    - hr-anniversaries
+    - facilities-desk-booking
+    - facilities-meeting-rooms
+    - facilities-lockers
+    - facilities-bike-parking
+    - facilities-car-parking
+    - facilities-kitchen
+    - facilities-fire-safety
+    - facilities-first-aid
+    - facilities-ergonomics
+    - facilities-printing
+    - facilities-mail
+    - facilities-quiet-rooms
+    - facilities-office-hours
+    - it-software-requests
+    - it-monitors-peripherals
+    - it-service-desk
+    - it-shared-drives
+    - it-chat-guidelines
+    - it-email-guidelines
+    - it-video-meetings
+    - hr-travel-safety
+    - hr-relocation-faq
+    - hr-volunteering-teams
   # no department, no projects, clearance public: only the public documents
   dave-contractor:
     - hr-volunteer-policy
@@ -234,4 +366,15 @@ principals:
     # dataset v5, batch 4
     - code-review
     - internal-moves
+    # dataset v5, batch 5
+    - probation
+    - code-of-conduct
+    - office-hours
+    - meeting-rooms
+    - gifts
+    - bereavement
+    - fire-safety
+    - printing
+    - part-time
+    - it-help
   # security-key-ceremony and security-red-team-2026 are restricted, and sales-deal-desk and sales-renewals are for sales only; no demo principal may see them.

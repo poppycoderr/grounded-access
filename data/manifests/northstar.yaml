@@ -101,3 +101,46 @@ documents:
     allowed_departments: [engineering]
     history:
       - {file: corpus/northstar/eng-disaster-recovery.v1.md, classification: internal}
+  - {key: hr-probation-period, title: Probation Period, file: corpus/northstar/hr-probation-period.md, classification: internal}
+  - {key: hr-bereavement-leave, title: Bereavement Leave, file: corpus/northstar/hr-bereavement-leave.md, classification: internal}
+  - {key: hr-jury-duty, title: Jury Duty and Civic Duties, file: corpus/northstar/hr-jury-duty.md, classification: internal}
+  - {key: hr-blood-donation, title: Blood and Plasma Donation, file: corpus/northstar/hr-blood-donation.md, classification: internal}
+  - {key: hr-name-change, title: Changing Your Name or Personal Details, file: corpus/northstar/hr-name-change.md, classification: internal}
+  - {key: hr-employment-references, title: Employment References, file: corpus/northstar/hr-employment-references.md, classification: internal}
+  - {key: hr-code-of-conduct, title: Code of Conduct, file: corpus/northstar/hr-code-of-conduct.md, classification: internal}
+  - {key: hr-whistleblowing, title: Whistleblowing, file: corpus/northstar/hr-whistleblowing.md, classification: internal}
+  - {key: hr-conflicts-of-interest, title: Conflicts of Interest, file: corpus/northstar/hr-conflicts-of-interest.md, classification: internal}
+  - {key: hr-gifts-hospitality, title: Gifts and Hospitality, file: corpus/northstar/hr-gifts-hospitality.md, classification: internal}
+  - {key: hr-outside-work, title: Outside Work and Side Projects, file: corpus/northstar/hr-outside-work.md, classification: internal}
+  - {key: hr-social-media, title: Social Media Guidelines, file: corpus/northstar/hr-social-media.md, classification: internal}
+  - {key: hr-photo-consent, title: Photos and Recordings at Work, file: corpus/northstar/hr-photo-consent.md, classification: internal}
+  - {key: hr-emergency-contacts, title: Emergency Contacts, file: corpus/northstar/hr-emergency-contacts.md, classification: internal}
+  - {key: hr-workplace-adjustments, title: Workplace Adjustments, file: corpus/northstar/hr-workplace-adjustments.md, classification: internal}
+  - {key: hr-part-time, title: Part-time Work, file: corpus/northstar/hr-part-time.md, classification: internal}
+  - {key: hr-leaving-the-company, title: Leaving the Company, file: corpus/northstar/hr-leaving-the-company.md, classification: internal}
+  - {key: hr-employee-survey, title: Employee Survey, file: corpus/northstar/hr-employee-survey.md, classification: internal}
+  - {key: hr-recognition-program, title: Recognition Program, file: corpus/northstar/hr-recognition-program.md, classification: internal}
+  - {key: hr-anniversaries, title: Work Anniversaries, file: corpus/northstar/hr-anniversaries.md, classification: internal}
+  - {key: facilities-desk-booking, title: Desk Booking, file: corpus/northstar/facilities-desk-booking.md, classification: internal}
+  - {key: facilities-meeting-rooms, title: Meeting Rooms, file: corpus/northstar/facilities-meeting-rooms.md, classification: internal}
+  - {key: facilities-lockers, title: Lockers, file: corpus/northstar/facilities-lockers.md, classification: internal}
+  - {key: facilities-bike-parking, title: Bicycle Parking, file: corpus/northstar/facilities-bike-parking.md, classification: internal}
+  - {key: facilities-car-parking, title: Car Parking, file: corpus/northstar/facilities-car-parking.md, classification: internal}
+  - {key: facilities-kitchen, title: Office Kitchens, file: corpus/northstar/facilities-kitchen.md, classification: internal}
+  - {key: facilities-fire-safety, title: Fire Safety, file: corpus/northstar/facilities-fire-safety.md, classification: internal}
+  - {key: facilities-first-aid, title: First Aid, file: corpus/northstar/facilities-first-aid.md, classification: internal}
+  - {key: facilities-ergonomics, title: Ergonomic Assessments, file: corpus/northstar/facilities-ergonomics.md, classification: internal}
+  - {key: facilities-printing, title: Printing, file: corpus/northstar/facilities-printing.md, classification: internal}
+  - {key: facilities-mail, title: Post and Deliveries, file: corpus/northstar/facilities-mail.md, classification: internal}
+  - {key: facilities-quiet-rooms, title: Quiet Rooms, file: corpus/northstar/facilities-quiet-rooms.md, classification: internal}
+  - {key: facilities-office-hours, title: Office Opening Hours, file: corpus/northstar/facilities-office-hours.md, classification: internal}
+  - {key: it-software-requests, title: Requesting Software, file: corpus/northstar/it-software-requests.md, classification: internal}
+  - {key: it-monitors-peripherals, title: Monitors and Peripherals in the Office, file: corpus/northstar/it-monitors-peripherals.md, classification: internal}
+  - {key: it-service-desk, title: IT Service Desk, file: corpus/northstar/it-service-desk.md, classification: internal}
+  - {key: it-shared-drives, title: Shared Drives, file: corpus/northstar/it-shared-drives.md, classification: internal}
+  - {key: it-chat-guidelines, title: Chat Guidelines, file: corpus/northstar/it-chat-guidelines.md, classification: internal}
+  - {key: it-email-guidelines, title: Email Guidelines, file: corpus/northstar/it-email-guidelines.md, classification: internal}
+  - {key: it-video-meetings, title: Video Meetings, file: corpus/northstar/it-video-meetings.md, classification: internal}
+  - {key: hr-travel-safety, title: Travel Safety, file: corpus/northstar/hr-travel-safety.md, classification: internal}
+  - {key: hr-relocation-faq, title: Relocation Questions, file: corpus/northstar/hr-relocation-faq.md, classification: internal}
+  - {key: hr-volunteering-teams, title: Team Volunteering Days, file: corpus/northstar/hr-volunteering-teams.md, classification: internal}
