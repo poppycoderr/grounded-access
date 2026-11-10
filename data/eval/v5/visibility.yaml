@@ -154,6 +154,31 @@ principals:
     - eng-production-data-access
     - eng-interview-guide
     - eng-onboarding-plan
+    # dataset v5, batch 7
+    - support-phone-hours
+    - support-languages
+    - support-data-processing-questions
+    - support-trust-center
+    - support-status-subscriptions
+    - support-community-forum
+    - support-feature-requests
+    - sales-trial-accounts
+    - sales-event-sponsorship
+    - sales-customer-success
+    - marketing-brand-guidelines
+    - marketing-blog-process
+    - marketing-webinars
+    - legal-nda
+    - legal-trademarks
+    - legal-contract-signing
+    - security-bug-bounty
+    - security-clean-desk
+    - security-travel-devices
+    - security-data-masking
+    - security-privacy-assessment
+    - security-awareness-training
+    - security-vulnerability-disclosure
+    - security-access-badges
   # support, no projects, clearance internal: the unrestricted documents and the support-department documents
   bob-support:
     - hr-volunteer-policy
@@ -300,6 +325,44 @@ principals:
     - eng-runbook-standard
     - eng-postmortem-template
     - eng-onboarding-plan
+    # dataset v5, batch 7
+    - support-phone-hours
+    - support-languages
+    - support-satisfaction-survey
+    - support-ticket-tags
+    - support-agent-training
+    - support-quality-review
+    - support-account-deletion
+    - support-accessibility-requests
+    - support-social-media
+    - support-vip-handling
+    - support-shift-handover
+    - support-customer-callbacks
+    - support-outage-communication
+    - support-billing-questions
+    - support-sla-reporting
+    - support-data-processing-questions
+    - support-trust-center
+    - support-status-subscriptions
+    - support-community-forum
+    - support-feature-requests
+    - sales-trial-accounts
+    - sales-event-sponsorship
+    - sales-customer-success
+    - marketing-brand-guidelines
+    - marketing-blog-process
+    - marketing-webinars
+    - legal-nda
+    - legal-trademarks
+    - legal-contract-signing
+    - security-bug-bounty
+    - security-clean-desk
+    - security-travel-devices
+    - security-data-masking
+    - security-privacy-assessment
+    - security-awareness-training
+    - security-vulnerability-disclosure
+    - security-access-badges
   # engineering, projects atlas and borealis, clearance confidential: adds the confidential documents outside sales and every Atlas and Borealis document
   carol-manager:
     - hr-volunteer-policy
@@ -458,6 +521,32 @@ principals:
     - eng-production-data-access
     - eng-interview-guide
     - eng-onboarding-plan
+    # dataset v5, batch 7
+    - support-phone-hours
+    - support-languages
+    - support-data-processing-questions
+    - support-trust-center
+    - support-status-subscriptions
+    - support-community-forum
+    - support-feature-requests
+    - sales-trial-accounts
+    - sales-event-sponsorship
+    - sales-customer-success
+    - marketing-brand-guidelines
+    - marketing-blog-process
+    - marketing-webinars
+    - legal-nda
+    - legal-trademarks
+    - legal-contract-signing
+    - legal-data-requests
+    - security-bug-bounty
+    - security-clean-desk
+    - security-travel-devices
+    - security-data-masking
+    - security-privacy-assessment
+    - security-awareness-training
+    - security-vulnerability-disclosure
+    - security-access-badges
   # no department, no projects, clearance public: only the public documents
   dave-contractor:
     - hr-volunteer-policy
@@ -476,6 +565,12 @@ principals:
     - eng-webhook-delivery
     - eng-sdk-releases
     - eng-cli-tool
+    # dataset v5, batch 7
+    - support-trust-center
+    - support-status-subscriptions
+    - support-community-forum
+    - security-bug-bounty
+    - security-vulnerability-disclosure
   # another tenant: only its own documents
   mallory-outsider:
     - volunteer-handbook
@@ -510,4 +605,13 @@ principals:
     - logging
     - onboarding-engineers
     - open-source
+    # dataset v5, batch 7
+    - support-hours
+    - trial
+    - social-media
+    - clean-desk
+    - bug-reports
+    - contracts
+    - brand
+    - survey
   # security-key-ceremony and security-red-team-2026 are restricted, and sales-deal-desk and sales-renewals are for sales only; no demo principal may see them.

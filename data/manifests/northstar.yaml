@@ -186,3 +186,46 @@ documents:
   - {key: eng-production-data-access, title: Access to Production Data, file: corpus/northstar/eng-production-data-access.md, classification: internal, allowed_departments: [engineering]}
   - {key: eng-interview-guide, title: Engineering Interview Guide, file: corpus/northstar/eng-interview-guide.md, classification: internal, allowed_departments: [engineering]}
   - {key: eng-onboarding-plan, title: Engineering Onboarding Plan, file: corpus/northstar/eng-onboarding-plan.md, classification: internal}
+  - {key: support-phone-hours, title: Phone Support Hours, file: corpus/northstar/support-phone-hours.md, classification: internal}
+  - {key: support-languages, title: Support Languages, file: corpus/northstar/support-languages.md, classification: internal}
+  - {key: support-satisfaction-survey, title: Customer Satisfaction Survey, file: corpus/northstar/support-satisfaction-survey.md, classification: internal, allowed_departments: [support]}
+  - {key: support-ticket-tags, title: Ticket Tags, file: corpus/northstar/support-ticket-tags.md, classification: internal, allowed_departments: [support]}
+  - {key: support-agent-training, title: New Agent Training, file: corpus/northstar/support-agent-training.md, classification: internal, allowed_departments: [support]}
+  - {key: support-quality-review, title: Ticket Quality Review, file: corpus/northstar/support-quality-review.md, classification: internal, allowed_departments: [support]}
+  - {key: support-account-deletion, title: Account Deletion Requests, file: corpus/northstar/support-account-deletion.md, classification: internal, allowed_departments: [support]}
+  - {key: support-accessibility-requests, title: Accessibility Requests from Customers, file: corpus/northstar/support-accessibility-requests.md, classification: internal, allowed_departments: [support]}
+  - {key: support-social-media, title: Answering Customers on Social Media, file: corpus/northstar/support-social-media.md, classification: internal, allowed_departments: [support]}
+  - {key: support-vip-handling, title: Executive Escalations, file: corpus/northstar/support-vip-handling.md, classification: internal, allowed_departments: [support]}
+  - {key: support-shift-handover, title: Shift Handover, file: corpus/northstar/support-shift-handover.md, classification: internal, allowed_departments: [support]}
+  - {key: support-customer-callbacks, title: Promised Callbacks, file: corpus/northstar/support-customer-callbacks.md, classification: internal, allowed_departments: [support]}
+  - {key: support-outage-communication, title: Support During Outages, file: corpus/northstar/support-outage-communication.md, classification: internal, allowed_departments: [support]}
+  - {key: support-billing-questions, title: Answering Billing Questions, file: corpus/northstar/support-billing-questions.md, classification: internal, allowed_departments: [support]}
+  - {key: support-sla-reporting, title: Monthly Support Reports for Enterprise Customers, file: corpus/northstar/support-sla-reporting.md, classification: internal, allowed_departments: [support]}
+  - {key: support-data-processing-questions, title: Questions about Data Processing, file: corpus/northstar/support-data-processing-questions.md, classification: internal}
+  - {key: support-trust-center, title: Trust Center, file: corpus/northstar/support-trust-center.md, classification: public}
+  - {key: support-status-subscriptions, title: Status Page Subscriptions, file: corpus/northstar/support-status-subscriptions.md, classification: public}
+  - {key: support-community-forum, title: Community Forum, file: corpus/northstar/support-community-forum.md, classification: public}
+  - {key: support-feature-requests, title: Feature Requests, file: corpus/northstar/support-feature-requests.md, classification: internal}
+  - {key: sales-demo-environments, title: Demo Environments, file: corpus/northstar/sales-demo-environments.md, classification: internal, allowed_departments: [sales]}
+  - {key: sales-trial-accounts, title: Trial Accounts, file: corpus/northstar/sales-trial-accounts.md, classification: internal}
+  - {key: sales-rfp-responses, title: Answering Requests for Proposal, file: corpus/northstar/sales-rfp-responses.md, classification: internal, allowed_departments: [sales]}
+  - {key: sales-reference-customers, title: Reference Customers, file: corpus/northstar/sales-reference-customers.md, classification: internal, allowed_departments: [sales]}
+  - {key: sales-territories, title: Sales Territories, file: corpus/northstar/sales-territories.md, classification: internal, allowed_departments: [sales]}
+  - {key: sales-lead-routing, title: Lead Routing, file: corpus/northstar/sales-lead-routing.md, classification: internal, allowed_departments: [sales]}
+  - {key: sales-event-sponsorship, title: Event Sponsorship, file: corpus/northstar/sales-event-sponsorship.md, classification: internal}
+  - {key: sales-customer-success, title: Customer Success Reviews, file: corpus/northstar/sales-customer-success.md, classification: internal}
+  - {key: marketing-brand-guidelines, title: Brand Guidelines, file: corpus/northstar/marketing-brand-guidelines.md, classification: internal}
+  - {key: marketing-blog-process, title: Company Blog, file: corpus/northstar/marketing-blog-process.md, classification: internal}
+  - {key: marketing-webinars, title: Webinars, file: corpus/northstar/marketing-webinars.md, classification: internal}
+  - {key: legal-nda, title: Non-disclosure Agreements, file: corpus/northstar/legal-nda.md, classification: internal}
+  - {key: legal-trademarks, title: Using Other Companies' Trademarks, file: corpus/northstar/legal-trademarks.md, classification: internal}
+  - {key: legal-contract-signing, title: Signing Contracts, file: corpus/northstar/legal-contract-signing.md, classification: internal}
+  - {key: legal-data-requests, title: Requests for Customer Data from Authorities, file: corpus/northstar/legal-data-requests.md, classification: confidential}
+  - {key: security-bug-bounty, title: Bug Bounty Program, file: corpus/northstar/security-bug-bounty.md, classification: public}
+  - {key: security-clean-desk, title: Clean Desk and Clear Screen, file: corpus/northstar/security-clean-desk.md, classification: internal}
+  - {key: security-travel-devices, title: Travelling with Company Devices, file: corpus/northstar/security-travel-devices.md, classification: internal}
+  - {key: security-data-masking, title: Masking Personal Data, file: corpus/northstar/security-data-masking.md, classification: internal}
+  - {key: security-privacy-assessment, title: Privacy Impact Assessments, file: corpus/northstar/security-privacy-assessment.md, classification: internal}
+  - {key: security-awareness-training, title: Security Awareness Training, file: corpus/northstar/security-awareness-training.md, classification: internal}
+  - {key: security-vulnerability-disclosure, title: Vulnerability Disclosure, file: corpus/northstar/security-vulnerability-disclosure.md, classification: public}
+  - {key: security-access-badges, title: Building Badges, file: corpus/northstar/security-access-badges.md, classification: internal}

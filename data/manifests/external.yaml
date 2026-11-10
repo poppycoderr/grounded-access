@@ -26,3 +26,11 @@ documents:
   - {key: logging, title: Logging at Orbit Labs, file: corpus/external/logging.md}
   - {key: onboarding-engineers, title: New Engineers at Orbit Labs, file: corpus/external/onboarding-engineers.md}
   - {key: open-source, title: Open Source at Orbit Labs, file: corpus/external/open-source.md}
+  - {key: support-hours, title: Customer Support at Orbit Labs, file: corpus/external/support-hours.md}
+  - {key: trial, title: Free Trials at Orbit Labs, file: corpus/external/trial.md}
+  - {key: social-media, title: Social Media at Orbit Labs, file: corpus/external/social-media.md}
+  - {key: clean-desk, title: Clean Desk at Orbit Labs, file: corpus/external/clean-desk.md}
+  - {key: bug-reports, title: Security Reports at Orbit Labs, file: corpus/external/bug-reports.md}
+  - {key: contracts, title: Contracts at Orbit Labs, file: corpus/external/contracts.md}
+  - {key: brand, title: The Orbit Labs Brand, file: corpus/external/brand.md}
+  - {key: survey, title: Customer Survey at Orbit Labs, file: corpus/external/survey.md}
