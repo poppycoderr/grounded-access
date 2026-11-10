@@ -20,9 +20,9 @@ data/
 ├── manifests/external.yaml
 ├── principals.yaml              # demo identities and attributes
 └── eval/
-    ├── v4/cases.jsonl
-    ├── v4/visibility.yaml       # human-labelled visible document set per principal
-    ├── v4/reviews.yaml          # cases whose labels a person checked (ADR-0015)
+    ├── v5/cases.jsonl
+    ├── v5/visibility.yaml       # human-labelled visible document set per principal
+    ├── v5/reviews.yaml          # cases whose labels a person checked (ADR-0015)
     └── DATASET_CARD.md
 ```
 

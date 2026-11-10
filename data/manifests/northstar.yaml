@@ -33,6 +33,17 @@ documents:
   - {key: support-chatbot-notes, title: "Support Chatbot Rollout Notes", file: corpus/northstar/support-chatbot-notes.md, classification: internal}
   - {key: eng-wiki-migration-note, title: "Engineering Wiki Migration Note", file: corpus/northstar/eng-wiki-migration-note.md, classification: internal}
   - {key: hr-faq-archive, title: "HR FAQ Archive", file: corpus/northstar/hr-faq-archive.md, classification: internal}
+  - {key: eng-deploy-pipeline, title: "Deployment Pipeline Standard", file: corpus/northstar/eng-deploy-pipeline.md, classification: internal}
+  - {key: eng-postgres-major-upgrade, title: "Runbook: PostgreSQL Major Version Upgrade", file: corpus/northstar/eng-postgres-major-upgrade.md, classification: internal, allowed_departments: [engineering]}
+  - {key: eng-log-retention-standard, title: "Log Retention Standard", file: corpus/northstar/eng-log-retention-standard.md, classification: internal}
+  - {key: eng-api-error-catalog, title: "Public API Error Catalog", file: corpus/northstar/eng-api-error-catalog.md, classification: public}
+  - {key: support-ticket-priorities, title: "Support Ticket Priorities", file: corpus/northstar/support-ticket-priorities.md, classification: internal}
+  - {key: support-account-data-export, title: "Customer Account Data Exports", file: corpus/northstar/support-account-data-export.md, classification: internal, allowed_departments: [support]}
+  - {key: hr-learning-budget, title: "Learning and Development Budget", file: corpus/northstar/hr-learning-budget.md, classification: internal}
+  - {key: security-incident-response, title: "Security Incident Response Plan", file: corpus/northstar/security-incident-response.md, classification: internal}
+  - {key: security-vendor-risk-review, title: "Vendor Risk Review", file: corpus/northstar/security-vendor-risk-review.md, classification: confidential}
+  - {key: eng-borealis-load-test, title: "Project Borealis: Load Test Results", file: corpus/northstar/eng-borealis-load-test.md, classification: internal, required_projects: [borealis]}
+  - {key: sales-deal-desk, title: "Deal Desk Approvals", file: corpus/northstar/sales-deal-desk.md, classification: confidential, allowed_departments: [sales]}
   - key: sales-pricing-guide
     title: "Pricing Guide"
     file: corpus/northstar/sales-pricing-guide.md
@@ -40,3 +51,9 @@ documents:
     allowed_departments: [sales, support]
     history:
       - {file: corpus/northstar/sales-pricing-guide.v1.md, classification: internal}
+  - key: hr-corporate-card
+    title: "Corporate Card Policy"
+    file: corpus/northstar/hr-corporate-card.md
+    classification: internal
+    history:
+      - {file: corpus/northstar/hr-corporate-card.v1.md, classification: internal}

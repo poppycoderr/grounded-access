@@ -303,7 +303,7 @@ EN = {
     "gate": {
         "title": "The security gate compares the system with hand-written labels",
         "sub": "The expected visibility is written by a person from the access labels, never produced by the policy compiler it checks.",
-        "labels": ["visibility.yaml", "hand-labelled visible documents", "per principal, current version only", "`data/eval/v4`"],
+        "labels": ["visibility.yaml", "hand-labelled visible documents", "per principal, current version only", "`data/eval/v5`"],
         "system": ["System under test", "public API with demo tokens", "one token per principal", "`/retrieval/chunks · /retrieval/search`"],
         "checks": "ga-eval run",
         "steps": [
@@ -410,7 +410,7 @@ ZH = {
     "gate": {
         "title": "安全门禁拿系统和手写标注做比较",
         "sub": "预期的可见范围由人对照访问标签写出，绝不由被检验的 policy compiler 生成。",
-        "labels": ["visibility.yaml", "人工标注的可见文档", "按身份列出，只认当前版本", "`data/eval/v4`"],
+        "labels": ["visibility.yaml", "人工标注的可见文档", "按身份列出，只认当前版本", "`data/eval/v5`"],
         "system": ["被测系统", "公开 API + demo token", "每个身份一个 token", "`/retrieval/chunks · /retrieval/search`"],
         "checks": "ga-eval run",
         "steps": [
