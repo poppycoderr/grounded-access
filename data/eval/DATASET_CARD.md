@@ -32,7 +32,9 @@ Cases are never changed or removed between versions. Their numbers can still mov
 
 Every document was written for this project and describes companies that do not exist. No text comes from a real company, employer, customer or public policy. Documents and labels are published under CC BY 4.0.
 
-Drafting was assisted by a language model; every document, quote and label was then read and checked by hand, and `ga-eval validate` checks the mechanical parts (see below).
+For v1 to v4, drafting was assisted by a language model; every document, quote and label was then read and checked by hand, and `ga-eval validate` checks the mechanical parts (see below).
+
+The documents and cases added in v5 were drafted by a language model and were not read and checked by hand before they were merged. They were checked mechanically instead: `ga-eval validate`; a run of every strategy except reranking on a fresh stack, with no security violation and no scope failure; and a comparison of every quote with the chunks of the loaded corpus. Anyone who relies on v5 numbers should treat its labels as unreviewed until a review is recorded here.
 
 ### Review record
 
