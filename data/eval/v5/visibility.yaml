@@ -48,6 +48,15 @@ principals:
     - hr-equipment-policy
     - security-phishing-reporting
     - eng-atlas-data-validation
+    # dataset v5, batch 3
+    - eng-code-review-standard
+    - hr-sick-leave-eu
+    - hr-sick-leave-us
+    - sales-customer-onboarding
+    - security-device-encryption
+    - support-status-page
+    - eng-secrets-management
+    - eng-disaster-recovery
   # support, no projects, clearance internal: the unrestricted documents and the support-department documents
   bob-support:
     - hr-volunteer-policy
@@ -94,6 +103,14 @@ principals:
     - security-phishing-reporting
     - support-reply-style-guide
     - sales-partner-program
+    # dataset v5, batch 3
+    - eng-code-review-standard
+    - hr-sick-leave-eu
+    - hr-sick-leave-us
+    - sales-customer-onboarding
+    - security-device-encryption
+    - support-status-page
+    - support-chargebacks
   # engineering, projects atlas and borealis, clearance confidential: adds the confidential documents outside sales and every Atlas and Borealis document
   carol-manager:
     - hr-volunteer-policy
@@ -144,6 +161,16 @@ principals:
     - security-phishing-reporting
     - eng-atlas-data-validation
     - eng-performance-calibration
+    # dataset v5, batch 3
+    - eng-code-review-standard
+    - hr-sick-leave-eu
+    - hr-sick-leave-us
+    - sales-customer-onboarding
+    - security-device-encryption
+    - support-status-page
+    - eng-secrets-management
+    - eng-disaster-recovery
+    - eng-borealis-rating-rules
   # no department, no projects, clearance public: only the public documents
   dave-contractor:
     - hr-volunteer-policy
@@ -152,6 +179,8 @@ principals:
     - eng-api-error-catalog
     # dataset v5, batch 2
     - eng-api-versioning
+    # dataset v5, batch 3
+    - support-status-page
   # another tenant: only its own documents
   mallory-outsider:
     - volunteer-handbook
@@ -163,4 +192,7 @@ principals:
     # dataset v5, batch 2
     - incident-response
     - learning-budget
-  # security-key-ceremony is restricted and sales-deal-desk is confidential to sales; no demo principal may see either.
+    # dataset v5, batch 3
+    - equipment
+    - onboarding
+  # security-key-ceremony and security-red-team-2026 are restricted and sales-deal-desk is confidential to sales; no demo principal may see them.
