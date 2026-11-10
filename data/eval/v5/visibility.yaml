@@ -57,6 +57,17 @@ principals:
     - support-status-page
     - eng-secrets-management
     - eng-disaster-recovery
+    # dataset v5, batch 4
+    - eng-service-ownership
+    - eng-incident-commander-guide
+    - eng-feature-flags
+    - hr-internal-mobility
+    - hr-mentoring
+    - security-password-policy
+    - security-visitor-policy
+    - eng-api-pagination
+    - support-holiday-coverage-2025
+    - eng-atlas-rollback
   # support, no projects, clearance internal: the unrestricted documents and the support-department documents
   bob-support:
     - hr-volunteer-policy
@@ -111,6 +122,17 @@ principals:
     - security-device-encryption
     - support-status-page
     - support-chargebacks
+    # dataset v5, batch 4
+    - eng-service-ownership
+    - eng-incident-commander-guide
+    - eng-feature-flags
+    - hr-internal-mobility
+    - hr-mentoring
+    - security-password-policy
+    - security-visitor-policy
+    - eng-api-pagination
+    - support-holiday-coverage-2025
+    - support-knowledge-base
   # engineering, projects atlas and borealis, clearance confidential: adds the confidential documents outside sales and every Atlas and Borealis document
   carol-manager:
     - hr-volunteer-policy
@@ -171,6 +193,17 @@ principals:
     - eng-secrets-management
     - eng-disaster-recovery
     - eng-borealis-rating-rules
+    # dataset v5, batch 4
+    - eng-service-ownership
+    - eng-incident-commander-guide
+    - eng-feature-flags
+    - hr-internal-mobility
+    - hr-mentoring
+    - security-password-policy
+    - security-visitor-policy
+    - eng-api-pagination
+    - support-holiday-coverage-2025
+    - eng-atlas-rollback
   # no department, no projects, clearance public: only the public documents
   dave-contractor:
     - hr-volunteer-policy
@@ -181,6 +214,9 @@ principals:
     - eng-api-versioning
     # dataset v5, batch 3
     - support-status-page
+    # dataset v5, batch 4
+    - security-visitor-policy
+    - eng-api-pagination
   # another tenant: only its own documents
   mallory-outsider:
     - volunteer-handbook
@@ -195,4 +231,7 @@ principals:
     # dataset v5, batch 3
     - equipment
     - onboarding
-  # security-key-ceremony and security-red-team-2026 are restricted and sales-deal-desk is confidential to sales; no demo principal may see them.
+    # dataset v5, batch 4
+    - code-review
+    - internal-moves
+  # security-key-ceremony and security-red-team-2026 are restricted, and sales-deal-desk and sales-renewals are for sales only; no demo principal may see them.

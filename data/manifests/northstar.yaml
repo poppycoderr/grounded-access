@@ -63,6 +63,18 @@ documents:
   - {key: eng-borealis-rating-rules, title: "Project Borealis: Rating Rules", file: corpus/northstar/eng-borealis-rating-rules.md, classification: confidential, required_projects: [borealis]}
   - {key: security-red-team-2026, title: "Red Team Exercise 2026: Findings", file: corpus/northstar/security-red-team-2026.md, classification: restricted}
   - {key: support-status-page, title: "Status Page Guidelines", file: corpus/northstar/support-status-page.md, classification: public}
+  - {key: eng-service-ownership, title: "Service Ownership", file: corpus/northstar/eng-service-ownership.md, classification: internal}
+  - {key: eng-incident-commander-guide, title: "Incident Commander Guide", file: corpus/northstar/eng-incident-commander-guide.md, classification: internal}
+  - {key: eng-feature-flags, title: "Feature Flag Guidelines", file: corpus/northstar/eng-feature-flags.md, classification: internal}
+  - {key: hr-internal-mobility, title: "Moving to Another Team", file: corpus/northstar/hr-internal-mobility.md, classification: internal}
+  - {key: hr-mentoring, title: "Mentoring Program", file: corpus/northstar/hr-mentoring.md, classification: internal}
+  - {key: security-password-policy, title: "Password and Sign-in Standard", file: corpus/northstar/security-password-policy.md, classification: internal}
+  - {key: security-visitor-policy, title: "Office Visitors", file: corpus/northstar/security-visitor-policy.md, classification: public}
+  - {key: eng-api-pagination, title: "Public API Pagination", file: corpus/northstar/eng-api-pagination.md, classification: public}
+  - {key: support-holiday-coverage-2025, title: "Support Coverage over the 2025 Year-End Period", file: corpus/northstar/support-holiday-coverage-2025.md, classification: internal, valid_from: "2025-12-20T00:00:00Z", valid_to: "2026-01-05T00:00:00Z"}
+  - {key: support-knowledge-base, title: "Writing Knowledge Base Articles", file: corpus/northstar/support-knowledge-base.md, classification: internal, allowed_departments: [support]}
+  - {key: sales-renewals, title: "Renewals", file: corpus/northstar/sales-renewals.md, classification: internal, allowed_departments: [sales]}
+  - {key: eng-atlas-rollback, title: "Project Atlas: Rollback Criteria", file: corpus/northstar/eng-atlas-rollback.md, classification: internal, required_projects: [atlas]}
   - key: sales-pricing-guide
     title: "Pricing Guide"
     file: corpus/northstar/sales-pricing-guide.md
