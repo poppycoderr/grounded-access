@@ -18,8 +18,8 @@ data/
 ├── manifests/northstar.yaml     # document access labels and version history
 ├── principals.yaml              # demo identities and attributes
 └── eval/
-    ├── v4/cases.jsonl
-    ├── v4/visibility.yaml       # human-labelled visible document set per principal
+    ├── v5/cases.jsonl
+    ├── v5/visibility.yaml       # human-labelled visible document set per principal
     └── DATASET_CARD.md
 ```
 

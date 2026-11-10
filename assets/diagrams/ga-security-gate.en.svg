@@ -51,7 +51,7 @@
   <text class="lbl-sm" x="56" y="175">visibility.yaml</text>
   <text class="txt" x="56" y="195">hand-labelled visible documents</text>
   <text class="txt" x="56" y="213">per principal, current version only</text>
-  <text class="mono" x="56" y="231">data/eval/v4</text>
+  <text class="mono" x="56" y="231">data/eval/v5</text>
   <rect class="blue" x="40" y="284" width="300" height="104" rx="12"/>
   <text class="lbl-sm" x="56" y="309">System under test</text>
   <text class="txt" x="56" y="329">public API with demo tokens</text>
