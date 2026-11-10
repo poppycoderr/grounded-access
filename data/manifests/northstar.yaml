@@ -44,6 +44,15 @@ documents:
   - {key: security-vendor-risk-review, title: "Vendor Risk Review", file: corpus/northstar/security-vendor-risk-review.md, classification: confidential}
   - {key: eng-borealis-load-test, title: "Project Borealis: Load Test Results", file: corpus/northstar/eng-borealis-load-test.md, classification: internal, required_projects: [borealis]}
   - {key: sales-deal-desk, title: "Deal Desk Approvals", file: corpus/northstar/sales-deal-desk.md, classification: confidential, allowed_departments: [sales]}
+  - {key: eng-incident-2026-07-search, title: "Postmortem: Stale Invoice Search Results on 3 July 2026", file: corpus/northstar/eng-incident-2026-07-search.md, classification: internal}
+  - {key: eng-observability-standard, title: "Observability Standard", file: corpus/northstar/eng-observability-standard.md, classification: internal}
+  - {key: hr-hiring-process, title: "Hiring Process", file: corpus/northstar/hr-hiring-process.md, classification: internal}
+  - {key: hr-equipment-policy, title: "Work Equipment", file: corpus/northstar/hr-equipment-policy.md, classification: internal}
+  - {key: security-phishing-reporting, title: "Reporting Phishing", file: corpus/northstar/security-phishing-reporting.md, classification: internal}
+  - {key: support-reply-style-guide, title: "Support Reply Style Guide", file: corpus/northstar/support-reply-style-guide.md, classification: internal, allowed_departments: [support]}
+  - {key: sales-partner-program, title: "Partner Program", file: corpus/northstar/sales-partner-program.md, classification: internal, allowed_departments: [sales, support]}
+  - {key: eng-atlas-data-validation, title: "Project Atlas: Data Validation", file: corpus/northstar/eng-atlas-data-validation.md, classification: internal, required_projects: [atlas]}
+  - {key: eng-performance-calibration, title: "Engineering Performance Calibration", file: corpus/northstar/eng-performance-calibration.md, classification: confidential, allowed_departments: [engineering]}
   - key: sales-pricing-guide
     title: "Pricing Guide"
     file: corpus/northstar/sales-pricing-guide.md
@@ -57,3 +66,9 @@ documents:
     classification: internal
     history:
       - {file: corpus/northstar/hr-corporate-card.v1.md, classification: internal}
+  - key: eng-api-versioning
+    title: "Public API Versioning Policy"
+    file: corpus/northstar/eng-api-versioning.md
+    classification: public
+    history:
+      - {file: corpus/northstar/eng-api-versioning.v1.md, classification: public}
