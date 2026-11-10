@@ -59,6 +59,8 @@ Upgrading from v0.1.0 needs a new database and the corpus loaded again; see [upg
 ### Evaluation
 
 - **Published numbers come only from cases a person checked** ([ADR-0015](./docs/adr/0015-where-evaluation-labels-come-from.md)). `data/eval/<version>/reviews.yaml` lists the reviewed cases; report summaries, paired comparisons, `ga-eval compare` and the answer summary count only those, and unreviewed cases appear in a table marked as not a result while still counting for the security gate. The review record is not part of the dataset digest. `ga-eval validate` now also requires `visibility.yaml` to match the visible sets derived from the manifest labels with the decision table, and `ga-eval visibility` prints them. All 128 v4 cases are recorded as reviewed. Non-negotiable rule 9 in `AGENTS.md`.
+- **Dataset v5, fourth batch** (v0.2 plan, steps 1a and 1b). 14 more documents, among them a service ownership register and a support plan that applied only over the 2025 year end, and 36 cases, 3 with evidence in two documents, 3 that set a date and 5 authorization negatives.
+
 - **Dataset v5, third batch** (v0.2 plan, steps 1a and 1b). 14 more documents, among them two sick-leave policies that apply to one region each, a restricted report and a fourth document with a version history whose second version is restricted to engineering, and 35 cases, 4 of them about scope and 7 authorization negatives.
 
 - **Dataset v5, second batch** (v0.2 plan, steps 1a and 1b). 13 more documents, among them a postmortem, a one-line configuration longer than 2,000 characters without a space and a third document with a version history, and 35 cases, 7 of them authorization negatives and one with evidence in two documents.
