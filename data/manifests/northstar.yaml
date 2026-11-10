@@ -53,6 +53,16 @@ documents:
   - {key: sales-partner-program, title: "Partner Program", file: corpus/northstar/sales-partner-program.md, classification: internal, allowed_departments: [sales, support]}
   - {key: eng-atlas-data-validation, title: "Project Atlas: Data Validation", file: corpus/northstar/eng-atlas-data-validation.md, classification: internal, required_projects: [atlas]}
   - {key: eng-performance-calibration, title: "Engineering Performance Calibration", file: corpus/northstar/eng-performance-calibration.md, classification: confidential, allowed_departments: [engineering]}
+  - {key: eng-code-review-standard, title: "Code Review Standard", file: corpus/northstar/eng-code-review-standard.md, classification: internal}
+  - {key: eng-secrets-management, title: "Secrets Management", file: corpus/northstar/eng-secrets-management.md, classification: internal, allowed_departments: [engineering]}
+  - {key: hr-sick-leave-eu, title: "Sick Leave: European Union Offices", file: corpus/northstar/hr-sick-leave-eu.md, classification: internal, applies_to_regions: [EU]}
+  - {key: hr-sick-leave-us, title: "Sick Leave: United States Offices", file: corpus/northstar/hr-sick-leave-us.md, classification: internal, applies_to_regions: [US]}
+  - {key: support-chargebacks, title: "Handling Chargebacks", file: corpus/northstar/support-chargebacks.md, classification: internal, allowed_departments: [support]}
+  - {key: sales-customer-onboarding, title: "Enterprise Customer Onboarding", file: corpus/northstar/sales-customer-onboarding.md, classification: internal}
+  - {key: security-device-encryption, title: "Device Encryption", file: corpus/northstar/security-device-encryption.md, classification: internal}
+  - {key: eng-borealis-rating-rules, title: "Project Borealis: Rating Rules", file: corpus/northstar/eng-borealis-rating-rules.md, classification: confidential, required_projects: [borealis]}
+  - {key: security-red-team-2026, title: "Red Team Exercise 2026: Findings", file: corpus/northstar/security-red-team-2026.md, classification: restricted}
+  - {key: support-status-page, title: "Status Page Guidelines", file: corpus/northstar/support-status-page.md, classification: public}
   - key: sales-pricing-guide
     title: "Pricing Guide"
     file: corpus/northstar/sales-pricing-guide.md
@@ -72,3 +82,10 @@ documents:
     classification: public
     history:
       - {file: corpus/northstar/eng-api-versioning.v1.md, classification: public}
+  - key: eng-disaster-recovery
+    title: "Disaster Recovery Plan"
+    file: corpus/northstar/eng-disaster-recovery.md
+    classification: internal
+    allowed_departments: [engineering]
+    history:
+      - {file: corpus/northstar/eng-disaster-recovery.v1.md, classification: internal}

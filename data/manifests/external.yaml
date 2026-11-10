@@ -7,3 +7,5 @@ documents:
   - {key: corporate-card, title: "Company Cards at Orbit Labs", file: corpus/external/corporate-card.md}
   - {key: incident-response, title: "Security Incidents at Orbit Labs", file: corpus/external/incident-response.md}
   - {key: learning-budget, title: "Learning at Orbit Labs", file: corpus/external/learning-budget.md}
+  - {key: equipment, title: "Laptops at Orbit Labs", file: corpus/external/equipment.md}
+  - {key: onboarding, title: "Your First Week at Orbit Labs", file: corpus/external/onboarding.md}
