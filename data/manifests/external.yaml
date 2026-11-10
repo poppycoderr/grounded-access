@@ -21,3 +21,8 @@ documents:
   - {key: printing, title: Printing at Orbit Labs, file: corpus/external/printing.md}
   - {key: part-time, title: Part-time Work at Orbit Labs, file: corpus/external/part-time.md}
   - {key: it-help, title: IT Help at Orbit Labs, file: corpus/external/it-help.md}
+  - {key: deploys, title: Deploying at Orbit Labs, file: corpus/external/deploys.md}
+  - {key: certificates, title: Certificates at Orbit Labs, file: corpus/external/certificates.md}
+  - {key: logging, title: Logging at Orbit Labs, file: corpus/external/logging.md}
+  - {key: onboarding-engineers, title: New Engineers at Orbit Labs, file: corpus/external/onboarding-engineers.md}
+  - {key: open-source, title: Open Source at Orbit Labs, file: corpus/external/open-source.md}

@@ -144,3 +144,45 @@ documents:
   - {key: hr-travel-safety, title: Travel Safety, file: corpus/northstar/hr-travel-safety.md, classification: internal}
   - {key: hr-relocation-faq, title: Relocation Questions, file: corpus/northstar/hr-relocation-faq.md, classification: internal}
   - {key: hr-volunteering-teams, title: Team Volunteering Days, file: corpus/northstar/hr-volunteering-teams.md, classification: internal}
+  - {key: eng-tls-certificates, title: TLS Certificates, file: corpus/northstar/eng-tls-certificates.md, classification: internal}
+  - {key: eng-dns-changes, title: DNS Changes, file: corpus/northstar/eng-dns-changes.md, classification: internal}
+  - {key: eng-load-balancers, title: Load Balancers, file: corpus/northstar/eng-load-balancers.md, classification: internal}
+  - {key: eng-caching, title: Caching Guidelines, file: corpus/northstar/eng-caching.md, classification: internal}
+  - {key: eng-message-queues, title: Message Queues, file: corpus/northstar/eng-message-queues.md, classification: internal}
+  - {key: eng-scheduled-jobs, title: Scheduled Jobs, file: corpus/northstar/eng-scheduled-jobs.md, classification: internal}
+  - {key: eng-schema-migrations, title: Schema Migration Guidelines, file: corpus/northstar/eng-schema-migrations.md, classification: internal}
+  - {key: eng-api-style-guide, title: API Style Guide, file: corpus/northstar/eng-api-style-guide.md, classification: internal}
+  - {key: eng-logging-levels, title: Logging Levels, file: corpus/northstar/eng-logging-levels.md, classification: internal}
+  - {key: eng-error-handling, title: Error Handling, file: corpus/northstar/eng-error-handling.md, classification: internal}
+  - {key: eng-dependency-licenses, title: Third-party Licences, file: corpus/northstar/eng-dependency-licenses.md, classification: internal}
+  - {key: eng-open-source-contributions, title: Contributing to Open Source, file: corpus/northstar/eng-open-source-contributions.md, classification: internal}
+  - {key: eng-architecture-decisions, title: Architecture Decision Records, file: corpus/northstar/eng-architecture-decisions.md, classification: internal}
+  - {key: eng-technology-radar, title: Technology Radar, file: corpus/northstar/eng-technology-radar.md, classification: internal}
+  - {key: eng-game-days, title: Game Days, file: corpus/northstar/eng-game-days.md, classification: internal}
+  - {key: eng-cost-tagging, title: Cloud Cost Tagging, file: corpus/northstar/eng-cost-tagging.md, classification: internal}
+  - {key: eng-budget-alerts, title: Cloud Budget Alerts, file: corpus/northstar/eng-budget-alerts.md, classification: internal}
+  - {key: eng-staging-environment, title: Staging Environment, file: corpus/northstar/eng-staging-environment.md, classification: internal}
+  - {key: eng-test-data, title: Test Data, file: corpus/northstar/eng-test-data.md, classification: internal}
+  - {key: eng-performance-budgets, title: Performance Budgets, file: corpus/northstar/eng-performance-budgets.md, classification: internal}
+  - {key: eng-mobile-releases, title: Mobile App Releases, file: corpus/northstar/eng-mobile-releases.md, classification: internal}
+  - {key: eng-browser-support, title: Browser Support, file: corpus/northstar/eng-browser-support.md, classification: public}
+  - {key: eng-accessibility-standard, title: Accessibility Standard, file: corpus/northstar/eng-accessibility-standard.md, classification: internal}
+  - {key: eng-localization, title: Localization, file: corpus/northstar/eng-localization.md, classification: internal}
+  - {key: eng-time-zones, title: Time Zones and Dates, file: corpus/northstar/eng-time-zones.md, classification: internal}
+  - {key: eng-email-delivery, title: Transactional Email, file: corpus/northstar/eng-email-delivery.md, classification: internal}
+  - {key: eng-webhook-delivery, title: Webhook Delivery, file: corpus/northstar/eng-webhook-delivery.md, classification: public}
+  - {key: eng-sdk-releases, title: SDK Releases, file: corpus/northstar/eng-sdk-releases.md, classification: public}
+  - {key: eng-cli-tool, title: Command-line Tool, file: corpus/northstar/eng-cli-tool.md, classification: public}
+  - {key: eng-docs-style, title: Documentation Style, file: corpus/northstar/eng-docs-style.md, classification: internal}
+  - {key: eng-chaos-testing, title: Chaos Testing in Staging, file: corpus/northstar/eng-chaos-testing.md, classification: internal}
+  - {key: eng-capacity-planning, title: Capacity Planning, file: corpus/northstar/eng-capacity-planning.md, classification: internal}
+  - {key: eng-on-call-tooling, title: On-call Tooling, file: corpus/northstar/eng-on-call-tooling.md, classification: internal}
+  - {key: eng-runbook-standard, title: Runbook Standard, file: corpus/northstar/eng-runbook-standard.md, classification: internal}
+  - {key: eng-postmortem-template, title: Postmortem Template, file: corpus/northstar/eng-postmortem-template.md, classification: internal}
+  - {key: eng-atlas-read-replicas, title: 'Project Atlas: Read Replicas', file: corpus/northstar/eng-atlas-read-replicas.md, classification: internal, required_projects: [atlas]}
+  - {key: eng-borealis-metering-schema, title: 'Project Borealis: Metering Event Schema', file: corpus/northstar/eng-borealis-metering-schema.md, classification: confidential, required_projects: [borealis]}
+  - {key: eng-security-champions, title: Security Champions, file: corpus/northstar/eng-security-champions.md, classification: internal, allowed_departments: [engineering]}
+  - {key: eng-threat-modeling, title: Threat Modeling, file: corpus/northstar/eng-threat-modeling.md, classification: internal, allowed_departments: [engineering]}
+  - {key: eng-production-data-access, title: Access to Production Data, file: corpus/northstar/eng-production-data-access.md, classification: internal, allowed_departments: [engineering]}
+  - {key: eng-interview-guide, title: Engineering Interview Guide, file: corpus/northstar/eng-interview-guide.md, classification: internal, allowed_departments: [engineering]}
+  - {key: eng-onboarding-plan, title: Engineering Onboarding Plan, file: corpus/northstar/eng-onboarding-plan.md, classification: internal}
