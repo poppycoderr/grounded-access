@@ -24,7 +24,7 @@ A fictional enterprise knowledge base for two tenants and a set of retrieval cas
 | v2 | v1 plus access labels, 7 restricted look-alike documents, one principal with public clearance and 38 authorization cases | `m2-labelled-dataset` |
 | v3 | v2 plus 4 documents with a region or a validity window, a validity window on the current travel policy, and 14 cases: 13 about scope and one more authorization negative | `m2-authorization`, `m3-rerank` |
 | v4 | v3 plus 3 documents that contain an instruction aimed at a language model, and 6 cases that name the phrase such an instruction tries to elicit | reports from the M3 report on |
-| v5 | v4 plus the v0.2 corpus, added in reviewed batches until step 1 of the [v0.2 plan](../../docs/project/v0.2-plan.md) is complete. Batch 1: 13 documents with sections long enough to be split, code blocks, tables and identifiers without spaces, a second document with a version history, and 34 cases | none yet; v5 is not used for reports until it is complete |
+| v5 | v4 plus the v0.2 corpus, added in batches until step 1 of the [v0.2 plan](../../docs/project/v0.2-plan.md) is complete. Batch 1: 13 documents with sections long enough to be split, code blocks, tables and identifiers without spaces, a second document with a version history, and 34 cases | none yet; v5 is not used for reports until it is complete |
 
 Cases are never changed or removed between versions. Their numbers can still move, because principals with access to new documents have more candidates to rank. Numbers from reports on different dataset versions are therefore not comparable.
 
