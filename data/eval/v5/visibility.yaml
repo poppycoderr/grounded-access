@@ -112,6 +112,48 @@ principals:
     - hr-travel-safety
     - hr-relocation-faq
     - hr-volunteering-teams
+    # dataset v5, batch 6
+    - eng-tls-certificates
+    - eng-dns-changes
+    - eng-load-balancers
+    - eng-caching
+    - eng-message-queues
+    - eng-scheduled-jobs
+    - eng-schema-migrations
+    - eng-api-style-guide
+    - eng-logging-levels
+    - eng-error-handling
+    - eng-dependency-licenses
+    - eng-open-source-contributions
+    - eng-architecture-decisions
+    - eng-technology-radar
+    - eng-game-days
+    - eng-cost-tagging
+    - eng-budget-alerts
+    - eng-staging-environment
+    - eng-test-data
+    - eng-performance-budgets
+    - eng-mobile-releases
+    - eng-browser-support
+    - eng-accessibility-standard
+    - eng-localization
+    - eng-time-zones
+    - eng-email-delivery
+    - eng-webhook-delivery
+    - eng-sdk-releases
+    - eng-cli-tool
+    - eng-docs-style
+    - eng-chaos-testing
+    - eng-capacity-planning
+    - eng-on-call-tooling
+    - eng-runbook-standard
+    - eng-postmortem-template
+    - eng-atlas-read-replicas
+    - eng-security-champions
+    - eng-threat-modeling
+    - eng-production-data-access
+    - eng-interview-guide
+    - eng-onboarding-plan
   # support, no projects, clearance internal: the unrestricted documents and the support-department documents
   bob-support:
     - hr-volunteer-policy
@@ -221,6 +263,43 @@ principals:
     - hr-travel-safety
     - hr-relocation-faq
     - hr-volunteering-teams
+    # dataset v5, batch 6
+    - eng-tls-certificates
+    - eng-dns-changes
+    - eng-load-balancers
+    - eng-caching
+    - eng-message-queues
+    - eng-scheduled-jobs
+    - eng-schema-migrations
+    - eng-api-style-guide
+    - eng-logging-levels
+    - eng-error-handling
+    - eng-dependency-licenses
+    - eng-open-source-contributions
+    - eng-architecture-decisions
+    - eng-technology-radar
+    - eng-game-days
+    - eng-cost-tagging
+    - eng-budget-alerts
+    - eng-staging-environment
+    - eng-test-data
+    - eng-performance-budgets
+    - eng-mobile-releases
+    - eng-browser-support
+    - eng-accessibility-standard
+    - eng-localization
+    - eng-time-zones
+    - eng-email-delivery
+    - eng-webhook-delivery
+    - eng-sdk-releases
+    - eng-cli-tool
+    - eng-docs-style
+    - eng-chaos-testing
+    - eng-capacity-planning
+    - eng-on-call-tooling
+    - eng-runbook-standard
+    - eng-postmortem-template
+    - eng-onboarding-plan
   # engineering, projects atlas and borealis, clearance confidential: adds the confidential documents outside sales and every Atlas and Borealis document
   carol-manager:
     - hr-volunteer-policy
@@ -336,6 +415,49 @@ principals:
     - hr-travel-safety
     - hr-relocation-faq
     - hr-volunteering-teams
+    # dataset v5, batch 6
+    - eng-tls-certificates
+    - eng-dns-changes
+    - eng-load-balancers
+    - eng-caching
+    - eng-message-queues
+    - eng-scheduled-jobs
+    - eng-schema-migrations
+    - eng-api-style-guide
+    - eng-logging-levels
+    - eng-error-handling
+    - eng-dependency-licenses
+    - eng-open-source-contributions
+    - eng-architecture-decisions
+    - eng-technology-radar
+    - eng-game-days
+    - eng-cost-tagging
+    - eng-budget-alerts
+    - eng-staging-environment
+    - eng-test-data
+    - eng-performance-budgets
+    - eng-mobile-releases
+    - eng-browser-support
+    - eng-accessibility-standard
+    - eng-localization
+    - eng-time-zones
+    - eng-email-delivery
+    - eng-webhook-delivery
+    - eng-sdk-releases
+    - eng-cli-tool
+    - eng-docs-style
+    - eng-chaos-testing
+    - eng-capacity-planning
+    - eng-on-call-tooling
+    - eng-runbook-standard
+    - eng-postmortem-template
+    - eng-atlas-read-replicas
+    - eng-borealis-metering-schema
+    - eng-security-champions
+    - eng-threat-modeling
+    - eng-production-data-access
+    - eng-interview-guide
+    - eng-onboarding-plan
   # no department, no projects, clearance public: only the public documents
   dave-contractor:
     - hr-volunteer-policy
@@ -349,6 +471,11 @@ principals:
     # dataset v5, batch 4
     - security-visitor-policy
     - eng-api-pagination
+    # dataset v5, batch 6
+    - eng-browser-support
+    - eng-webhook-delivery
+    - eng-sdk-releases
+    - eng-cli-tool
   # another tenant: only its own documents
   mallory-outsider:
     - volunteer-handbook
@@ -377,4 +504,10 @@ principals:
     - printing
     - part-time
     - it-help
+    # dataset v5, batch 6
+    - deploys
+    - certificates
+    - logging
+    - onboarding-engineers
+    - open-source
   # security-key-ceremony and security-red-team-2026 are restricted, and sales-deal-desk and sales-renewals are for sales only; no demo principal may see them.
