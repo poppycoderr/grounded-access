@@ -52,7 +52,7 @@ Upgrading from v0.1.0 needs a new database and the corpus loaded again; see [upg
 
 ### Evaluation
 
-- **Dataset v5, first batch** (v0.2 plan, steps 1a and 1b). 13 fictional documents with sections long enough to be split, code blocks, tables and identifiers without spaces, a second document with a version history, and 34 cases, 8 of them authorization negatives. `ga-eval` now reads `data/eval/v5` by default. Cases of v4 are unchanged; their numbers can move because principals have more candidates. No report uses v5 yet.
+- **Dataset v5, first batch** (v0.2 plan, steps 1a and 1b). 13 fictional documents with sections long enough to be split, code blocks, tables and identifiers without spaces, a second document with a version history, and 34 cases, 8 of them authorization negatives. `ga-eval` now reads `data/eval/v5` by default. Cases of v4 are unchanged; their numbers can move because principals have more candidates. v5 grows in reviewed batches until step 1 of the v0.2 plan is complete, and no report uses it before then.
 
 - **Exact search against HNSW** (ADR-0002). `scripts/hnsw-run` and `ga-eval ann-recall` compare an approximate index with exact search through the real dense path, per principal, and `ga-eval load-test` gains `--as-principal` and `--record-results`. The first run, [`benchmarks/reports/v0.2-hnsw`](./benchmarks/reports/v0.2-hnsw/README.md), found that PostgreSQL does not use an HNSW index at 33,283 chunks. Forced, the index lost most of exact search's results: for a principal who may read 1.2% of the chunks, recall@10 was 0.048 without iterative scans and 0.863 with relaxed iterative scans. The generated corpus also kept the graph search from reaching the labelled chunks. No approximate index is added.
 
