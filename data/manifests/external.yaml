@@ -5,3 +5,5 @@ documents:
   - {key: remote-work, title: "Working From Home at Orbit Labs", file: corpus/external/remote-work.md}
   - {key: security-basics, title: "Security Basics at Orbit Labs", file: corpus/external/security-basics.md}
   - {key: corporate-card, title: "Company Cards at Orbit Labs", file: corpus/external/corporate-card.md}
+  - {key: incident-response, title: "Security Incidents at Orbit Labs", file: corpus/external/incident-response.md}
+  - {key: learning-budget, title: "Learning at Orbit Labs", file: corpus/external/learning-budget.md}

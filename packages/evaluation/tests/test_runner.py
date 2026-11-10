@@ -106,7 +106,7 @@ class Listing:
 
 def test_listing_a_document_outside_the_visible_set_or_a_replaced_version_is_a_violation():
     data = ds.load(DATA)
-    listed = {key: 1 for key in data.visibility["dave-contractor"]} | {"hr-travel-policy": 1, "sales-product-overview": 3}
+    listed = {key: data.current_version[key] for key in data.visibility["dave-contractor"]} | {"hr-travel-policy": 1, "sales-product-overview": 3}
 
     check = runner.check_visibility(data, Listing(listed).listings("dave-contractor"))
 
@@ -116,8 +116,10 @@ def test_listing_a_document_outside_the_visible_set_or_a_replaced_version_is_a_v
 def test_a_principal_that_cannot_list_a_visible_document_aborts_the_run():
     data = ds.load(DATA)
 
-    with pytest.raises(runner.VisibilityMismatchError, match="dave-contractor cannot list hr-volunteer-policy"):
-        runner.check_visibility(data, Listing({"sales-product-overview": 1, "eng-api-error-catalog": 1}).listings("dave-contractor"))
+    listed = {key: data.current_version[key] for key in data.visibility["dave-contractor"] if key != "hr-volunteer-policy"}
+
+    with pytest.raises(runner.VisibilityMismatchError, match="dave-contractor cannot list hr-volunteer-policy,"):
+        runner.check_visibility(data, Listing(listed).listings("dave-contractor"))
 
 
 def test_a_run_records_the_cpu_that_produced_it():
