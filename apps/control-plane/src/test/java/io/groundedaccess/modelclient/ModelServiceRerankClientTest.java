@@ -88,8 +88,9 @@ class ModelServiceRerankClientTest {
     @Test
     void aCallThatFindsNoFreeSlotWithinTheTimeoutIsNotSent() throws Exception {
         response.set("{\"model\":\"m\",\"revision\":\"r7\",\"query_truncated\":false,\"scores\":[{\"id\":\"0\",\"score\":1.0}]}");
-        delayMillis = 700;
-        ModelServiceRerankClient client = client(Duration.ofMillis(1000));
+        // One slot: the second call waits about one delay and still finishes within its timeout; the third would need two delays and gives up
+        delayMillis = 1400;
+        ModelServiceRerankClient client = client(Duration.ofMillis(2000));
 
         List<Future<String>> outcomes;
         try (ExecutorService pool = Executors.newFixedThreadPool(3)) {
