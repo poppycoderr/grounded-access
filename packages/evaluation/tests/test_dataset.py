@@ -48,6 +48,14 @@ def test_rejects_visibility_labels_that_cross_tenants(data):
     assert "visibility mallory-outsider: hr-travel-policy belongs to another tenant" in ds.validate(broken)
 
 
+def test_rejects_a_document_key_used_in_two_tenants(data):
+    northstar, external = sorted(data.manifests, key=lambda m: m.tenant != "northstar")
+    clash = external.documents[0].model_copy(update={"key": northstar.documents[0].key})
+    broken = replace(data, manifests=[northstar, external.model_copy(update={"documents": [*external.documents, clash]})])
+
+    assert f"document key {northstar.documents[0].key} is used 2 times; keys must be unique across tenants" in ds.validate(broken)
+
+
 def test_evidence_spans_point_at_the_quote(data):
     evidence = data.cases[0].evidence[0]
     span = data.span(evidence)

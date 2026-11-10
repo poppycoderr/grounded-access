@@ -1,6 +1,7 @@
 """Evaluation dataset: manifests, documents, cases and visibility labels, plus validation against the corpus text."""
 
 import hashlib
+from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -200,6 +201,9 @@ def validate(dataset: Dataset) -> list[str]:
         for key, text in sorted(dataset.texts.items())
         if any(ord(ch) > 0xFFFF for ch in text)
     ]
+    # Texts, versions and tenants are keyed by document key alone, so a key used in two tenants would silently replace one document
+    keys = Counter(d.key for m in dataset.manifests for d in m.documents)
+    problems += [f"document key {key} is used {n} times; keys must be unique across tenants" for key, n in sorted(keys.items()) if n > 1]
     ids = [c.id for c in dataset.cases]
     problems += [f"duplicate case id {i}" for i in sorted({i for i in ids if ids.count(i) > 1})]
     for case in dataset.cases:

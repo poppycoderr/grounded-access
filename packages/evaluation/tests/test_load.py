@@ -40,7 +40,8 @@ def test_a_loaded_document_gets_only_its_current_version():
 
     submitted = [key for job in client.jobs for key in job]
     assert sorted(submitted) == sorted(data.current_version)
-    assert len(client.jobs) == len(data.manifests)
+    assert max(len(job) for job in client.jobs) <= cli.LOAD_BATCH
+    assert len(client.jobs) == sum(-(-len(m.documents) // cli.LOAD_BATCH) for m in data.manifests)
 
 
 def test_generated_distractors_load_from_their_own_directory_in_bounded_jobs(tmp_path):
