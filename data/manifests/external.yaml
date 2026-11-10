@@ -9,3 +9,5 @@ documents:
   - {key: learning-budget, title: "Learning at Orbit Labs", file: corpus/external/learning-budget.md}
   - {key: equipment, title: "Laptops at Orbit Labs", file: corpus/external/equipment.md}
   - {key: onboarding, title: "Your First Week at Orbit Labs", file: corpus/external/onboarding.md}
+  - {key: code-review, title: "Code Review at Orbit Labs", file: corpus/external/code-review.md}
+  - {key: internal-moves, title: "Changing Teams at Orbit Labs", file: corpus/external/internal-moves.md}
