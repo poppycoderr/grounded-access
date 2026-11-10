@@ -229,3 +229,53 @@ documents:
   - {key: security-awareness-training, title: Security Awareness Training, file: corpus/northstar/security-awareness-training.md, classification: internal}
   - {key: security-vulnerability-disclosure, title: Vulnerability Disclosure, file: corpus/northstar/security-vulnerability-disclosure.md, classification: public}
   - {key: security-access-badges, title: Building Badges, file: corpus/northstar/security-access-badges.md, classification: internal}
+  - {key: product-invoice-templates, title: Invoice Templates, file: corpus/northstar/product-invoice-templates.md, classification: public}
+  - {key: product-recurring-invoices, title: Recurring Invoices, file: corpus/northstar/product-recurring-invoices.md, classification: public}
+  - {key: product-payment-reminders, title: Payment Reminders, file: corpus/northstar/product-payment-reminders.md, classification: public}
+  - {key: product-credit-notes, title: Credit Notes, file: corpus/northstar/product-credit-notes.md, classification: public}
+  - {key: product-tax-settings, title: Tax Settings, file: corpus/northstar/product-tax-settings.md, classification: public}
+  - {key: product-currencies, title: Currencies, file: corpus/northstar/product-currencies.md, classification: public}
+  - {key: product-customer-portal, title: Customer Portal, file: corpus/northstar/product-customer-portal.md, classification: public}
+  - {key: product-user-roles, title: User Roles, file: corpus/northstar/product-user-roles.md, classification: public}
+  - {key: product-audit-log, title: Account Audit Log, file: corpus/northstar/product-audit-log.md, classification: public}
+  - {key: product-single-sign-on, title: Single Sign-on, file: corpus/northstar/product-single-sign-on.md, classification: public}
+  - {key: product-two-factor, title: Two-factor Authentication for Users, file: corpus/northstar/product-two-factor.md, classification: public}
+  - {key: product-data-export, title: Exporting Your Data, file: corpus/northstar/product-data-export.md, classification: public}
+  - {key: product-integrations-accounting, title: Accounting Integrations, file: corpus/northstar/product-integrations-accounting.md, classification: public}
+  - {key: product-api-keys, title: API Keys, file: corpus/northstar/product-api-keys.md, classification: public}
+  - {key: product-sandbox, title: Sandbox Accounts, file: corpus/northstar/product-sandbox.md, classification: public}
+  - {key: product-plans-limits, title: Plan Limits, file: corpus/northstar/product-plans-limits.md, classification: public}
+  - {key: product-release-notes-2026-10, title: 'Release Notes: October 2026', file: corpus/northstar/product-release-notes-2026-10.md, classification: public}
+  - {key: product-release-notes-2026-09, title: 'Release Notes: September 2026', file: corpus/northstar/product-release-notes-2026-09.md, classification: public}
+  - {key: finance-purchase-orders, title: Purchase Orders, file: corpus/northstar/finance-purchase-orders.md, classification: internal, allowed_departments: [finance]}
+  - {key: finance-supplier-onboarding, title: Supplier Onboarding, file: corpus/northstar/finance-supplier-onboarding.md, classification: internal, allowed_departments: [finance]}
+  - {key: finance-month-end-close, title: Month-end Close, file: corpus/northstar/finance-month-end-close.md, classification: internal, allowed_departments: [finance]}
+  - {key: finance-expense-audit, title: Expense Audits, file: corpus/northstar/finance-expense-audit.md, classification: internal, allowed_departments: [finance]}
+  - {key: finance-budget-planning, title: Annual Budget Planning, file: corpus/northstar/finance-budget-planning.md, classification: internal, allowed_departments: [finance]}
+  - {key: finance-revenue-recognition, title: Revenue Recognition, file: corpus/northstar/finance-revenue-recognition.md, classification: confidential, allowed_departments: [finance]}
+  - {key: ops-change-calendar, title: Change Calendar, file: corpus/northstar/ops-change-calendar.md, classification: internal}
+  - {key: ops-vendor-outages, title: Vendor Outages, file: corpus/northstar/ops-vendor-outages.md, classification: internal}
+  - {key: ops-data-center-regions, title: Regions, file: corpus/northstar/ops-data-center-regions.md, classification: internal}
+  - {key: ops-maintenance-windows, title: Maintenance Windows, file: corpus/northstar/ops-maintenance-windows.md, classification: internal}
+  - {key: ops-synthetic-checks, title: Synthetic Checks, file: corpus/northstar/ops-synthetic-checks.md, classification: internal}
+  - {key: ops-incident-review-meeting, title: Weekly Operations Review, file: corpus/northstar/ops-incident-review-meeting.md, classification: internal}
+  - {key: ops-error-budgets, title: Error Budget Policy, file: corpus/northstar/ops-error-budgets.md, classification: internal}
+  - {key: ops-long-running-incidents, title: Long-running Incidents, file: corpus/northstar/ops-long-running-incidents.md, classification: internal}
+  - {key: hr-office-attendance, title: Office Attendance, file: corpus/northstar/hr-office-attendance.md, classification: internal, history: [{file: corpus/northstar/hr-office-attendance.v1.md, classification: internal}]}
+  - {key: eng-incident-severity-guide, title: Choosing an Incident Severity, file: corpus/northstar/eng-incident-severity-guide.md, classification: internal, history: [{file: corpus/northstar/eng-incident-severity-guide.v1.md, classification: internal}]}
+  - {key: hr-flexible-hours, title: Flexible Working Hours, file: corpus/northstar/hr-flexible-hours.md, classification: internal}
+  - {key: hr-overtime, title: Overtime, file: corpus/northstar/hr-overtime.md, classification: internal}
+  - {key: hr-internships, title: Internships, file: corpus/northstar/hr-internships.md, classification: internal}
+  - {key: hr-language-courses, title: Language Courses, file: corpus/northstar/hr-language-courses.md, classification: internal}
+  - {key: it-loaner-laptops, title: Loaner Laptops, file: corpus/northstar/it-loaner-laptops.md, classification: internal}
+  - {key: it-new-hire-accounts, title: Accounts for New Employees, file: corpus/northstar/it-new-hire-accounts.md, classification: internal}
+  - {key: eng-hackathon, title: Hackathon, file: corpus/northstar/eng-hackathon.md, classification: internal}
+  - {key: eng-tech-talks, title: Tech Talks, file: corpus/northstar/eng-tech-talks.md, classification: internal}
+  - {key: eng-pairing, title: Pair Programming, file: corpus/northstar/eng-pairing.md, classification: internal}
+  - {key: eng-code-owners, title: Code Owners Files, file: corpus/northstar/eng-code-owners.md, classification: internal}
+  - {key: eng-branching, title: Branching, file: corpus/northstar/eng-branching.md, classification: internal}
+  - {key: eng-commit-messages, title: Commit Messages, file: corpus/northstar/eng-commit-messages.md, classification: internal}
+  - {key: support-engineering-escalation, title: Escalating to Engineering, file: corpus/northstar/support-engineering-escalation.md, classification: internal, allowed_departments: [support]}
+  - {key: security-incident-drills, title: Security Incident Drills, file: corpus/northstar/security-incident-drills.md, classification: internal}
+  - {key: marketing-press-releases, title: Press Releases, file: corpus/northstar/marketing-press-releases.md, classification: internal}
+  - {key: legal-open-source-notices, title: Open Source Notices, file: corpus/northstar/legal-open-source-notices.md, classification: public}

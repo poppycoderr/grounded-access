@@ -179,6 +179,50 @@ principals:
     - security-awareness-training
     - security-vulnerability-disclosure
     - security-access-badges
+    # dataset v5, batch 8
+    - product-invoice-templates
+    - product-recurring-invoices
+    - product-payment-reminders
+    - product-credit-notes
+    - product-tax-settings
+    - product-currencies
+    - product-customer-portal
+    - product-user-roles
+    - product-audit-log
+    - product-single-sign-on
+    - product-two-factor
+    - product-data-export
+    - product-integrations-accounting
+    - product-api-keys
+    - product-sandbox
+    - product-plans-limits
+    - product-release-notes-2026-10
+    - product-release-notes-2026-09
+    - ops-change-calendar
+    - ops-vendor-outages
+    - ops-data-center-regions
+    - ops-maintenance-windows
+    - ops-synthetic-checks
+    - ops-incident-review-meeting
+    - ops-error-budgets
+    - ops-long-running-incidents
+    - hr-office-attendance
+    - eng-incident-severity-guide
+    - hr-flexible-hours
+    - hr-overtime
+    - hr-internships
+    - hr-language-courses
+    - it-loaner-laptops
+    - it-new-hire-accounts
+    - eng-hackathon
+    - eng-tech-talks
+    - eng-pairing
+    - eng-code-owners
+    - eng-branching
+    - eng-commit-messages
+    - security-incident-drills
+    - marketing-press-releases
+    - legal-open-source-notices
   # support, no projects, clearance internal: the unrestricted documents and the support-department documents
   bob-support:
     - hr-volunteer-policy
@@ -363,6 +407,51 @@ principals:
     - security-awareness-training
     - security-vulnerability-disclosure
     - security-access-badges
+    # dataset v5, batch 8
+    - product-invoice-templates
+    - product-recurring-invoices
+    - product-payment-reminders
+    - product-credit-notes
+    - product-tax-settings
+    - product-currencies
+    - product-customer-portal
+    - product-user-roles
+    - product-audit-log
+    - product-single-sign-on
+    - product-two-factor
+    - product-data-export
+    - product-integrations-accounting
+    - product-api-keys
+    - product-sandbox
+    - product-plans-limits
+    - product-release-notes-2026-10
+    - product-release-notes-2026-09
+    - ops-change-calendar
+    - ops-vendor-outages
+    - ops-data-center-regions
+    - ops-maintenance-windows
+    - ops-synthetic-checks
+    - ops-incident-review-meeting
+    - ops-error-budgets
+    - ops-long-running-incidents
+    - hr-office-attendance
+    - eng-incident-severity-guide
+    - hr-flexible-hours
+    - hr-overtime
+    - hr-internships
+    - hr-language-courses
+    - it-loaner-laptops
+    - it-new-hire-accounts
+    - eng-hackathon
+    - eng-tech-talks
+    - eng-pairing
+    - eng-code-owners
+    - eng-branching
+    - eng-commit-messages
+    - support-engineering-escalation
+    - security-incident-drills
+    - marketing-press-releases
+    - legal-open-source-notices
   # engineering, projects atlas and borealis, clearance confidential: adds the confidential documents outside sales and every Atlas and Borealis document
   carol-manager:
     - hr-volunteer-policy
@@ -547,6 +636,50 @@ principals:
     - security-awareness-training
     - security-vulnerability-disclosure
     - security-access-badges
+    # dataset v5, batch 8
+    - product-invoice-templates
+    - product-recurring-invoices
+    - product-payment-reminders
+    - product-credit-notes
+    - product-tax-settings
+    - product-currencies
+    - product-customer-portal
+    - product-user-roles
+    - product-audit-log
+    - product-single-sign-on
+    - product-two-factor
+    - product-data-export
+    - product-integrations-accounting
+    - product-api-keys
+    - product-sandbox
+    - product-plans-limits
+    - product-release-notes-2026-10
+    - product-release-notes-2026-09
+    - ops-change-calendar
+    - ops-vendor-outages
+    - ops-data-center-regions
+    - ops-maintenance-windows
+    - ops-synthetic-checks
+    - ops-incident-review-meeting
+    - ops-error-budgets
+    - ops-long-running-incidents
+    - hr-office-attendance
+    - eng-incident-severity-guide
+    - hr-flexible-hours
+    - hr-overtime
+    - hr-internships
+    - hr-language-courses
+    - it-loaner-laptops
+    - it-new-hire-accounts
+    - eng-hackathon
+    - eng-tech-talks
+    - eng-pairing
+    - eng-code-owners
+    - eng-branching
+    - eng-commit-messages
+    - security-incident-drills
+    - marketing-press-releases
+    - legal-open-source-notices
   # no department, no projects, clearance public: only the public documents
   dave-contractor:
     - hr-volunteer-policy
@@ -571,6 +704,26 @@ principals:
     - support-community-forum
     - security-bug-bounty
     - security-vulnerability-disclosure
+    # dataset v5, batch 8
+    - product-invoice-templates
+    - product-recurring-invoices
+    - product-payment-reminders
+    - product-credit-notes
+    - product-tax-settings
+    - product-currencies
+    - product-customer-portal
+    - product-user-roles
+    - product-audit-log
+    - product-single-sign-on
+    - product-two-factor
+    - product-data-export
+    - product-integrations-accounting
+    - product-api-keys
+    - product-sandbox
+    - product-plans-limits
+    - product-release-notes-2026-10
+    - product-release-notes-2026-09
+    - legal-open-source-notices
   # another tenant: only its own documents
   mallory-outsider:
     - volunteer-handbook
@@ -614,4 +767,17 @@ principals:
     - contracts
     - brand
     - survey
+    # dataset v5, batch 8
+    - invoices
+    - purchase-orders
+    - regions
+    - maintenance
+    - api-keys
+    - office-attendance
+    - month-end
+    - user-roles
+    - sandbox
+    - release-notes
+    - error-budgets
+    - synthetic-checks
   # security-key-ceremony and security-red-team-2026 are restricted, and sales-deal-desk and sales-renewals are for sales only; no demo principal may see them.
