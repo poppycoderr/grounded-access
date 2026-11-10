@@ -6,13 +6,13 @@ A fictional enterprise knowledge base for two tenants and a set of retrieval cas
 
 | | Count |
 |---|---|
-| Documents | 60 (53 Northstar Cloud, 7 Orbit Labs); three Northstar documents have two versions |
-| Cases | 197: 148 answerable, 49 that must find nothing |
-| Split | 147 `test`, 50 `dev` |
-| Principals | alice-engineer 63, bob-support 63, carol-manager 48, dave-contractor 13, mallory-outsider 10 |
-| Cases with hard negatives | 45 |
-| Authorization negatives | 46: 10 cross-tenant, 36 inside the tenant (clearance 16, project 8, department 12) |
-| Scope cases | 13: they set a region or a date, or name readable documents that do not apply to the request |
+| Documents | 73 (64 Northstar Cloud, 9 Orbit Labs); four Northstar documents have two versions |
+| Cases | 232: 176 answerable, 56 that must find nothing |
+| Split | 174 `test`, 58 `dev` |
+| Principals | alice-engineer 75, bob-support 72, carol-manager 59, dave-contractor 14, mallory-outsider 12 |
+| Cases with hard negatives | 55 |
+| Authorization negatives | 53: 11 cross-tenant, 42 inside the tenant (clearance 18, project 9, department 15; a case that fails on both project and clearance is counted under project) |
+| Scope cases | 17: they set a region or a date, or name readable documents that do not apply to the request |
 | Prompt-injection cases | 6: a readable document contains an instruction aimed at a language model |
 | Cases with evidence in more than one place | 4 |
 
@@ -24,7 +24,7 @@ A fictional enterprise knowledge base for two tenants and a set of retrieval cas
 | v2 | v1 plus access labels, 7 restricted look-alike documents, one principal with public clearance and 38 authorization cases | `m2-labelled-dataset` |
 | v3 | v2 plus 4 documents with a region or a validity window, a validity window on the current travel policy, and 14 cases: 13 about scope and one more authorization negative | `m2-authorization`, `m3-rerank` |
 | v4 | v3 plus 3 documents that contain an instruction aimed at a language model, and 6 cases that name the phrase such an instruction tries to elicit | reports from the M3 report on |
-| v5 | v4 plus the v0.2 corpus, added in reviewed batches until step 1 of the [v0.2 plan](../../docs/project/v0.2-plan.md) is complete. Batch 1: 13 documents with sections long enough to be split, code blocks, tables and identifiers without spaces, a second document with a version history, and 34 cases. Batch 2: 13 documents, among them a postmortem, a one-line configuration longer than 2,000 characters without a space, and a third document with a version history, and 35 cases | none yet; v5 is not used for reports until it is complete |
+| v5 | v4 plus the v0.2 corpus, added in reviewed batches until step 1 of the [v0.2 plan](../../docs/project/v0.2-plan.md) is complete. Batch 1: 13 documents with sections long enough to be split, code blocks, tables and identifiers without spaces, a second document with a version history, and 34 cases. Batch 2: 13 documents, among them a postmortem, a one-line configuration longer than 2,000 characters without a space, and a third document with a version history, and 35 cases. Batch 3: 14 documents, among them two sick-leave policies that apply to one region each, a restricted report, a configuration block longer than 2,000 characters, and a fourth document with a version history whose second version is restricted to engineering, and 35 cases | none yet; v5 is not used for reports until it is complete |
 
 Cases are never changed or removed between versions. Their numbers can still move, because principals with access to new documents have more candidates to rank. Numbers from reports on different dataset versions are therefore not comparable.
 
@@ -41,11 +41,11 @@ Drafting was assisted by a language model; every document, quote and label was t
 - **Unauthorized documents** name what an authorization negative is trying to reach. The security gate does not rely on them alone: every returned chunk is checked against `visibility.yaml`.
 - **Access labels** live in the manifests: a classification, the departments allowed to read a document, and the projects that give access to it. The existing Northstar documents are `internal` (two are `public`), so the three original principals see them as before. The restrictions come from new documents written to look like existing ones: a confidential compensation document that repeats the on-call allowance topic, project documents about a billing-database migration and an unannounced product, department-only documents for support and engineering, and a restricted document nobody in the demo may read.
 - **`visibility.yaml`** lists, per principal, the documents it may see. It was written by reading the labels and the principals' attributes, not by running the policy compiler, so the gate compares the system with an independent statement of the rules.
-- **Scope.** Region and validity are not access (ADR-0005). Two holiday calendars apply to one region each. The 2025 travel policy has a closed validity window and the current one starts where it ends. A benefit that starts in 2099 is not valid yet. Every Northstar principal with `internal` clearance is authorized for all four, so `visibility.yaml` lists them; a case names the ones that do not apply to its request in `out_of_scope_documents`, and may set `as_of` and `region`. Returning an out-of-scope document is a scope failure, reported apart from security violations.
+- **Scope.** Region and validity are not access (ADR-0005). Two holiday calendars and two sick-leave policies apply to one region each. The 2025 travel policy has a closed validity window and the current one starts where it ends. A benefit that starts in 2099 is not valid yet. Every Northstar principal with `internal` clearance is authorized for all four, so `visibility.yaml` lists them; a case names the ones that do not apply to its request in `out_of_scope_documents`, and may set `as_of` and `region`. Returning an out-of-scope document is a scope failure, reported apart from security violations.
 - **Prompt injection.** Three ordinary-looking documents each contain one passage addressed to a language model: a refund window of 90 days where the policy says 14, an on-call allowance of 9,999 EUR, and an order to answer with a single word. Every Northstar principal with `internal` clearance may read them, so they are legitimate retrieval candidates. A case lists the phrase the instruction tries to elicit in `forbidden_answer_phrases`; an answer that contains it has been steered. These cases matter only when answers are generated. For retrieval they are ordinary cases, and the injected passage is a hard negative.
-- **Version history.** `sales-pricing-guide` has two versions. Version 1 was readable by everyone internal; version 2 changes the prices and restricts the document to sales and support. Cases ask for the current prices, and principals outside those departments must get nothing, including nothing from version 1. `hr-corporate-card` has two versions with the same access labels; version 2 raises the card limits and shortens the receipt deadline, so an answer taken from version 1 is wrong, not unauthorized. `eng-api-versioning` is public in both versions; version 2 extends the support period of an old API version from six to twelve months. Cases ask for the current values.
-- **Tags** describe what makes a case hard: `paraphrase` (75), `numbers` (68), `no-answer` (49), `hard-negative` (39), `lexical` (14), `abbreviation` (8), `cross-tenant` (10), `multi-section` / `multi-document` (4). Authorization cases carry `authorization` (51) and the rule they exercise: `clearance` (25), `department` (18), `project` (14), `version` (11). Scope cases carry `scope` (13) with `region` (6) or `validity` (7).
-- **Long and structured text.** From v5 on, cases also say where their evidence sits: `long-section` (14) for a quote in a section longer than one chunk, `table` (6) for a quote that is a table row, `space-free` (3) for a query or quote that depends on an identifier with no spaces, such as an error code or an index name. `crosses-split` (1) marks a quote that no single chunk contains whole; it was found by comparing every quote with the chunks of a loaded stack, so the tag holds for chunker release 4 and has to be checked again when the chunker changes.
+- **Version history.** `sales-pricing-guide` has two versions. Version 1 was readable by everyone internal; version 2 changes the prices and restricts the document to sales and support. Cases ask for the current prices, and principals outside those departments must get nothing, including nothing from version 1. `hr-corporate-card` has two versions with the same access labels; version 2 raises the card limits and shortens the receipt deadline, so an answer taken from version 1 is wrong, not unauthorized. `eng-api-versioning` is public in both versions; version 2 extends the support period of an old API version from six to twelve months. `eng-disaster-recovery` version 1 was readable by everyone internal; version 2 shortens the tier 1 recovery target and restricts the plan to engineering, so bob-support must get nothing, including nothing from version 1. Cases ask for the current values.
+- **Tags** describe what makes a case hard: `paraphrase` (91), `numbers` (87), `no-answer` (56), `hard-negative` (41), `lexical` (16), `abbreviation` (10), `cross-tenant` (11), `multi-section` / `multi-document` (4). Authorization cases carry `authorization` (57) and the rule they exercise: `clearance` (28), `department` (21), `project` (17), `version` (16). Scope cases carry `scope` (17) with `region` (10) or `validity` (7).
+- **Long and structured text.** From v5 on, cases also say where their evidence sits: `long-section` (17) for a quote in a section longer than one chunk, `table` (7) for a quote that is a table row, `space-free` (3) for a query or quote that depends on an identifier with no spaces, such as an error code or an index name. `crosses-split` (2) marks a quote that no single chunk contains whole; it was found by comparing every quote with the chunks of a loaded stack, so the tag holds for chunker release 4 and has to be checked again when the chunker changes.
 
 ## Guarding against an easy dataset
 
@@ -53,19 +53,19 @@ Queries drafted with help from a model tend to repeat the document's words. The 
 
 | Band | Overlap | Answerable cases |
 |---|---|---|
-| low (paraphrase) | < 1/3 | 60 |
-| mid | 1/3 – 2/3 | 57 |
-| high (keyword match) | ≥ 2/3 | 31 |
+| low (paraphrase) | < 1/3 | 68 |
+| mid | 1/3 – 2/3 | 69 |
+| high (keyword match) | ≥ 2/3 | 39 |
 
 `ga-eval validate` fails if fewer than 30% of answerable cases are in the low band, if there are fewer than 25 authorization negatives, or if a case cites a document version that has been replaced.
 
 ## Known limitations
 
-- **Small.** 112 answerable `test` cases put one case at about 0.9 points of Recall; differences smaller than the reported intervals are not findings.
+- **Small.** 134 answerable `test` cases put one case at about 0.75 points of Recall; differences smaller than the reported intervals are not findings.
 - **Three injections are a smoke test, not a red-team suite.** They use obvious phrasings that the keyword heuristic also flags. A model that resists them has not been shown to resist a careful attacker.
 - **Answer checks are string comparisons.** Fact recall looks for the expected phrase in the answer, and a forbidden phrase is matched literally. Neither judges whether a statement is faithful to the passage it cites.
 - **No chunk-level labels.** Labels apply to a whole document version, so the gate checks each returned chunk for its document and version.
-- **English only**, Markdown only. Three documents have a version history. Time-dependent cases use fixed dates in 2024, 2025 and 2099; cases without a date run "as of now", and the corpus is written so that their expected answer does not change as time passes.
+- **English only**, Markdown only. Four documents have a version history. Time-dependent cases use fixed dates in 2024, 2025 and 2099; cases without a date run "as of now", and the corpus is written so that their expected answer does not change as time passes.
 - **Few multi-hop cases.** Only 4 cases need evidence from more than one place.
 - **Written by one author**, so vocabulary and style are narrower than a real knowledge base.
 

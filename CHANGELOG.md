@@ -52,6 +52,8 @@ Upgrading from v0.1.0 needs a new database and the corpus loaded again; see [upg
 
 ### Evaluation
 
+- **Dataset v5, third batch** (v0.2 plan, steps 1a and 1b). 14 more documents, among them two sick-leave policies that apply to one region each, a restricted report and a fourth document with a version history whose second version is restricted to engineering, and 35 cases, 4 of them about scope and 7 authorization negatives.
+
 - **Dataset v5, second batch** (v0.2 plan, steps 1a and 1b). 13 more documents, among them a postmortem, a one-line configuration longer than 2,000 characters without a space and a third document with a version history, and 35 cases, 7 of them authorization negatives and one with evidence in two documents.
 
 - **Dataset v5, first batch** (v0.2 plan, steps 1a and 1b). 13 fictional documents with sections long enough to be split, code blocks, tables and identifiers without spaces, a second document with a version history, and 34 cases, 8 of them authorization negatives. `ga-eval` now reads `data/eval/v5` by default. Cases of v4 are unchanged; their numbers can move because principals have more candidates. v5 grows in reviewed batches until step 1 of the v0.2 plan is complete, and no report uses it before then.
