@@ -53,7 +53,7 @@ Grounded Access v0.1 is a reference system: it shows one way to put authorizatio
 
 ## Supply chain
 
-- CI scans both images for high and critical vulnerabilities that have a fix, scans the history for secrets, checks dependency licenses and publishes an SBOM per image. Model weights are pinned by Hugging Face commit in this repository and downloaded by that commit at image build time; the files themselves are not checked against a digest kept here, so the pin trusts the hub to serve what a commit names.
+- CI scans both images for high and critical vulnerabilities that have a fix, scans the history for secrets, checks dependency licenses and publishes an SBOM per image. It also runs every Monday on `main`, so a vulnerability published for an unchanged image fails a run there. CI actions are pinned by commit SHA, and Dependabot proposes updates for actions, Maven, the uv projects and the images weekly. Model weights are pinned by Hugging Face commit in this repository and downloaded by that commit at image build time; the files themselves are not checked against a digest kept here, so the pin trusts the hub to serve what a commit names.
 - Base images are referenced by tag, not by digest, so two builds of the same commit can differ.
 - Four vulnerabilities in a base-image binary that is never executed (`/usr/bin/pebble`) are accepted and listed with the reason in `ops/supply-chain/trivyignore.yaml`.
 - The model service runs pillow 13 although fastembed asks for a version below 13, because the fixes are only in 13; pillow is imported but never handles input. The override in `apps/model-service/pyproject.toml` goes when fastembed allows pillow 13.

@@ -1,0 +1,39 @@
+# Weekly update pull requests for every pinned dependency: CI actions (pinned by commit SHA), Maven, the two uv projects, the Dockerfiles'
+# base images and the compose images. Minor and patch updates of one ecosystem come as one grouped pull request.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: maven
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      maven:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: uv
+    directories: [/apps/model-service, /packages/evaluation]
+    schedule:
+      interval: weekly
+    groups:
+      python:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker
+    directories: [/apps/control-plane, /apps/model-service]
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
