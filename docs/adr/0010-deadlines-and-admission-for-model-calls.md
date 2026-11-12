@@ -60,3 +60,41 @@ The model service has three **lanes**:
   - A search under a slow or refusing model service returns within its deadline, degraded.
   - Ingestion retries a refusal.
   - A load run that mixes ingestion with searches, before and after, reports latency, refusals and recovery.
+
+## Amendment 2026-11-12: rerank batches
+
+### Context
+
+The rerank timeout (3 s) was set on a corpus whose longest section had about 120 words. fastembed pads every passage of a call to the
+longest one, and the model service sent the whole candidate pool as one call. One long candidate, such as a code block near the
+384-token chunk budget, therefore made 20 short candidates cost as much as 20 long ones. On dataset v5 the review of 2026-11-10 measured
+5.44 s for 20 candidates with one long block and 0.76 s without it. Half of 150 serial reranked searches were degraded, and the
+benchmark of `hybrid-rrf-rerank` was invalid at its first case.
+
+### Decision
+
+- **Sorted batches.** The model service counts each passage's tokens together with the query, sorts the passages by that count, and
+  scores them in batches of four (`BATCH_SIZE` in `reranking.py`). A long passage shares its batch only with the next longest ones.
+  Scores are returned in the order the passages were sent.
+- **Unchanged.** Scores, the candidate count (20), the timeout, the deadline and the degraded reasons stay as they are. Batching does not
+  change a passage's score, because padding is masked.
+- **Why four.** On a pool of 20 equally long passages, batches of one to twenty cost the same within about 15%; on a pool with one long
+  passage, batches of four cost a third of one batch ([batch-size.txt](../../benchmarks/reports/rerank-batches/batch-size.txt)). Batches
+  of one gain little more and make twenty model calls.
+
+### Evidence
+
+[Rerank batches report](../../benchmarks/reports/rerank-batches/README.md), on one laptop:
+
+- v4: all 128 cases rank the same ten chunks in the same order.
+- v5: 150 serial reranked searches went from 78 degraded (p95 3,110 ms) to none (p95 2,037 ms).
+
+### Consequences
+
+- **Cost follows tokens, not the longest passage.** A call now costs about what its tokens cost. A pool in which most candidates are
+  long can still exceed the timeout on a slow host: on the laptop's Docker one v5 pool of 3,758 tokens took 3.0 s, and the full v5
+  benchmark there is still invalid at that case.
+- **Open.** What bounds the token cost of one call: a token budget that limits how many candidates are reranked, a timeout derived from
+  the candidates' tokens within the search deadline, or a shorter chunk budget. Each changes ranking or degradation, so it needs its
+  own evidence. Until then, the margin on the CI runner is what decides whether the full benchmark completes.
+

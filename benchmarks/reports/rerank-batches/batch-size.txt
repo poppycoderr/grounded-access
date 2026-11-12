@@ -1,0 +1,12 @@
+# 2026-11-12T15:01:01Z, load average: 3.20 5.85 6.28
+uniform tokens 230
+20x180w bs=1 0.69s
+20x180w bs=2 0.66s
+20x180w bs=4 0.62s
+20x180w bs=8 0.62s
+20x180w bs=20 0.61s
+mixed long tokens 341
+19x40w+1x270w bs=1 0.26s
+19x40w+1x270w bs=4 0.33s
+19x40w+1x270w bs=8 0.33s
+19x40w+1x270w bs=20 0.95s
