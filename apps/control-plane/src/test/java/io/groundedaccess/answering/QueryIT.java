@@ -139,7 +139,7 @@ class QueryIT {
 
         Map<String, Object> event = jdbc.sql("select attributes::text as attributes from audit_event where action = 'query.answer'").query().singleRow();
         assertThat(String.valueOf(event.get("attributes"))).contains("\"status\": \"answered\"", "\"statementCount\": 1", "\"rejectedStatements\": 1",
-                "\"chatModel\": \"scripted-model\"", "\"promptVersion\": \"answer-prompt/1\"").doesNotContain("volunteer", "company car");
+                "\"chatModel\": \"scripted-model\"", "\"promptVersion\": \"answer-prompt/2\"").doesNotContain("volunteer", "company car");
     }
 
     @Test
