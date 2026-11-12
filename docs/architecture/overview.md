@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Status: draft for v0.1. Decisions referenced as ADR-000N live in [`docs/adr/`](../adr/).
+Status: describes `main`. The latest release is v0.1.0; [`CHANGELOG.md`](../../CHANGELOG.md) lists what changed since. Decisions referenced as ADR-000N live in [`docs/adr/`](../adr/).
 
 ## 1. Context
 

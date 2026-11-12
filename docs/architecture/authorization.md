@@ -1,6 +1,6 @@
 # Authorization Model
 
-Status: draft for v0.1. The decision behind this design is in [ADR-0003](../adr/0003-retrieval-time-authorization.md).
+Status: describes `main`. The latest release is v0.1.0; [`CHANGELOG.md`](../../CHANGELOG.md) lists what changed since. The decision behind this design is in [ADR-0003](../adr/0003-retrieval-time-authorization.md).
 
 ## 1. Invariants
 
@@ -14,7 +14,7 @@ These are the properties the design commits to. The table after them says which 
 
 | Invariant | Verified today | Verified by | Gap and milestone |
 |---|---|---|---|
-| Security | The full decision table | The evaluation security gate: 31 authorization negatives, every returned chunk checked for document and version against hand-labelled visibility, and each principal's full listing compared with its visible set. A property-based test that compares every query path with a separate reference evaluator over random principals and labels; integration tests per rule on all three strategies; an architecture test that only `AuthorizedChunkQuery` reads chunks | Chunk-level labels (v0.2) |
+| Security | The full decision table | The evaluation security gate: 31 authorization negatives, every returned chunk checked for document and version against hand-labelled visibility, and each principal's full listing compared with its visible set. A property-based test that compares every query path with a separate reference evaluator over random principals and labels; integration tests per rule on all three strategies; an architecture test that only `AuthorizedChunkQuery` reads chunks | Chunk-level labels (deferred; [v0.2 plan](../project/v0.2-plan.md#deferred-with-the-condition-for-reopening)) |
 | Recall | By construction | No ANN index exists, so every authorized row is a candidate | A measured comparison of exact search against a filtered HNSW index, once an index exists (post-v0.1, ADR-0002) |
 | Existence | For retrieval and document reads | A test reads a document that is confidential, restricted to another department, disabled, deleted, in another tenant, malformed and nonexistent: every response is the same 404, byte for byte apart from the key. A keyword search that only hidden documents could answer returns the same response as one nothing answers. Retrieval returns no filtered counts. On the answering path, a refusal carries no evidence, and a principal with nothing to read gets `no_answer` without the chat model being called | Timing side channels are not mitigated; see the threat model |
 
@@ -49,7 +49,7 @@ A chunk is authorized for a principal **if and only if every row below holds** (
 
 The default is deny. Anything not explicitly allowed by the rules above is invisible.
 
-Deferred to v0.2, each with its own ADR: `groups`, `roles`, explicit deny labels, and chunk-level labels. If chunk-level labels are added, they may only **narrow** document access and never widen it. The policy compiler will enforce this by ANDing chunk rules onto document rules.
+Deferred, each with its own ADR once a use case needs it: `groups`, `roles`, explicit deny labels, and chunk-level labels. They are not part of the v0.2 work; the [plan](../project/v0.2-plan.md#deferred-with-the-condition-for-reopening) lists the condition for reopening them. If chunk-level labels are added, they may only **narrow** document access and never widen it. The policy compiler will enforce this by ANDing chunk rules onto document rules.
 
 ### Compiled form
 
