@@ -96,9 +96,15 @@ class DatabaseTimeoutIT {
                     .andExpect(status().isServiceUnavailable())
                     .andExpect(jsonPath("$.code").value("DATABASE_TIMEOUT"));
             assertThat(Duration.ofNanos(System.nanoTime() - started)).isLessThan(Duration.ofMillis(2500));
+            started = System.nanoTime();
+            mvc.perform(get("/api/v1/documents/handbook").header("Authorization", "Bearer " + READER))
+                    .andExpect(status().isServiceUnavailable())
+                    .andExpect(jsonPath("$.code").value("DATABASE_TIMEOUT"));
+            assertThat(Duration.ofNanos(System.nanoTime() - started)).isLessThan(Duration.ofMillis(2500));
             holder.rollback();
         }
         search("hybrid-rrf").andExpect(status().isOk()).andExpect(jsonPath("$.degraded").isEmpty());
+        mvc.perform(get("/api/v1/documents/handbook").header("Authorization", "Bearer " + READER)).andExpect(status().isOk());
     }
 
     @Test

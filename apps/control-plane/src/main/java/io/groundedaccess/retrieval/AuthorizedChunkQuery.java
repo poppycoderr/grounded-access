@@ -127,11 +127,11 @@ public class AuthorizedChunkQuery {
                 where (%s) and d.external_key = :document_key
                 limit 1
                 """.formatted(predicate.sql());
-        return jdbc.sql(sql)
+        return timed(() -> jdbc.sql(sql)
                 .params(predicate.parameters())
                 .param("document_key", key)
                 .query((rs, rowNum) -> new AuthorizedDocument(rs.getString(1), rs.getString(2), rs.getInt(3)))
-                .optional();
+                .optional());
     }
 
     private List<RetrievedChunk> run(String sql, AuthorizationPredicate predicate, Scope scope, boolean sparse, int limit, Map<String, Object> search) {
