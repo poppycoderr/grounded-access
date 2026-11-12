@@ -122,3 +122,13 @@ def test_fitting_lengths_are_code_points_for_characters_outside_the_basic_plane(
         fitting = counter.fitting_chars(text, 100)
         assert text[:fitting].endswith(("launch", "approved", "\U0001f600"))
         assert counter.count(text[:fitting]) <= 100
+
+
+def test_batched_scores_match_scoring_each_passage_alone(reranker):
+    query = "How many paid volunteer days do EU employees receive?"
+    passages = [f"Passage {i}: employees receive {i} paid days." for i in range(7)] + [" ".join(f"line{i} value" for i in range(150))]
+
+    batched = reranker.score(query, passages)
+    alone = [reranker.score(query, [passage])[0] for passage in passages]
+
+    assert batched == [pytest.approx(score, abs=1e-4) for score in alone]
