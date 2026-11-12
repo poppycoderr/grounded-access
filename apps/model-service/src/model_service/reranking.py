@@ -1,5 +1,6 @@
 """Reranking backends. The service loads exactly one cross-encoder per process."""
 
+from collections.abc import Sequence
 from typing import Protocol
 
 from model_service.embedding import pinned_snapshot
@@ -15,6 +16,17 @@ class Reranker(Protocol):
     def tokens(self) -> TokenCounter: ...
 
     def score(self, query: str, passages: list[str]) -> list[float]: ...
+
+
+# Passages per inference call. fastembed pads every passage of a call to the longest one, so one long passage would make a whole pool of short
+# ones as slow as long ones; sorted small batches confine it to its own batch (ADR-0010, amendment of 2026-11-12).
+BATCH_SIZE = 4
+
+
+def length_batches(lengths: Sequence[int], size: int = BATCH_SIZE) -> list[list[int]]:
+    """Indexes of the passages grouped into batches of at most `size`, shortest first, so that each batch holds passages of similar length."""
+    order = sorted(range(len(lengths)), key=lambda i: (lengths[i], i))
+    return [order[k : k + size] for k in range(0, len(order), size)]
 
 
 class FastEmbedReranker:
@@ -45,4 +57,9 @@ class FastEmbedReranker:
         return self._tokens
 
     def score(self, query: str, passages: list[str]) -> list[float]:
-        return [float(score) for score in self._model.rerank(query, passages)]
+        scores = [0.0] * len(passages)
+        for batch in length_batches([self._tokens.count(query, passage) for passage in passages]):
+            batch_scores = self._model.rerank(query, [passages[i] for i in batch], batch_size=len(batch))
+            for i, score in zip(batch, batch_scores, strict=True):
+                scores[i] = float(score)
+        return scores
