@@ -4,6 +4,8 @@ target/
 *.log
 hs_err_pid*
 replay_pid*
+# jqwik keeps the seeds of failed properties here; it changes on every run
+.jqwik-database
 
 # Python
 __pycache__/
