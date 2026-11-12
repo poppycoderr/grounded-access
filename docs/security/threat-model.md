@@ -45,6 +45,7 @@ flowchart LR
 - **Client to control plane.** Every principal attribute comes from the verified token. Request bodies and query parameters can set scope (`asOf`, `region`), never identity or authorization.
 - **Control plane to PostgreSQL.** The authorization decision is made inside the query. The application connects with one database role; PostgreSQL row-level security is not used.
 - **Control plane to model service.** The model service has no identities and no database access. It receives query text and document text and returns vectors. The connection is unauthenticated HTTP inside the compose network.
+- **Host to the compose stack.** `compose.yaml` publishes PostgreSQL, the model service, the API and Grafana on `127.0.0.1` only. Another machine on the same network cannot reach them, so the public demo key and the database password in the file do not open the stack to it.
 
 ## 4. Abuse cases
 

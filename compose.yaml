@@ -7,8 +7,10 @@ services:
       POSTGRES_DB: grounded_access
       POSTGRES_USER: grounded_access
       POSTGRES_PASSWORD: grounded_access
+    # Every published port listens on the loopback interface only: the demo key is public and the database password is in this file, so
+    # anyone who can reach these ports from another machine could mint an admin token or read every chunk
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -20,7 +22,7 @@ services:
   model-service:
     build: apps/model-service
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
 
   control-plane:
     build:
@@ -47,7 +49,7 @@ services:
       SPRING_PROFILES_ACTIVE: ${COMPOSE_PROFILES:-}
       GA_OTLP_ENDPOINT: http://observability:4318
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     healthcheck:
       # The JRE image has no curl; Tomcat opens the port only once the application context is ready
       test: ["CMD", "bash", "-c", ": > /dev/tcp/127.0.0.1/8080"]
@@ -65,7 +67,7 @@ services:
     profiles: ["observability"]
     image: grafana/otel-lgtm:0.35.0
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     volumes:
       - ./ops/observability/dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/grounded-access.yaml:ro
       - ./ops/observability/grounded-access.json:/otel-lgtm/grounded-access.json:ro
