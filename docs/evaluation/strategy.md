@@ -1,6 +1,6 @@
 # Evaluation Strategy
 
-Status: draft for v0.1.
+Status: describes `main`. The latest release is v0.1.0; [`CHANGELOG.md`](../../CHANGELOG.md) lists what changed since.
 
 The evaluation work is part of the product. Every retrieval change has to show its effect on this evaluation before it is merged.
 
@@ -14,8 +14,10 @@ The evaluation work is part of the product. Every retrieval change has to show i
 
 ```text
 data/
-├── corpus/northstar/            # fictional Markdown/TXT documents
+├── corpus/northstar/            # fictional Markdown/TXT documents of the Northstar tenant
+├── corpus/external/             # fictional documents of a second tenant, Orbit Labs
 ├── manifests/northstar.yaml     # document access labels and version history
+├── manifests/external.yaml
 ├── principals.yaml              # demo identities and attributes
 └── eval/
     ├── v4/cases.jsonl
@@ -59,9 +61,11 @@ Rules:
 - **Listing check.** Before any query runs, the runner lists every chunk each principal can reach and compares the documents with the visible set. Anything extra is a violation, so the gate also covers documents that no query happens to retrieve. Anything missing means the labels and the system disagree, and the run stops.
 - **Scope failures are separate.** A returned document that the case lists as out of scope is a scope failure. It is counted per strategy in its own report section and makes the run exit with code 3; a security violation exits with code 2. The two are never added together. `visibility.yaml` is about access only, and the listing check drops the scope to compare it.
 - **Reference under the same scope.** The BM25 reference lists the principal's chunks under the scope of each case, so it ranks what the system could have returned for that request.
-- **Not yet in the gate.** Labels apply to whole document versions, so there is nothing to check inside a version; chunk-level labels are deferred to v0.2.
+- **Not yet in the gate.** Labels apply to whole document versions, so there is nothing to check inside a version; chunk-level labels are deferred ([v0.2 plan](../project/v0.2-plan.md#deferred-with-the-condition-for-reopening)).
 
 ### Size and composition (v1 target)
+
+This was the target for dataset v1. The current dataset is v4, with 35 documents and 128 cases; the [dataset card](../../data/eval/DATASET_CARD.md) has its counts.
 
 - 50–100 fictional documents, 2 tenants, 4 departments, 2 projects, at least 2 documents that come in several versions.
 - At least 100 cases. At least 25 of them are authorization negatives: cross-tenant cases and same-tenant cases with the wrong department, project or clearance; the validator enforces the 25. Scope negatives (region, validity) are counted separately.
