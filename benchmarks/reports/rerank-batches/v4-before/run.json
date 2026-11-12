@@ -1,0 +1,226 @@
+{
+  "status": "complete",
+  "invalid_reason": null,
+  "dataset_version": "v4",
+  "dataset_digest": "2c1950c5549c361403717328454eead971b6cbf6f0a423c61093281ca4697f46",
+  "metrics_version": "2",
+  "git_sha": "e5c3293",
+  "created_at": "2026-11-12T14:22:33+00:00",
+  "manifest": {
+    "manifest_version": "2",
+    "dataset": {
+      "version": "v4",
+      "digest": "2c1950c5549c361403717328454eead971b6cbf6f0a423c61093281ca4697f46"
+    },
+    "server": {
+      "build": {
+        "version": "0.1.0-SNAPSHOT",
+        "commit": "unknown"
+      },
+      "indexProfile": {
+        "id": "1427bee6-81bf-421d-b7af-103423503106",
+        "embeddingModel": "BAAI/bge-small-en-v1.5",
+        "embeddingRevision": "aa8f8b060edb00e03bfdd08813a2949946c8ba55",
+        "dimensions": 384,
+        "queryPrefix": "Represent this sentence for searching relevant passages: ",
+        "passagePrefix": "",
+        "embeddingContext": true,
+        "chunkerRelease": "4",
+        "chunkMaxWords": 180,
+        "chunkOverlapWords": 30,
+        "chunkMaxTokens": 384,
+        "chunkMaxChars": 2000,
+        "headingMaxChars": 200,
+        "chunkTokenizer": "sha256:e6de4d468ad4da0e31ef0e591eda2e5e49c440e86e0bb908fbf9930c1d668833"
+      },
+      "reranker": {
+        "model": "Xenova/ms-marco-MiniLM-L-12-v2",
+        "revision": "42a4a787e30451cf9dbd09080c2a5b8dde332c1e"
+      },
+      "retrieval": {
+        "candidates": 50,
+        "rrfK": 60,
+        "rerankCandidates": 20,
+        "sparseContext": true,
+        "rerankContext": false,
+        "deadline": "PT5S",
+        "sqlTimeout": "PT2S"
+      },
+      "host": {
+        "cpu": "aarch64",
+        "processors": 6
+      }
+    },
+    "corpus": {
+      "digest": "93b180b2a3711e5109d0582d2f69489f86210abdeaa65390db921fe99b5dfa0a",
+      "chunks": 328
+    },
+    "evaluator": {
+      "git_sha": "e5c3293",
+      "uncommitted_changes": false,
+      "ga_eval_version": "0.1.0",
+      "cpu": "arm",
+      "platform": "macOS-27.2-arm64-arm-64bit"
+    },
+    "run": {
+      "strategies": [
+        "hybrid-rrf-rerank"
+      ],
+      "k": 10,
+      "splits": [
+        "dev",
+        "test"
+      ],
+      "attempt_limit": 3,
+      "warmup_requests": 0,
+      "metrics_version": "2"
+    }
+  },
+  "strategies": [
+    "hybrid-rrf-rerank"
+  ],
+  "reference_strategies": [],
+  "k": 10,
+  "splits": [
+    "dev",
+    "test"
+  ],
+  "case_count": 128,
+  "policy_versions": [
+    "abac/1"
+  ],
+  "chunker_versions": [
+    "markdown/4"
+  ],
+  "plans": {
+    "hybrid-rrf-rerank": {
+      "748ba4f7e675effe": {
+        "strategy": "hybrid-rrf-rerank",
+        "k": 10,
+        "candidates": 50,
+        "rrfK": 60,
+        "dedupeOverlaps": true,
+        "rerankCandidates": 20,
+        "reranker": "Xenova/ms-marco-MiniLM-L-12-v2",
+        "sparseContext": true,
+        "rerankContext": false
+      }
+    }
+  },
+  "repeated_degraded_requests": 0,
+  "reference_indexes_headings": [],
+  "visibility_check": {
+    "alice-engineer": {
+      "visible_documents": 26,
+      "listed_chunks": 100,
+      "violations": []
+    },
+    "bob-support": {
+      "visible_documents": 26,
+      "listed_chunks": 100,
+      "violations": []
+    },
+    "carol-manager": {
+      "visible_documents": 28,
+      "listed_chunks": 108,
+      "violations": []
+    },
+    "dave-contractor": {
+      "visible_documents": 2,
+      "listed_chunks": 8,
+      "violations": []
+    },
+    "mallory-outsider": {
+      "visible_documents": 4,
+      "listed_chunks": 12,
+      "violations": []
+    }
+  },
+  "platform": "macOS-27.2-arm64-arm-64bit",
+  "cpu": "arm",
+  "bootstrap": {
+    "samples": 10000,
+    "seed": 20260921,
+    "confidence": 0.95
+  },
+  "summary": {
+    "dev": {
+      "hybrid-rrf-rerank": {
+        "answerable_cases": 23,
+        "recall@5": {
+          "mean": 1.0,
+          "low": 1.0,
+          "high": 1.0
+        },
+        "recall@10": {
+          "mean": 1.0,
+          "low": 1.0,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.9275362318840579,
+          "low": 0.8405797101449275,
+          "high": 1.0
+        },
+        "ec@10": {
+          "mean": 0.9461678046583877,
+          "low": 0.8819816748447281,
+          "high": 1.0
+        },
+        "hard_negative_cases": 3,
+        "hard_negative_above_evidence": 0,
+        "security_violations": 0,
+        "latency_ms": {
+          "p50": 906.7,
+          "p95": 1065.0,
+          "requests": 34
+        },
+        "scope_cases": 3,
+        "scope_failures": 0
+      }
+    },
+    "test": {
+      "hybrid-rrf-rerank": {
+        "answerable_cases": 70,
+        "recall@5": {
+          "mean": 0.9714285714285714,
+          "low": 0.9285714285714286,
+          "high": 1.0
+        },
+        "recall@10": {
+          "mean": 0.9857142857142858,
+          "low": 0.9571428571428572,
+          "high": 1.0
+        },
+        "mrr@10": {
+          "mean": 0.9714285714285714,
+          "low": 0.9357142857142857,
+          "high": 1.0
+        },
+        "ec@10": {
+          "mean": 0.9628817641284027,
+          "low": 0.9235102077083355,
+          "high": 0.9899656631462589
+        },
+        "hard_negative_cases": 29,
+        "hard_negative_above_evidence": 8,
+        "security_violations": 0,
+        "latency_ms": {
+          "p50": 919.3,
+          "p95": 1126.5,
+          "requests": 94
+        },
+        "scope_cases": 10,
+        "scope_failures": 0
+      }
+    }
+  },
+  "comparisons": [],
+  "security_violations": 0,
+  "scope_failures": 0,
+  "ranking_check": {
+    "status": "not applicable",
+    "reason": "the run has no keyword strategy",
+    "differences": []
+  }
+}
