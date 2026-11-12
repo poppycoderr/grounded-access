@@ -33,12 +33,23 @@ public final class DemoTokens {
     }
 
     public static String sign(Map<String, Object> claims, String issuer) {
+        return sign(claims, issuer, true);
+    }
+
+    /** A token that verifies in every respect except that it never expires, which the control plane refuses. */
+    public static String signWithoutExpiry(Map<String, Object> claims) {
+        return sign(claims, "grounded-access-demo", false);
+    }
+
+    private static String sign(Map<String, Object> claims, String issuer, boolean expires) {
         try {
             var builder = new JWTClaimsSet.Builder()
                     .issuer(issuer)
                     .audience(List.of("grounded-access"))
-                    .issueTime(new Date())
-                    .expirationTime(Date.from(Instant.now().plusSeconds(600)));
+                    .issueTime(new Date());
+            if (expires) {
+                builder.expirationTime(Date.from(Instant.now().plusSeconds(600)));
+            }
             claims.forEach(builder::claim);
             var jwt = new SignedJWT(new JWSHeader.Builder(JWSAlgorithm.RS256).type(JOSEObjectType.JWT).build(), builder.build());
             jwt.sign(new RSASSASigner(privateKey()));

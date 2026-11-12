@@ -77,7 +77,7 @@ A submission that changes only the labels creates a new version that takes over 
 ## 4. Identity in v0.1
 
 - Tokens are JWTs signed by a local demo key. `scripts/mint-token <principal>` issues them from `data/principals.yaml`. The control plane only trusts the configured public key.
-- Claims: `sub`, `tenant_id`, `department`, `projects`, `clearance`, `region`, `scope`.
+- Claims: `sub`, `tenant_id`, `department`, `projects`, `clearance`, `region`, `scope`. A token must carry `exp`, `sub` and `tenant_id`; `department`, `clearance` and `region` must be strings and `projects` an array of strings when present. Any other token is rejected with `401`, never read with a converted claim ([ADR-0014](../adr/0014-what-a-token-must-carry.md)).
 - The limitations are in the [threat model](../security/threat-model.md): there is no real IdP, no revocation, and the demo key is public. Integrating OIDC comes later.
 
 ## 5. Existence leakage

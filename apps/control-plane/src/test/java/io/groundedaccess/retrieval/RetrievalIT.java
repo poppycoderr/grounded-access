@@ -22,6 +22,7 @@ import io.groundedaccess.modelclient.EmbeddingClient;
 import io.groundedaccess.modelclient.Embeddings;
 import io.groundedaccess.modelclient.InputType;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -233,6 +234,27 @@ class RetrievalIT {
         mvc.perform(searchWith(wrongIssuer, body)).andExpect(status().isUnauthorized());
         mvc.perform(searchWith(DemoTokens.token("admin", "northstar", "admin"), body)).andExpect(status().isForbidden());
         submit(DemoTokens.token("alice", "northstar", "query"), "doc", "text").andExpect(status().isForbidden());
+    }
+
+    @Test
+    void rejectsTokensWithoutAnExpiryOrWithAnAuthorizationClaimOfTheWrongType() throws Exception {
+        ingest("northstar", "hr-volunteer-policy", VOLUNTEER_POLICY);
+        String body = "{\"query\":\"volunteer days\",\"strategy\":\"sparse-only\"}";
+        Map<String, Object> reader = Map.of("sub", "alice", "tenant_id", "northstar", "scope", "query", "clearance", "internal");
+
+        mvc.perform(searchWith(DemoTokens.sign(reader, "grounded-access-demo"), body)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.results", not(empty())));
+        mvc.perform(searchWith(DemoTokens.signWithoutExpiry(reader), body)).andExpect(status().isUnauthorized());
+        for (Map.Entry<String, Object> wrong : List.<Map.Entry<String, Object>>of(
+                Map.entry("tenant_id", List.of("northstar")),
+                Map.entry("clearance", List.of("internal")),
+                Map.entry("department", List.of("engineering")),
+                Map.entry("region", 1),
+                Map.entry("projects", "atlas"))) {
+            Map<String, Object> claims = new HashMap<>(reader);
+            claims.put(wrong.getKey(), wrong.getValue());
+            mvc.perform(searchWith(DemoTokens.sign(claims, "grounded-access-demo"), body)).andExpect(status().isUnauthorized());
+        }
     }
 
     @Test

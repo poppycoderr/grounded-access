@@ -14,9 +14,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.converter.RsaKeyConverters;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
-import org.springframework.security.oauth2.core.OAuth2Error;
-import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimValidator;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
@@ -24,7 +21,8 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
- * Stateless bearer-token security. Tokens without a subject or tenant claim are rejected during verification, so every authenticated request has both.
+ * Stateless bearer-token security. Tokens without an expiry, a subject or a tenant, or with an authorization claim of the wrong type, are rejected
+ * during verification (ADR-0014), so every authenticated request has a subject and a tenant.
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnWebApplication
@@ -61,15 +59,7 @@ public class SecurityConfiguration {
         decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
                 JwtValidators.createDefaultWithIssuer(properties.issuer()),
                 new JwtClaimValidator<List<String>>("aud", aud -> aud != null && aud.contains(properties.audience())),
-                SecurityConfiguration::requireSubjectAndTenant));
+                new TokenClaims()));
         return decoder;
-    }
-
-    private static OAuth2TokenValidatorResult requireSubjectAndTenant(Jwt jwt) {
-        String subject = jwt.getSubject();
-        String tenant = jwt.getClaimAsString(Principal.TENANT_CLAIM);
-        return subject == null || subject.isBlank() || tenant == null || tenant.isBlank()
-                ? OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token", "sub and tenant_id claims are required", null))
-                : OAuth2TokenValidatorResult.success();
     }
 }
