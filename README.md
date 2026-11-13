@@ -130,7 +130,7 @@ A missing or unknown clearance counts as the lowest level, and a principal witho
 Tenant, clearance, department and project are **authorization** and count toward the security gate. Region, validity dates and document status are **scope**: they shape relevance rather than access. Keeping them apart means the security metrics only ever count real access violations. The full decision table is in [docs/architecture/authorization.md](./docs/architecture/authorization.md).
 
 <p align="center">
-    <img src="./assets/diagrams/ga-security-gate.en.svg" alt="How the evaluation security gate compares the system with hand-written labels" />
+    <img src="./assets/diagrams/ga-security-gate.en.svg" alt="How the evaluation security gate compares the system with the visibility labels" />
 </p>
 
 Guards in place today:
@@ -138,7 +138,7 @@ Guards in place today:
 - an architecture test — only `AuthorizedChunkQuery` may read the chunk table;
 - a property-based test — random principals and labels, with every query path compared against a separate reference evaluator;
 - integration tests on real pgvector — each rule of the decision table on all three strategies, cross-tenant isolation, hostile claim values, invalid and under-scoped tokens;
-- the evaluation security gate — every returned chunk is checked for document and version against hand-labelled visibility, never against the compiler itself, and each principal's full chunk listing must match its visible set.
+- the evaluation security gate — every returned chunk is checked for document and version against the labelled visibility (written by hand for the v4 documents, derived from the decision table for the documents added in v5, and checked against that derivation), never against the compiler itself, and each principal's full chunk listing must match its visible set.
 
 The [threat model](./docs/security/threat-model.md) lists every control with the check that verifies it, and the risks that are accepted: above all, that the demo identity setup lets anyone mint any token.
 
@@ -174,7 +174,7 @@ What the paired comparisons support, and what they do not:
 - **FTS against BM25: a finding that did not hold.** On dataset v1, BM25 was measurably ahead of FTS (MRR@10 +0.10 [+0.02, +0.18]). On every later dataset version the difference is not detectable (v4: +0.03 [−0.03, +0.10]). The earlier reports stay in the repository; the claim is withdrawn until a larger dataset supports it.
 - **Dense beats BM25** on MRR@10 (+0.12 [+0.04, +0.21]).
 
-Nothing was tuned on the test split. The dataset is 35 fictional documents and 128 hand-checked cases, with 36 of the 93 answerable ones deliberately worded so they share almost no words with their evidence. Dataset v5 (300 documents, 372 cases) is the default from v0.2 on; its additions were drafted by a language model, have not been checked by hand, and no published number uses them yet ([dataset card](./data/eval/DATASET_CARD.md)). It is a demo benchmark: it shows the method and the direction of the differences, not production quality. Reports on earlier dataset versions are not comparable with this one. Published numbers are reproducible to the reported precision; dense result lists can differ in the order of near-tied candidates between CPUs (see [benchmarks/README.md](./benchmarks/README.md)). See the [dataset card](./data/eval/DATASET_CARD.md) for what it covers and what it does not.
+Nothing was tuned on the test split. The dataset is 35 fictional documents and 128 hand-checked cases, with 36 of the 93 answerable ones deliberately worded so they share almost no words with their evidence. Dataset v5 (300 documents, 372 cases) is the default from v0.2 on; its additions were drafted by a language model and are recorded as unreviewed; published numbers come only from cases a person checked ([ADR-0015](./docs/adr/0015-where-evaluation-labels-come-from.md)) ([dataset card](./data/eval/DATASET_CARD.md)). It is a demo benchmark: it shows the method and the direction of the differences, not production quality. Reports on earlier dataset versions are not comparable with this one. Published numbers are reproducible to the reported precision; dense result lists can differ in the order of near-tied candidates between CPUs (see [benchmarks/README.md](./benchmarks/README.md)). See the [dataset card](./data/eval/DATASET_CARD.md) for what it covers and what it does not.
 
 Evidence is labelled as a **document version plus a quote**, not a chunk id, so chunking strategies can be compared on the same labels. Read the method in [docs/evaluation/strategy.md](./docs/evaluation/strategy.md).
 

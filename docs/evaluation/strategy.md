@@ -21,7 +21,7 @@ data/
 ├── principals.yaml              # demo identities and attributes
 └── eval/
     ├── v5/cases.jsonl
-    ├── v5/visibility.yaml       # human-labelled visible document set per principal
+    ├── v5/visibility.yaml       # visible document set per principal, checked against the decision table
     ├── v5/reviews.yaml          # cases whose labels a person checked (ADR-0015)
     └── DATASET_CARD.md
 ```
@@ -57,7 +57,7 @@ Rules:
 - `hard_negative_documents` are visible or out-of-scope documents that look relevant but are wrong. These cases feed the quality metrics.
 - `must_abstain: true` cases have empty `evidence`.
 - **Time and region.** A case may set `as_of` and `region`, the scope of its request (ADR-0005), and may list `out_of_scope_documents`: documents its principal is authorized for but that do not apply to the request. The validator rejects an out-of-scope document the principal cannot read, because that would be an authorization case.
-- `visibility.yaml` is labelled by hand, separately from the policy compiler. The security gate compares against it; it never compares the compiler with itself. `ga-eval validate` also derives every principal's visible set from the manifest labels with the rules of the decision table and requires the file to match; `ga-eval visibility` prints that derivation.
+- `visibility.yaml` is written apart from the policy compiler: by hand for the v4 documents, derived from the decision table for the documents added in v5. The security gate compares against it; it never compares the compiler with itself. `ga-eval validate` also derives every principal's visible set from the manifest labels with the rules of the decision table and requires the file to match; `ga-eval visibility` prints that derivation.
 - **Reviewed cases.** `reviews.yaml` lists the cases whose documents, quotes and labels a person checked. Summaries, paired comparisons and `ga-eval compare` count only those; unreviewed cases are scored in a table marked as not a result and still count for the security gate. The review record is not part of the dataset digest ([ADR-0015](../adr/0015-where-evaluation-labels-come-from.md)).
 - **Gate granularity.** The gate checks every returned chunk twice: its document must be in the principal's visible set, and it must come from the document's current version. A chunk of a replaced version is a violation even when the document is visible, because labels belong to versions.
 - **Listing check.** Before any query runs, the runner lists every chunk each principal can reach and compares the documents with the visible set. Anything extra is a violation, so the gate also covers documents that no query happens to retrieve. Anything missing means the labels and the system disagree, and the run stops.

@@ -130,7 +130,7 @@ curl -s localhost:8080/api/v1/retrieval/search -H "Authorization: Bearer $TOKEN"
 租户、密级、部门、项目属于**授权**，计入安全门禁；region、有效期与文档状态属于**适用范围**，它们影响相关性而非访问权。把两者分开，安全指标才只统计真正的越权。完整决策表见 [docs/architecture/authorization.md](./docs/architecture/authorization.md)。
 
 <p align="center">
-    <img src="./assets/diagrams/ga-security-gate.zh-CN.svg" alt="评测安全门禁如何拿系统和手写标注做比较" />
+    <img src="./assets/diagrams/ga-security-gate.zh-CN.svg" alt="评测安全门禁如何拿系统和可见性标注做比较" />
 </p>
 
 当前已有的防线：
@@ -138,7 +138,7 @@ curl -s localhost:8080/api/v1/retrieval/search -H "Authorization: Bearer $TOKEN"
 - 架构测试——只有 `AuthorizedChunkQuery` 可以读取 chunk 表；
 - 基于属性的测试——随机生成身份和标签，把每条查询路径的结果与一份独立的参考实现对照；
 - 真实 pgvector 上的集成测试——决策表的每条规则在三种策略上的表现、跨租户隔离、恶意的 claim 值、无效与权限不足的 token；
-- 评测安全门禁——每个返回的 chunk 都按文档和版本与人工标注的可见集合比较，绝不与编译器自己比较；每个身份能列出的全部 chunk 也必须与它的可见集合一致。
+- 评测安全门禁——每个返回的 chunk 都按文档和版本与标注的可见集合比较（v4 文档的可见性是手写的，v5 新增文档的可见性由决策表推导，并与推导结果核对），绝不与编译器自己比较；每个身份能列出的全部 chunk 也必须与它的可见集合一致。
 
 [威胁模型](./docs/security/threat-model.md)列出了每一项控制措施和验证它的检查，也列出了被接受的风险：首先就是 demo 身份方案允许任何人签发任意 token。
 
@@ -174,7 +174,7 @@ EC@10（证据覆盖）按每条证据片段首次被命中的排名计分。它
 - **FTS 与 BM25：一个没能站住的结论。** 在数据集 v1 上，BM25 明显领先 FTS（MRR@10 +0.10 [+0.02, +0.18]）。在之后的每个数据集版本上，这个差异都不可检测（v4：+0.03 [−0.03, +0.10]）。旧报告仍保留在仓库里；在更大的数据集支持它之前，这个结论撤回。
 - **dense 优于 BM25**：MRR@10 +0.12 [+0.04, +0.21]。
 
-没有任何参数是在 test 划分上调的。数据集是 35 篇虚构文档、128 条人工核对的用例，93 条可回答用例中有 36 条刻意写得与证据几乎没有共同词汇。数据集 v5（300 篇文档、372 条用例）从 v0.2 起是默认数据集；新增部分由语言模型起草、未经人工核对，目前没有任何已发布数字使用它（见[数据卡](./data/eval/DATASET_CARD.md)）。这是 demo benchmark：它展示的是方法与差异的方向，而不是生产效果。更早数据集版本上的报告不能与这一份直接比较。已发布的数字在报告的精度内可复现；dense 的结果列表在不同 CPU 之间，得分接近的候选顺序可能不同（见 [benchmarks/README.md](./benchmarks/README.md)）。覆盖范围与局限见[数据集说明卡](./data/eval/DATASET_CARD.md)。
+没有任何参数是在 test 划分上调的。数据集是 35 篇虚构文档、128 条人工核对的用例，93 条可回答用例中有 36 条刻意写得与证据几乎没有共同词汇。数据集 v5（300 篇文档、372 条用例）从 v0.2 起是默认数据集；新增部分由语言模型起草，记为未审核；已发布的数字只来自经人核对的用例（[ADR-0015](./docs/adr/0015-where-evaluation-labels-come-from.md)）（见[数据卡](./data/eval/DATASET_CARD.md)）。这是 demo benchmark：它展示的是方法与差异的方向，而不是生产效果。更早数据集版本上的报告不能与这一份直接比较。已发布的数字在报告的精度内可复现；dense 的结果列表在不同 CPU 之间，得分接近的候选顺序可能不同（见 [benchmarks/README.md](./benchmarks/README.md)）。覆盖范围与局限见[数据集说明卡](./data/eval/DATASET_CARD.md)。
 
 证据以**文档版本 + 原文引用**标注，而不是 chunk id，因此不同切分策略可以在同一份标注上比较。方法见 [docs/evaluation/strategy.md](./docs/evaluation/strategy.md)。
 
