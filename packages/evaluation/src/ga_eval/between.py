@@ -37,8 +37,10 @@ def compare(before_dir: Path, after_dir: Path, split: str, allow_subset: bool = 
     _require_same(before_run, after_run)
     compared = COMPARED_BY_VERSION[before_run.get("metrics_version", "1")]
     strategies = [s for s in before_run["strategies"] if s in after_run["strategies"]]
-    first_all = _index("before", before, split, strategies)
-    second_all = _index("after", after, split, strategies)
+    # Only cases whose labels were checked in both runs are compared (ADR-0015); a review recorded between the runs does not make them differ.
+    unreviewed = {r["case"] for r in [*before, *after] if not r.get("reviewed", True)}
+    first_all = _index("before", before, split, strategies, unreviewed)
+    second_all = _index("after", after, split, strategies, unreviewed)
     rows = []
     subset: dict[str, dict] = {}
     for strategy in strategies:
@@ -119,11 +121,11 @@ def _require_same(before: dict, after: dict) -> None:
             raise IncomparableRunsError(f"the runs were scored against {what} ({field} {before[field]} and {after[field]})")
 
 
-def _index(name: str, records: list[dict], split: str, strategies: list[str]) -> dict[str, dict[str, dict]]:
+def _index(name: str, records: list[dict], split: str, strategies: list[str], skipped: set[str]) -> dict[str, dict[str, dict]]:
     """The records of one split by strategy and case. A case recorded twice for the same strategy makes the run ambiguous."""
     indexed: dict[str, dict[str, dict]] = {strategy: {} for strategy in strategies}
     for record in records:
-        if record["split"] != split or record["strategy"] not in indexed:
+        if record["split"] != split or record["strategy"] not in indexed or record["case"] in skipped:
             continue
         cases = indexed[record["strategy"]]
         if record["case"] in cases:

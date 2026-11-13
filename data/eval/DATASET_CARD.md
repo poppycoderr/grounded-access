@@ -33,13 +33,21 @@ Every document was written for this project and describes companies that do not 
 
 Drafting was assisted by a language model; every document, quote and label was then read and checked by hand, and `ga-eval validate` checks the mechanical parts (see below).
 
+### Review record
+
+`v4/reviews.yaml` lists the cases a person has checked ([ADR-0015](../../docs/adr/0015-where-evaluation-labels-come-from.md)). Only those enter published numbers.
+
+| Version | Documents and cases drafted by | Cases checked by a person | Errors found by the check |
+|---|---|---|---|
+| v1–v4 | a person, with drafting help from a language model | 128 of 128 | not recorded |
+
 ## How cases are labelled
 
 - **Evidence** is a document key, a version and an exact quote. The quote must occur exactly once in the normalized document text, which lets the evaluator map it to character offsets and then to whatever chunks the system produced.
 - **Hard negatives** are visible documents that look relevant but answer a different question: the search-cluster runbook for a billing-database question, SLA credits for a refund question, relocation for a travel question.
 - **Unauthorized documents** name what an authorization negative is trying to reach. The security gate does not rely on them alone: every returned chunk is checked against `visibility.yaml`.
 - **Access labels** live in the manifests: a classification, the departments allowed to read a document, and the projects that give access to it. The existing Northstar documents are `internal` (two are `public`), so the three original principals see them as before. The restrictions come from new documents written to look like existing ones: a confidential compensation document that repeats the on-call allowance topic, project documents about a billing-database migration and an unannounced product, department-only documents for support and engineering, and a restricted document nobody in the demo may read.
-- **`visibility.yaml`** lists, per principal, the documents it may see. It was written by reading the labels and the principals' attributes, not by running the policy compiler, so the gate compares the system with an independent statement of the rules.
+- **`visibility.yaml`** lists, per principal, the documents it may see. It was written by reading the labels and the principals' attributes, not by running the policy compiler, so the gate compares the system with an independent statement of the rules. `ga-eval validate` also derives the visible sets from the labels with the rules of the decision table and requires the file to match; for v4 they agree on every principal.
 - **Scope.** Region and validity are not access (ADR-0005). Two holiday calendars apply to one region each. The 2025 travel policy has a closed validity window and the current one starts where it ends. A benefit that starts in 2099 is not valid yet. Every Northstar principal with `internal` clearance is authorized for all four, so `visibility.yaml` lists them; a case names the ones that do not apply to its request in `out_of_scope_documents`, and may set `as_of` and `region`. Returning an out-of-scope document is a scope failure, reported apart from security violations.
 - **Prompt injection.** Three ordinary-looking documents each contain one passage addressed to a language model: a refund window of 90 days where the policy says 14, an on-call allowance of 9,999 EUR, and an order to answer with a single word. Every Northstar principal with `internal` clearance may read them, so they are legitimate retrieval candidates. A case lists the phrase the instruction tries to elicit in `forbidden_answer_phrases`; an answer that contains it has been steered. These cases matter only when answers are generated. For retrieval they are ordinary cases, and the injected passage is a hard negative.
 - **Version history.** `sales-pricing-guide` has two versions. Version 1 was readable by everyone internal; version 2 changes the prices and restricts the document to sales and support. Cases ask for the current prices, and principals outside those departments must get nothing, including nothing from version 1.

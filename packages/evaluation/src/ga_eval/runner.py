@@ -1,6 +1,8 @@
 """Runs evaluation cases against the API and writes run.json, cases.jsonl and report.md.
 
 Headline numbers come from the `test` split only; `dev` exists for tuning and is reported separately so it can never be mistaken for a result.
+They also come only from cases whose labels a person has checked (ADR-0015). Unreviewed cases are scored, count for the security gate and are
+reported in a table of their own, but they never enter a summary or a paired comparison.
 """
 
 import itertools
@@ -106,6 +108,9 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
     plans: dict[str, dict[str, dict]] = {}
 
     def assemble(status: str, reason: str | None = None) -> dict:
+        for record in records:
+            record["reviewed"] = record["case"] in dataset.reviewed
+        checked = [r for r in records if r["reviewed"]]
         return {
             "run": {
                 "status": status,
@@ -134,6 +139,7 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
                 "k": k,
                 "splits": sorted(splits),
                 "case_count": len(cases),
+                "reviewed_case_count": sum(1 for c in cases if c.id in dataset.reviewed),
                 "policy_versions": sorted(policy_versions),
                 "chunker_versions": chunker_versions,
                 "plans": plans,
@@ -143,8 +149,13 @@ def run(dataset: Dataset, client: ApiClient, strategies: list[str], k: int, spli
                 "platform": platform.platform(),
                 "cpu": provenance.cpu_model(),
                 "bootstrap": {"samples": stats.SAMPLES, "seed": stats.SEED, "confidence": 0.95},
-                "summary": {split: summarize([r for r in records if r["split"] == split], strategies) for split in sorted(splits)},
-                "comparisons": compare([r for r in records if r["split"] == "test"], strategies),
+                "summary": {split: summarize([r for r in checked if r["split"] == split], strategies) for split in sorted(splits)},
+                "unreviewed_included": {
+                    split: summarize([r for r in records if r["split"] == split], strategies)
+                    for split in sorted(splits)
+                    if any(not r["reviewed"] for r in records if r["split"] == split)
+                },
+                "comparisons": compare([r for r in checked if r["split"] == "test"], strategies),
                 "security_violations": sum(len(r["violations"]) for r in records) + sum(len(v["violations"]) for v in visibility_check.values()),
                 "scope_failures": sum(len(r["scope_failures"]) for r in records),
             },
@@ -354,14 +365,19 @@ def render(output: dict) -> str:
             + "to show how much of any gap comes from PostgreSQL FTS having no corpus statistics.",
             "",
         ]
+    unreviewed = run_info.get("unreviewed_included", {})
+    if unreviewed:
+        lines += [
+            f"{run_info['reviewed_case_count']} of {run_info['case_count']} cases have labels a person checked (ADR-0015). Summaries, paired "
+            "comparisons and the tag table count only those. Tables marked as including unreviewed cases count every case; the security "
+            "gate checks every case.",
+            "",
+        ]
     for split in run_info["splits"]:
-        summary = run_info["summary"][split]
         title = "Results (test split)" if split == "test" else "Tuning split (dev) — not a result"
-        lines += [f"## {title}", "", "| Strategy | Cases | Recall@5 | Recall@10 | MRR@10 | EC@10 | Violations |", "|---|---|---|---|---|---|---|"]
-        for strategy, s in summary.items():
-            cells = " | ".join(_cell(s[m]) for m in QUALITY_METRICS)
-            lines.append(f"| `{strategy}` | {s['answerable_cases']} | {cells} | {s['security_violations']} |")
-        lines.append("")
+        lines += _summary_table(f"## {title}", run_info["summary"][split])
+        if split in unreviewed:
+            lines += _summary_table(f"### {split} split with unreviewed cases — not a result", unreviewed[split])
     if run_info["comparisons"]:
         lines += [
             "## Paired comparisons (test split)",
@@ -416,7 +432,7 @@ def render(output: dict) -> str:
     lines.append("|---|" + "---|" * len(strategies))
     by_tag: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
     for r in records:
-        if r["split"] == "test" and "recall@10" in r:
+        if r["split"] == "test" and "recall@10" in r and r.get("reviewed", True):
             for tag in r["tags"]:
                 by_tag[tag][r["strategy"]].append(r["recall@10"])
     for tag in sorted(by_tag):
@@ -428,11 +444,20 @@ def render(output: dict) -> str:
     lines += ["", "## Misses and violations", ""]
     lines += [
         f"- `{r['split']}` · `{r['strategy']}` · `{r['case']}` · recall@10={r.get('recall@10', 'n/a')} · violations={r['violations'] or 'none'}"
+        + ("" if r.get("reviewed", True) else " · unreviewed")
         for r in misses
     ]
     if not misses:
         lines.append("None.")
     return "\n".join(lines) + "\n"
+
+
+def _summary_table(title: str, summary: dict) -> list[str]:
+    lines = [title, "", "| Strategy | Cases | Recall@5 | Recall@10 | MRR@10 | EC@10 | Violations |", "|---|---|---|---|---|---|---|"]
+    for strategy, s in summary.items():
+        cells = " | ".join(_cell(s[m]) for m in QUALITY_METRICS)
+        lines.append(f"| `{strategy}` | {s['answerable_cases']} | {cells} | {s['security_violations']} |")
+    return [*lines, ""]
 
 
 def _measured(manifest: dict) -> str:
