@@ -104,6 +104,7 @@ class Dataset:
     cases: list[Case]
     visibility: dict[str, set[str]]
     principals: dict[str, dict]
+    reviewed: frozenset[str] = frozenset()
 
     def span(self, evidence: Evidence) -> Span:
         text = self.texts[evidence.document]
@@ -130,7 +131,35 @@ def load(root: Path, version: str = "v4") -> Dataset:
     cases = [Case.model_validate_json(line) for line in (eval_dir / "cases.jsonl").read_text().splitlines() if line.strip()]
     visibility = {p: set(docs) for p, docs in yaml.safe_load((eval_dir / "visibility.yaml").read_text())["principals"].items()}
     principals = yaml.safe_load((root / "principals.yaml").read_text())["principals"]
-    return Dataset(root, version, manifests, texts, current_version, tenant_of, cases, visibility, principals)
+    reviews = eval_dir / REVIEWS
+    reviewed = frozenset(yaml.safe_load(reviews.read_text())["reviewed"] or []) if reviews.is_file() else frozenset()
+    return Dataset(root, version, manifests, texts, current_version, tenant_of, cases, visibility, principals, reviewed)
+
+
+REVIEWS = "reviews.yaml"
+CLEARANCE_ORDER = ["public", "internal", "confidential", "restricted"]
+
+
+def derive_visibility(manifests: list[Manifest], principals: dict[str, dict]) -> dict[str, set[str]]:
+    """The documents each principal may read, computed from the manifest labels with the rules of the decision table in
+    docs/architecture/authorization.md. It is a separate implementation of those rules, written apart from the policy compiler; a missing or
+    unknown clearance ranks as `public`, a missing department or project list admits only documents that do not restrict that attribute."""
+    visible: dict[str, set[str]] = {}
+    for name, attributes in principals.items():
+        clearance = attributes.get("clearance")
+        rank = CLEARANCE_ORDER.index(clearance) if clearance in CLEARANCE_ORDER else 0
+        department = attributes.get("department")
+        projects = set(attributes.get("projects") or [])
+        visible[name] = {
+            doc.key
+            for manifest in manifests
+            if manifest.tenant == attributes.get("tenant_id")
+            for doc in manifest.documents
+            if CLEARANCE_ORDER.index(doc.classification) <= rank
+            and (not doc.allowed_departments or department in doc.allowed_departments)
+            and (not doc.required_projects or projects & set(doc.required_projects))
+        }
+    return visible
 
 
 LOW_OVERLAP_BELOW = 1 / 3
@@ -220,14 +249,21 @@ def validate(dataset: Dataset) -> list[str]:
     for principal, docs in dataset.visibility.items():
         tenant = dataset.principals.get(principal, {}).get("tenant_id")
         problems += [f"visibility {principal}: {doc} belongs to another tenant" for doc in sorted(docs) if dataset.tenant_of.get(doc) != tenant]
+    derived = derive_visibility(dataset.manifests, {p: dataset.principals[p] for p in dataset.visibility if p in dataset.principals})
+    for principal, docs in sorted(derived.items()):
+        listed = dataset.visibility[principal]
+        problems += [f"visibility {principal}: {doc} is listed, but the decision table hides it" for doc in sorted(listed - docs)]
+        problems += [f"visibility {principal}: {doc} is not listed, but the decision table admits it" for doc in sorted(docs - listed)]
+    problems += [f"reviews: unknown case {case}" for case in sorted(dataset.reviewed - set(ids))]
     return problems
 
 
 def digest(dataset: Dataset) -> str:
     """A SHA-256 over every file that decides what a case expects: the cases and visibility labels of this dataset version, the principals,
-    the manifests and every corpus file they name. Two runs with the same digest were scored against the same labels and the same texts."""
+    the manifests and every corpus file they name. Two runs with the same digest were scored against the same labels and the same texts.
+    The review record is left out: checking a case does not change what it expects, only whether its numbers may be published."""
     files = [
-        *sorted((dataset.root / "eval" / dataset.version).glob("*")),
+        *sorted(p for p in (dataset.root / "eval" / dataset.version).glob("*") if p.name != REVIEWS),
         dataset.root / "principals.yaml",
         *sorted((dataset.root / "manifests").glob("*.yaml")),
         *sorted({dataset.root / v.file for m in dataset.manifests for d in m.documents for v in d.versions()}),

@@ -43,6 +43,7 @@ def score(case: Case, response: dict, dataset: Dataset, latency_ms: float) -> di
     record = {
         "case": case.id,
         "split": case.split,
+        "reviewed": case.id in dataset.reviewed,
         "tags": case.tags,
         "must_abstain": case.must_abstain,
         "status": response["status"],
@@ -118,7 +119,9 @@ def run(dataset: Dataset, client: ApiClient, splits: set[str]) -> dict:
             "platform": platform.platform(),
             "cpu": cpu_model(),
             "bootstrap": {"samples": stats.SAMPLES, "seed": stats.SEED, "confidence": 0.95},
-            "summary": {split: summarize([r for r in records if r["split"] == split]) for split in sorted(splits)},
+            # Like the retrieval report, the summary counts only cases whose labels a person checked (ADR-0015)
+            "reviewed_case_count": sum(1 for r in records if r["reviewed"]),
+            "summary": {split: summarize([r for r in records if r["split"] == split and r["reviewed"]]) for split in sorted(splits)},
             "security_violations": sum(len(r["violations"]) for r in records),
             "scope_failures": sum(len(r["scope_failures"]) for r in records),
         },

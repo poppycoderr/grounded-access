@@ -1,3 +1,4 @@
+from dataclasses import replace
 from pathlib import Path
 
 import fake_system
@@ -135,3 +136,43 @@ def test_a_readable_document_outside_the_requests_scope_is_a_scope_failure_not_a
     assert record["scope_failures"] == ["hr-public-holidays-us"]
     assert record["violations"] == []
     assert record["scoped"] is True
+
+
+class EmptyClient(ListingOnlyClient):
+    """Answers every search completely, with no results."""
+
+    def __init__(self) -> None:
+        super().__init__(["markdown/2"])
+
+    def search(self, *args: object) -> dict:
+        return {"policyVersion": "abac/1", "planHash": "abc", "plan": {}, "degraded": [], "results": []}
+
+
+def test_unreviewed_cases_are_scored_but_stay_out_of_summaries_and_comparisons(monkeypatch):
+    monkeypatch.setattr(runner, "check_visibility", lambda dataset, listings: {})
+    data = ds.load(DATA)
+    answerable = [c.id for c in data.cases if c.split == "test" and c.evidence]
+    reviewed = frozenset(answerable[:10])
+
+    output = runner.run(replace(data, reviewed=reviewed), EmptyClient(), ["sparse-only", "dense-only"], 10, {"test"})
+    run_info = output["run"]
+
+    assert run_info["reviewed_case_count"] == 10
+    assert run_info["summary"]["test"]["dense-only"]["answerable_cases"] == 10
+    assert run_info["comparisons"][0]["cases"] == 10
+    assert run_info["unreviewed_included"]["test"]["dense-only"]["answerable_cases"] == len(answerable)
+    assert {r["case"] for r in output["cases"] if r["reviewed"]} == reviewed
+    report = runner.render(output)
+    assert "### test split with unreviewed cases — not a result" in report
+    assert f"`{answerable[-1]}` · recall@10=0.0 · violations=none · unreviewed" in report
+
+
+def test_a_fully_reviewed_dataset_reports_no_unreviewed_table(monkeypatch):
+    monkeypatch.setattr(runner, "check_visibility", lambda dataset, listings: {})
+
+    data = ds.load(DATA)
+
+    output = runner.run(replace(data, reviewed=frozenset(c.id for c in data.cases)), EmptyClient(), ["dense-only"], 10, {"dev"})
+
+    assert output["run"]["unreviewed_included"] == {}
+    assert "unreviewed" not in runner.render(output)

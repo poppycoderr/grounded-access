@@ -8,6 +8,8 @@ from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
+import yaml
+
 from ga_eval import ann, answers, between, demo, distractors, load, rankings, runner, scale, tokens
 from ga_eval import dataset as ds
 from ga_eval.client import ApiClient, IngestionFailedError
@@ -25,6 +27,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--base-url", default=os.getenv("GA_BASE_URL", "http://localhost:8080"))
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("validate", help="check cases, quotes and visibility labels against the corpus")
+    commands.add_parser("visibility", help="print the visible documents of every labelled principal, derived from the manifests")
     load_corpus_parser = commands.add_parser("load", help="ingest every manifest into its tenant")
     load_corpus_parser.add_argument(
         "--manifests", type=Path, help="load the manifests and corpus of this directory instead, for example generated distractors"
@@ -129,6 +132,10 @@ def main(argv: list[str] | None = None) -> int:
             (args.out / "comparison.md").write_text(between.render(comparison))
         return 0
     dataset = ds.load(args.data)
+    if args.command == "visibility":
+        derived = ds.derive_visibility(dataset.manifests, {p: dataset.principals[p] for p in dataset.visibility})
+        print(yaml.safe_dump({"principals": {p: sorted(docs) for p, docs in derived.items()}}, sort_keys=False), end="")
+        return 0
     if args.command == "validate":
         return _validate(dataset)
     if args.command == "mint-token":
@@ -218,6 +225,7 @@ def _validate(dataset: ds.Dataset) -> int:
     print("lexical overlap of answerable cases: " + ", ".join(f"{band} {len(ids)}" for band, ids in bands.items()))
     print("splits: " + ", ".join(f"{split} {count}" for split, count in sorted(splits.items())))
     print(f"authorization negatives: {len(ds.authorization_negatives(dataset))}")
+    print(f"reviewed: {len(dataset.reviewed)} of {len(dataset.cases)} cases")
     return 1 if problems else 0
 
 

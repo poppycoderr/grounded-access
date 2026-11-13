@@ -1,3 +1,4 @@
+import shutil
 from dataclasses import replace
 from pathlib import Path
 
@@ -111,3 +112,43 @@ def test_a_corpus_file_outside_the_basic_plane_is_refused_because_offsets_would_
 
     assert any("outside the Basic Multilingual Plane" in problem for problem in ds.validate(shifted))
     assert not any("Basic Multilingual Plane" in problem for problem in ds.validate(data))
+
+
+def test_derived_visibility_follows_the_decision_table(data):
+    derived = ds.derive_visibility(
+        data.manifests,
+        {
+            "nobody": {"tenant_id": "northstar"},
+            "typo": {"tenant_id": "northstar", "clearance": "top-secret", "department": "engineering", "projects": ["atlas"]},
+        },
+    )
+    public_unrestricted = {
+        d.key
+        for m in data.manifests
+        if m.tenant == "northstar"
+        for d in m.documents
+        if d.classification == "public" and not d.allowed_departments and not d.required_projects
+    }
+
+    assert derived["nobody"] == public_unrestricted
+    assert derived["typo"] == public_unrestricted
+
+
+def test_rejects_visibility_labels_that_the_decision_table_disagrees_with(data):
+    broken = replace(data, visibility=dict(data.visibility) | {"dave-contractor": data.visibility["dave-contractor"] | {"hr-travel-policy"}})
+
+    assert "visibility dave-contractor: hr-travel-policy is listed, but the decision table hides it" in ds.validate(broken)
+
+
+def test_rejects_reviews_of_unknown_cases(data):
+    assert "reviews: unknown case no-such-case" in ds.validate(replace(data, reviewed=data.reviewed | {"no-such-case"}))
+
+
+def test_recording_a_review_does_not_change_the_digest(data, tmp_path):
+    copy = tmp_path / "data"
+    shutil.copytree(DATA, copy)
+    (copy / "eval" / data.version / ds.REVIEWS).write_text("reviewed: []\n")
+    unreviewed = ds.load(copy, data.version)
+
+    assert unreviewed.reviewed == frozenset()
+    assert ds.digest(unreviewed) == ds.digest(data)
