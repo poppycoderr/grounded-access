@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 SAMPLES = 10_000
 SEED = 20260921
+SIGNIFICANCE = 0.05
 
 
 @dataclass(frozen=True)
@@ -24,10 +25,42 @@ def bootstrap(values: list[float], samples: int = SAMPLES, seed: int = SEED) -> 
     """Percentile bootstrap of the mean, resampling cases with replacement; a fixed seed keeps reports reproducible."""
     if not values:
         return Interval(0.0, 0.0, 0.0)
+    means = _resampled_means(values, samples, seed)
+    return Interval(sum(values) / len(values), means[int(0.025 * samples)], means[int(0.975 * samples) - 1])
+
+
+def p_value(values: list[float], samples: int = SAMPLES, seed: int = SEED) -> float:
+    """Two-sided bootstrap p-value for a mean of zero: twice the smaller share of resampled means on either side of zero. It uses the same
+    resamples as `bootstrap`, so p < 0.05 agrees with an interval that excludes zero up to the resolution of the samples."""
+    if not values:
+        return 1.0
+    means = _resampled_means(values, samples, seed)
+    below = sum(1 for m in means if m <= 0) / samples
+    above = sum(1 for m in means if m >= 0) / samples
+    return min(1.0, 2 * min(below, above))
+
+
+def holm(p_values: list[float]) -> list[float]:
+    """Holm-adjusted p-values, in the order given. Controls the chance of any false finding across the whole family (ADR-0016)."""
+    order = sorted(range(len(p_values)), key=lambda i: p_values[i])
+    adjusted = [1.0] * len(p_values)
+    running = 0.0
+    for rank, i in enumerate(order):
+        running = max(running, min(1.0, (len(p_values) - rank) * p_values[i]))
+        adjusted[i] = running
+    return adjusted
+
+
+def adjusted_verdict(mean: float, adjusted_p: float) -> str:
+    if adjusted_p >= SIGNIFICANCE:
+        return "no detectable difference"
+    return "better" if mean > 0 else "worse"
+
+
+def _resampled_means(values: list[float], samples: int, seed: int) -> list[float]:
     rng = random.Random(seed)
     n = len(values)
-    means = sorted(sum(values[rng.randrange(n)] for _ in range(n)) / n for _ in range(samples))
-    return Interval(sum(values) / n, means[int(0.025 * samples)], means[int(0.975 * samples) - 1])
+    return sorted(sum(values[rng.randrange(n)] for _ in range(n)) / n for _ in range(samples))
 
 
 def paired(a: list[float], b: list[float], samples: int = SAMPLES, seed: int = SEED) -> Interval:

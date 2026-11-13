@@ -42,10 +42,10 @@ def main(argv: list[str] | None = None) -> int:
     distractors_parser.add_argument("--out", type=Path, required=True)
     answers_parser = commands.add_parser("answers", help="evaluate generated answers; needs a chat model configured in the control plane")
     answers_parser.add_argument("--out", type=Path, help="output directory (default: results/answers-<timestamp>)")
-    answers_parser.add_argument("--split", action="append", choices=["dev", "test"], help="repeatable; default: both")
+    answers_parser.add_argument("--split", action="append", choices=["dev", "test", "holdout"], help="repeatable; default: dev and test")
     run_parser = commands.add_parser("run", help="evaluate retrieval strategies and enforce the security gate")
     run_parser.add_argument("--strategy", action="append", choices=[*runner.SYSTEM_STRATEGIES, runner.REFERENCE], help="repeatable; default: all")
-    run_parser.add_argument("--split", action="append", choices=["dev", "test"], help="repeatable; default: all")
+    run_parser.add_argument("--split", action="append", choices=["dev", "test", "holdout"], help="repeatable; default: dev and test")
     run_parser.add_argument("--k", type=int, default=10)
     run_parser.add_argument("--out", type=Path, help="output directory (default: results/<timestamp>)")
     run_parser.add_argument(
@@ -69,7 +69,13 @@ def main(argv: list[str] | None = None) -> int:
     compare_parser = commands.add_parser("compare", help="paired comparison of two runs of the same cases, strategy by strategy")
     compare_parser.add_argument("before", type=Path)
     compare_parser.add_argument("after", type=Path)
-    compare_parser.add_argument("--split", choices=["dev", "test"], default="test")
+    compare_parser.add_argument("--split", choices=["dev", "test", "holdout"], default="test")
+    compare_parser.add_argument(
+        "--primary",
+        nargs=2,
+        metavar=("STRATEGY", "METRIC"),
+        help="the comparison declared before the runs (ADR-0016); every other one is Holm-adjusted",
+    )
     compare_parser.add_argument("--out", type=Path, help="write comparison.json and comparison.md into this directory")
     compare_parser.add_argument(
         "--allow-subset", action="store_true", help="compare only the cases both runs have, list the others, and mark the result as a subset"
@@ -118,7 +124,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "compare":
         try:
-            comparison = between.compare(args.before, args.after, args.split, allow_subset=args.allow_subset)
+            comparison = between.compare(
+                args.before, args.after, args.split, allow_subset=args.allow_subset, primary=tuple(args.primary) if args.primary else None
+            )
         except between.IncomparableRunsError as incomparable:
             print(f"error: {incomparable}", file=sys.stderr)
             return 1

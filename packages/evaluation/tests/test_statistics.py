@@ -43,3 +43,22 @@ def test_a_gain_from_a_single_case_is_not_enough():
 def test_paired_comparison_needs_the_same_cases():
     with pytest.raises(ValueError):
         stats.paired([1.0], [1.0, 0.0])
+
+
+def test_holm_multiplies_the_smallest_p_value_by_the_family_size_and_keeps_the_order():
+    assert stats.holm([0.01, 0.04, 0.03]) == pytest.approx([0.03, 0.06, 0.06])
+    assert stats.holm([0.5, 0.9]) == [1.0, 1.0]
+
+
+def test_a_bootstrap_p_value_agrees_with_the_interval():
+    clear = [0.2, 0.3, 0.25, 0.4, 0.1] * 6
+    noise = [0.2, -0.2, 0.1, -0.1, 0.0] * 6
+
+    assert stats.p_value(clear) < 0.05 and stats.bootstrap(clear).excludes_zero()
+    assert stats.p_value(noise) >= 0.05 and not stats.bootstrap(noise).excludes_zero()
+    assert stats.p_value([0.0, 0.0]) == 1.0
+
+
+def test_an_adjusted_p_value_above_the_threshold_is_no_finding_whatever_the_sign():
+    assert stats.adjusted_verdict(0.3, 0.2) == "no detectable difference"
+    assert stats.adjusted_verdict(-0.3, 0.01) == "worse"

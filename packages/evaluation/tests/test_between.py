@@ -45,4 +45,26 @@ def test_the_rendered_table_shows_before_after_and_the_interval(tmp_path):
     rendered = between.render(between.compare(before, after, "test"))
 
     assert "| `dense-only` | 2 | 1.000 → 1.000 |" in rendered
-    assert "0.500 → 1.000 | +0.500 [+0.50, +0.50] — better | 2 |" in rendered
+    assert "0.500 → 1.000 | +0.500 [+0.50, +0.50] — p_holm 0.000, better | 2 |" in rendered
+    assert "No primary comparison was declared" in rendered
+
+
+def test_a_declared_primary_comparison_keeps_its_interval_and_the_rest_is_holm_adjusted(tmp_path):
+    before = write_run(tmp_path / "before", "v4", {"a": 0.5, "b": 0.5})
+    after = write_run(tmp_path / "after", "v4", {"a": 1.0, "b": 1.0})
+
+    comparison = between.compare(before, after, "test", primary=("dense-only", "mrr@10"))
+
+    roles = {t["metric"]: t["role"] for t in comparison["tests"]}
+    assert roles == {"recall@10": "exploratory", "mrr@10": "primary", "ndcg@10": "exploratory"}
+    assert "| +0.500 [+0.50, +0.50] — **primary**: better |" in between.render(comparison)
+
+
+def test_a_primary_comparison_must_name_a_compared_strategy_and_metric(tmp_path):
+    before = write_run(tmp_path / "before", "v4", {"a": 0.5})
+    after = write_run(tmp_path / "after", "v4", {"a": 1.0})
+
+    with pytest.raises(between.IncomparableRunsError, match="primary strategy"):
+        between.compare(before, after, "test", primary=("hybrid-rrf", "mrr@10"))
+    with pytest.raises(between.IncomparableRunsError, match="primary metric"):
+        between.compare(before, after, "test", primary=("dense-only", "recall@5"))
