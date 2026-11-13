@@ -51,6 +51,7 @@ These rules come from the design. Changing one of them requires an ADR first.
 6. **The model service holds no identities and never touches the database.** It only receives text the control plane has already authorized.
 7. **Retrieval changes come with evaluation evidence.** A PR that changes ranking, chunking or filtering includes the eval impact. Benchmark numbers must come from committed or released result files.
 8. **Stay within scope.** No knowledge graphs, GraphRAG, agents, extra vector stores, Kubernetes or cloud providers before v0.1. See the README.
+9. **Evaluation labels say where they came from.** A model may draft a case; only a person may check one, and `reviews.yaml` records which cases were checked. Numbers published as results come only from checked cases ([ADR-0015](docs/adr/0015-where-evaluation-labels-come-from.md)).
 
 ## Code conventions
 
