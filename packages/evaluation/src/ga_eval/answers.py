@@ -208,7 +208,9 @@ def render(output: dict) -> str:
         lines += [f"**This run is invalid:** {info.get('invalid_reason')}. It is kept as evidence, not as a result.", ""]
     for split in info["splits"]:
         s = info["summary"][split]
-        heading = "## Results (test split)" if split == "test" else f"## Tuning split ({split}) — not a result"
+        heading = {"test": "## Results (test split)", "holdout": "## Holdout split — read once, at the release"}.get(
+            split, f"## Tuning split ({split}) — not a result"
+        )
         lines += [
             heading,
             "",

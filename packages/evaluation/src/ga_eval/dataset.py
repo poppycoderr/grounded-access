@@ -38,7 +38,7 @@ class Case(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     id: str
-    split: Literal["dev", "test"]
+    split: Literal["dev", "test", "holdout"]
     query: str
     principal: str
     evidence: list[Evidence]

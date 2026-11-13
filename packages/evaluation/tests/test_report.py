@@ -42,5 +42,7 @@ def test_report_separates_test_from_dev_and_compares_strategies_on_test_only():
     assert "| `sparse-only` | 2 | 0.500 [" in report
     assert "| `sparse-only` | `dense-only` | 2 | +0.500" in report
     assert "no detectable difference" in report
+    assert "## Paired comparisons (test split, exploratory)" in report
+    assert "Holm-adjusted across all 3 comparisons" in report
     assert "| `sparse-only` | 1 | 1 |" in report
     assert "violations=['secret']" in report

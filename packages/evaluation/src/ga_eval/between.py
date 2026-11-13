@@ -27,7 +27,7 @@ def load(run_dir: Path) -> tuple[dict, list[dict]]:
     return json.loads((run_dir / "run.json").read_text()), [json.loads(line) for line in (run_dir / "cases.jsonl").read_text().splitlines()]
 
 
-def compare(before_dir: Path, after_dir: Path, split: str, allow_subset: bool = False) -> dict:
+def compare(before_dir: Path, after_dir: Path, split: str, allow_subset: bool = False, primary: tuple[str, str] | None = None) -> dict:
     """What may differ between the two runs is what the experiment changes: the index, the chunker, the models, the retrieval plans. What
     must not differ is checked here: dataset and labels, k, metric definition, the set of cases, and that neither run failed its gates."""
     before_run, before = load(before_dir)
@@ -74,19 +74,49 @@ def compare(before_dir: Path, after_dir: Path, split: str, allow_subset: bool = 
         rows.append(row)
     if not any(row["cases"] for row in rows):
         raise IncomparableRunsError(f"the runs share no answerable {split} cases")
+    tests = _tests(before, after, split, rows, compared, unreviewed, primary)
     comparison = {
         "split": split,
         "dataset_version": before_run["dataset_version"],
         "before": _describe(before_dir, before_run),
         "after": _describe(after_dir, after_run),
         "strategies": rows,
+        "tests": tests,
     }
+    if primary:
+        comparison["primary"] = {"strategy": primary[0], "metric": primary[1]}
     if subset:
         comparison["subset"] = subset
     if "manifest" in before_run and "manifest" in after_run:
         comparison["differences"] = provenance.differences(before_run["manifest"], after_run["manifest"])
         comparison["latency"] = _latency(before_run, after_run, split, strategies)
     return comparison
+
+
+def _tests(
+    before: list[dict], after: list[dict], split: str, rows: list[dict], compared: list[str], skipped: set[str], primary: tuple[str, str] | None
+) -> list[dict]:
+    """The verdict of every row and metric (ADR-0016). The primary comparison, declared before the runs, keeps its unadjusted 95% interval;
+    every other comparison is exploratory and judged by a p-value Holm-adjusted across all of them."""
+    if primary and not any(row["strategy"] == primary[0] for row in rows):
+        raise IncomparableRunsError(f"the primary strategy {primary[0]} is not in both runs")
+    if primary and primary[1] not in compared:
+        raise IncomparableRunsError(f"the primary metric {primary[1]} is not one of {', '.join(compared)}")
+    first = _index("before", before, split, [row["strategy"] for row in rows], skipped)
+    second = _index("after", after, split, [row["strategy"] for row in rows], skipped)
+    tests = []
+    for row in rows:
+        shared = sorted(c for c in first[row["strategy"]].keys() & second[row["strategy"]].keys() if "recall@10" in first[row["strategy"]][c])
+        for metric in compared:
+            differences = [second[row["strategy"]][c][metric] - first[row["strategy"]][c][metric] for c in shared]
+            tests.append({"strategy": row["strategy"], "metric": metric, "mean": row[metric]["difference"]["mean"], "p": stats.p_value(differences)})
+    is_primary = [primary == (t["strategy"], t["metric"]) for t in tests]
+    family = [t for t, chosen in zip(tests, is_primary, strict=True) if not chosen]
+    for test, adjusted in zip(family, stats.holm([t["p"] for t in family]), strict=True):
+        test |= {"role": "exploratory", "p_holm": adjusted, "verdict": stats.adjusted_verdict(test["mean"], adjusted)}
+    for test, row in ((t, r) for t, chosen in zip(tests, is_primary, strict=True) if chosen for r in rows if r["strategy"] == t["strategy"]):
+        test |= {"role": "primary", "verdict": row[test["metric"]]["verdict"]}
+    return tests
 
 
 def _latency(before: dict, after: dict, split: str, strategies: list[str]) -> dict:
@@ -158,8 +188,14 @@ def render(comparison: dict) -> str:
         "",
         f"Before: commit `{before['git_sha']}`, chunker {', '.join(before['chunker_versions'])}. "
         f"After: commit `{after['git_sha']}`, chunker {', '.join(after['chunker_versions'])}. "
-        "Each row is one strategy on the same cases in both runs; the difference is after minus before with a 95% interval, "
-        "and counts only if the interval excludes zero.",
+        "Each row is one strategy on the same cases in both runs; the difference is after minus before with an unadjusted 95% interval. "
+        + (
+            f"The primary comparison is `{comparison['primary']['strategy']}` on {comparison['primary']['metric']}, declared before the runs; "
+            "its verdict is whether that interval excludes zero. "
+            if comparison.get("primary")
+            else "No primary comparison was declared, so nothing in this table decides a change. "
+        )
+        + "Every other verdict uses bootstrap p-values Holm-adjusted across all of them (ADR-0016).",
         "",
     ]
     for side in ("before", "after"):
@@ -187,11 +223,13 @@ def render(comparison: dict) -> str:
         "| Strategy | Cases | Recall@10 | ΔRecall@10 | MRR@10 | ΔMRR@10 | Cases whose rank changed |",
         "|---|---|---|---|---|---|---|",
     ]
+    verdicts = {(t["strategy"], t["metric"]): t for t in comparison.get("tests", [])}
     for row in comparison["strategies"]:
         recall, mrr = row["recall@10"], row["mrr@10"]
         lines.append(
-            f"| `{row['strategy']}` | {row['cases']} | {recall['before']:.3f} → {recall['after']:.3f} | {_delta(recall)} | "
-            f"{mrr['before']:.3f} → {mrr['after']:.3f} | {_delta(mrr)} | {len(row['changed_cases'])} |"
+            f"| `{row['strategy']}` | {row['cases']} | {recall['before']:.3f} → {recall['after']:.3f} | "
+            f"{_delta(recall, verdicts.get((row['strategy'], 'recall@10')))} | "
+            f"{mrr['before']:.3f} → {mrr['after']:.3f} | {_delta(mrr, verdicts.get((row['strategy'], 'mrr@10')))} | {len(row['changed_cases'])} |"
         )
     if "differences" in comparison:
         lines += ["", "## What differs between the runs", ""]
@@ -214,6 +252,9 @@ def render(comparison: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _delta(metric: dict) -> str:
+def _delta(metric: dict, test: dict | None) -> str:
     d = metric["difference"]
-    return f"{d['mean']:+.3f} [{d['low']:+.2f}, {d['high']:+.2f}] — {metric['verdict']}"
+    if test is None:
+        return f"{d['mean']:+.3f} [{d['low']:+.2f}, {d['high']:+.2f}] — {metric['verdict']}"
+    label = "**primary**: " if test["role"] == "primary" else f"p_holm {test['p_holm']:.3f}, "
+    return f"{d['mean']:+.3f} [{d['low']:+.2f}, {d['high']:+.2f}] — {label}{test['verdict']}"

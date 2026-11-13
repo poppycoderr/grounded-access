@@ -310,16 +310,20 @@ def _latency(samples: list[float]) -> dict | None:
 
 
 def compare(records: list[dict], strategies: list[str]) -> list[dict]:
-    """Every pair of strategies on the same answerable test cases; the difference is always second minus first."""
+    """Every pair of strategies on the same answerable test cases; the difference is always second minus first. These comparisons are
+    exploratory (ADR-0016): the verdict uses p-values Holm-adjusted across every pair and metric of the table, the interval is unadjusted."""
     by_strategy = {s: {r["case"]: r for r in records if r["strategy"] == s and "recall@10" in r} for s in strategies}
     comparisons = []
     for first, second in itertools.combinations(strategies, 2):
         shared = sorted(by_strategy[first].keys() & by_strategy[second].keys())
         entry: dict = {"first": first, "second": second, "cases": len(shared)}
         for metric in COMPARED_METRICS:
-            difference = stats.paired([by_strategy[first][c][metric] for c in shared], [by_strategy[second][c][metric] for c in shared])
-            entry[metric] = _interval(difference) | {"verdict": stats.verdict(difference)}
+            differences = [by_strategy[second][c][metric] - by_strategy[first][c][metric] for c in shared]
+            entry[metric] = _interval(stats.bootstrap(differences)) | {"p": stats.p_value(differences)}
         comparisons.append(entry)
+    family = [entry[metric] for entry in comparisons for metric in COMPARED_METRICS]
+    for result, adjusted in zip(family, stats.holm([r["p"] for r in family]), strict=True):
+        result |= {"p_holm": adjusted, "verdict": stats.adjusted_verdict(result["mean"], adjusted)}
     return comparisons
 
 
@@ -374,15 +378,19 @@ def render(output: dict) -> str:
             "",
         ]
     for split in run_info["splits"]:
-        title = "Results (test split)" if split == "test" else "Tuning split (dev) — not a result"
+        title = {"test": "Results (test split)", "holdout": "Holdout split — read once, at the release (ADR-0016)"}.get(
+            split, "Tuning split (dev) — not a result"
+        )
         lines += _summary_table(f"## {title}", run_info["summary"][split])
         if split in unreviewed:
             lines += _summary_table(f"### {split} split with unreviewed cases — not a result", unreviewed[split])
     if run_info["comparisons"]:
         lines += [
-            "## Paired comparisons (test split)",
+            "## Paired comparisons (test split, exploratory)",
             "",
-            "Mean per-case difference, second minus first, with a 95% interval. A difference counts only if the interval excludes zero.",
+            "Mean per-case difference, second minus first, with an unadjusted 95% interval. The verdict uses bootstrap p-values Holm-adjusted "
+            f"across all {len(run_info['comparisons']) * len(COMPARED_METRICS)} comparisons of this table: a difference counts only if its "
+            "adjusted p-value is below 0.05. A change is judged by the primary comparison it declares, not by this table (ADR-0016).",
             "",
             "| First | Second | Cases | ΔRecall@10 | ΔMRR@10 | ΔEC@10 |",
             "|---|---|---|---|---|---|",

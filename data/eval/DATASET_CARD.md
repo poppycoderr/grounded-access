@@ -8,7 +8,7 @@ A fictional enterprise knowledge base for two tenants and a set of retrieval cas
 |---|---|
 | Documents | 300 (254 Northstar Cloud, 46 Orbit Labs); six Northstar documents have two versions |
 | Cases | 372: 302 answerable, 70 that must find nothing |
-| Split | 292 `test`, 80 `dev` |
+| Split | 253 `test`, 80 `dev`, 39 `holdout` (a seeded, stratified fifth of the `test` cases v5 added; read once, at the v0.2 release, [ADR-0016](../../docs/adr/0016-how-a-tuning-result-is-decided.md)) |
 | Principals | bob-support 118, alice-engineer 111, carol-manager 92, dave-contractor 29, mallory-outsider 22 |
 | Cases with hard negatives | 89 |
 | Authorization negatives | 73: 21 cross-tenant, 52 inside the tenant (project 11, department 22, clearance 19; a case that fails on more than one rule is counted under project, then department) |
@@ -74,7 +74,7 @@ Queries drafted with help from a model tend to repeat the document's words. The 
 
 ## Known limitations
 
-- **Small.** 240 answerable `test` cases put one case at about 0.4 points of Recall; differences smaller than the reported intervals are not findings.
+- **Small.** 206 answerable `test` cases put one case at about 0.5 points of Recall; differences smaller than the reported intervals are not findings.
 - **Three injections are a smoke test, not a red-team suite.** They use obvious phrasings that the keyword heuristic also flags. A model that resists them has not been shown to resist a careful attacker.
 - **Answer checks are string comparisons.** Fact recall looks for the expected phrase in the answer, and a forbidden phrase is matched literally. Neither judges whether a statement is faithful to the passage it cites.
 - **No chunk-level labels.** Labels apply to a whole document version, so the gate checks each returned chunk for its document and version.
