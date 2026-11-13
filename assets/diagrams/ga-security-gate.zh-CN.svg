@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 520" width="1120" height="520"
      role="img" aria-labelledby="ttl dsc" style="max-width:100%;height:auto">
-  <title id="ttl">安全门禁拿系统和手写标注做比较</title>
-  <desc id="dsc">预期的可见范围由人对照访问标签写出，绝不由被检验的 policy compiler 生成。</desc>
+  <title id="ttl">安全门禁拿系统和独立写出的标注做比较</title>
+  <desc id="dsc">预期的可见范围来自访问标签：v4 由人手写，v5 由决策表推导，绝不由被检验的 policy compiler 生成。</desc>
   <defs>
     <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk" d="M0 0 L10 5 L0 10 z"/></marker>
     <marker id="ar-v" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-v" d="M0 0 L10 5 L0 10 z"/></marker>
@@ -45,11 +45,11 @@
   </style>
   <rect class="bg" width="1120" height="520" rx="18"/>
   <text class="kicker" x="40" y="44">GROUNDED ACCESS · SECURITY GATE</text>
-  <text class="title" x="40" y="76">安全门禁拿系统和手写标注做比较</text>
-  <text class="sub" x="40" y="101">预期的可见范围由人对照访问标签写出，绝不由被检验的 policy compiler 生成。</text>
+  <text class="title" x="40" y="76">安全门禁拿系统和独立写出的标注做比较</text>
+  <text class="sub" x="40" y="101">预期的可见范围来自访问标签：v4 由人手写，v5 由决策表推导，绝不由被检验的 policy compiler 生成。</text>
   <rect class="amber" x="40" y="150" width="300" height="104" rx="12"/>
   <text class="lbl-sm" x="56" y="175">visibility.yaml</text>
-  <text class="txt" x="56" y="195">人工标注的可见文档</text>
+  <text class="txt" x="56" y="195">标注的可见文档</text>
   <text class="txt" x="56" y="213">按身份列出，只认当前版本</text>
   <text class="mono" x="56" y="231">data/eval/v5</text>
   <rect class="blue" x="40" y="284" width="300" height="104" rx="12"/>
@@ -66,7 +66,7 @@
   <text class="txt" x="434" y="253">覆盖没有被任何查询检索到的文档</text>
   <rect class="violet" x="418" y="290" width="304" height="104" rx="12"/>
   <text class="lbl-sm" x="434" y="315">2 · 逐条结果检查</text>
-  <text class="txt" x="434" y="335">128 条用例 × 每种策略</text>
+  <text class="txt" x="434" y="335">333 条用例 × 每种策略</text>
   <text class="txt" x="434" y="353">每个 chunk：文档可见</text>
   <text class="txt" x="434" y="371">且来自当前版本</text>
   <path class="ln" d="M340 202 L398 222" marker-end="url(#ar)"/>
@@ -86,6 +86,6 @@
   <text class="txt" x="816" y="375">生成报告</text>
   <text class="txt" x="816" y="393">可以发布</text>
   <path class="ln" d="M740 275 L798 372" marker-end="url(#ar)"/>
-  <text class="foot" x="40" y="462">31 条用例专门去够身份无权查看的文档：别的租户、更高的密级、别的项目或部门。</text>
+  <text class="foot" x="40" y="462">67 条用例专门去够身份无权查看的文档：别的租户、更高的密级、别的项目或部门。</text>
   <text class="foot" x="40" y="484">在运行中的环境里把一篇 restricted 文档改标成 public，门禁就会失败——门禁本身就是这样验证的。</text>
 </svg>

@@ -136,11 +136,11 @@ def decision(lang, s):
 
 
 RESULTS = [
-    ("sparse-only", 0.740, 0.66, 0.82, 0.943, "bar-s"),
-    ("dense-only", 0.895, 0.84, 0.95, 0.979, "bar-d"),
-    ("hybrid-rrf", 0.867, 0.80, 0.93, 0.986, "bar-h"),
-    ("hybrid-rrf-rerank", 0.971, 0.94, 1.00, 0.986, "bar-x"),
-    ("bm25-reference", 0.772, 0.69, 0.85, 0.943, "bar-r"),
+    ("sparse-only", 0.437, 0.34, 0.53, 0.750, "bar-s"),
+    ("dense-only", 0.804, 0.73, 0.88, 0.964, "bar-d"),
+    ("hybrid-rrf", 0.707, 0.62, 0.79, 0.921, "bar-h"),
+    ("hybrid-rrf-rerank", 0.826, 0.75, 0.89, 0.950, "bar-x"),
+    ("bm25-reference", 0.625, 0.53, 0.72, 0.793, "bar-r"),
 ]
 
 
@@ -283,8 +283,8 @@ EN = {
         "foot": "Region, validity dates and document status are scope, not authorization, and are counted separately.",
     },
     "results": {
-        "title": "Reranking puts the evidence first; plain hybrid does not beat dense",
-        "sub": "Dataset v4, test split, 70 answerable cases. Bars are MRR@10 with 95% bootstrap intervals, from the committed CI run.",
+        "title": "Dense carries the ranking; FTS is the weak channel",
+        "sub": "Dataset v5, 70 reviewed answerable test cases. Bars are MRR@10 with 95% bootstrap intervals, from the committed CI run.",
         "axis": "MRR@10",
         "notes": [
             "PostgreSQL full-text search",
@@ -294,16 +294,16 @@ EN = {
             "offline reference row",
         ],
         "tiles": [
-            ("0", ("unauthorized results", "across 128 cases and every strategy"), True),
-            ("31", ("authorization negatives", "tenant, clearance, project, department"), False),
-            ("+0.08", ("rerank vs dense, MRR@10", "[+0.03, +0.13], at 11× the latency"), False),
+            ("0", ("unauthorized results", "across 333 cases and every strategy"), True),
+            ("67", ("authorization negatives", "tenant, clearance, project, department"), False),
+            ("+0.19", ("BM25 over FTS, MRR@10", "[+0.11, +0.27], Holm-adjusted"), False),
         ],
-        "foot": "Source: benchmarks/reports/heading-context. A demo benchmark on a small fictional corpus, not a claim about production quality.",
+        "foot": "Source: benchmarks/reports/v0.2-baseline. A demo benchmark on a small fictional corpus, not a claim about production quality.",
     },
     "gate": {
-        "title": "The security gate compares the system with hand-written labels",
-        "sub": "The expected visibility is written by a person from the access labels, never produced by the policy compiler it checks.",
-        "labels": ["visibility.yaml", "hand-labelled visible documents", "per principal, current version only", "`data/eval/v5`"],
+        "title": "The security gate compares the system with labels written apart from it",
+        "sub": "The expected visibility comes from the access labels, by hand for v4 and derived for v5, never from the policy compiler it checks.",
+        "labels": ["visibility.yaml", "labelled visible documents", "per principal, current version only", "`data/eval/v5`"],
         "system": ["System under test", "public API with demo tokens", "one token per principal", "`/retrieval/chunks · /retrieval/search`"],
         "checks": "ga-eval run",
         "steps": [
@@ -311,7 +311,7 @@ EN = {
                 "1 · Listing check",
                 ["every chunk each principal can list", "must match its visible set exactly", "covers documents no query retrieves"],
             ),
-            ("2 · Per-result check", ["128 cases × every strategy", "each chunk: visible document", "and current version"]),
+            ("2 · Per-result check", ["333 cases × every strategy", "each chunk: visible document", "and current version"]),
         ],
         "outcomes": [
             ("Extra document or old version", ["a violation: exit code 2", "the CI job fails"], "rose"),
@@ -319,7 +319,7 @@ EN = {
             ("0 violations", ["the report is written", "and can be published"], "green"),
         ],
         "foot": [
-            "31 cases try to reach a document the principal may not see: another tenant, a higher classification, another project or department.",
+            "67 cases try to reach a document the principal may not see: another tenant, a higher classification, another project or department.",
             "Relabelling a restricted document as public on a running stack makes the gate fail, which is how the gate itself was checked.",
         ],
     },
@@ -396,26 +396,26 @@ ZH = {
         "foot": "region、有效期和文档状态属于适用范围，不属于授权，单独统计。",
     },
     "results": {
-        "title": "重排把证据排到最前；不带重排的 hybrid 没有超过 dense",
-        "sub": "数据集 v4，test 划分，70 条可回答用例。柱子是 MRR@10 及 95% bootstrap 区间，来自已提交的 CI 运行。",
+        "title": "排序主要靠 dense；FTS 是较弱的通道",
+        "sub": "数据集 v5，70 条已核对的可回答 test 用例。柱子是 MRR@10 及 95% bootstrap 区间，来自已提交的 CI 运行。",
         "axis": "MRR@10",
         "notes": ["PostgreSQL 全文检索", "pgvector 精确检索", "两者的 RRF 融合", "cross-encoder 重排融合后的前 20 个", "离线参考行"],
         "tiles": [
-            ("0", ("越权结果", "128 条用例、所有策略"), True),
-            ("31", ("授权负例", "租户、密级、项目、部门"), False),
-            ("+0.08", ("重排对 dense，MRR@10", "[+0.03, +0.13]，延迟约为 11 倍"), False),
+            ("0", ("越权结果", "333 条用例、所有策略"), True),
+            ("67", ("授权负例", "租户、密级、项目、部门"), False),
+            ("+0.19", ("BM25 对 FTS，MRR@10", "[+0.11, +0.27]，经 Holm 校正"), False),
         ],
-        "foot": "数据来源：benchmarks/reports/heading-context。这是小型虚构语料上的 demo benchmark，不代表生产效果。",
+        "foot": "数据来源：benchmarks/reports/v0.2-baseline。这是小型虚构语料上的 demo benchmark，不代表生产效果。",
     },
     "gate": {
-        "title": "安全门禁拿系统和手写标注做比较",
-        "sub": "预期的可见范围由人对照访问标签写出，绝不由被检验的 policy compiler 生成。",
-        "labels": ["visibility.yaml", "人工标注的可见文档", "按身份列出，只认当前版本", "`data/eval/v5`"],
+        "title": "安全门禁拿系统和独立写出的标注做比较",
+        "sub": "预期的可见范围来自访问标签：v4 由人手写，v5 由决策表推导，绝不由被检验的 policy compiler 生成。",
+        "labels": ["visibility.yaml", "标注的可见文档", "按身份列出，只认当前版本", "`data/eval/v5`"],
         "system": ["被测系统", "公开 API + demo token", "每个身份一个 token", "`/retrieval/chunks · /retrieval/search`"],
         "checks": "ga-eval run",
         "steps": [
             ("1 · 列表检查", ["每个身份能列出的全部 chunk", "必须与它的可见集合完全一致", "覆盖没有被任何查询检索到的文档"]),
-            ("2 · 逐条结果检查", ["128 条用例 × 每种策略", "每个 chunk：文档可见", "且来自当前版本"]),
+            ("2 · 逐条结果检查", ["333 条用例 × 每种策略", "每个 chunk：文档可见", "且来自当前版本"]),
         ],
         "outcomes": [
             ("多出文档或返回旧版本", ["记为越权：退出码 2", "CI 任务失败"], "rose"),
@@ -423,7 +423,7 @@ ZH = {
             ("0 条越权", ["生成报告", "可以发布"], "green"),
         ],
         "foot": [
-            "31 条用例专门去够身份无权查看的文档：别的租户、更高的密级、别的项目或部门。",
+            "67 条用例专门去够身份无权查看的文档：别的租户、更高的密级、别的项目或部门。",
             "在运行中的环境里把一篇 restricted 文档改标成 public，门禁就会失败——门禁本身就是这样验证的。",
         ],
     },
