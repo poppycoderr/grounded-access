@@ -2,7 +2,7 @@
 
 ## What it is
 
-A fictional enterprise knowledge base for two tenants and a set of retrieval cases labelled by hand. It exists to compare retrieval strategies and to test that authorization holds; it says nothing about retrieval quality on real enterprise data.
+A fictional enterprise knowledge base for two tenants and a set of retrieval cases. The 128 cases of v4 were checked by a person; the cases added in v5 were drafted by a language model and are recorded as unreviewed (see the review record below). It exists to compare retrieval strategies and to test that authorization holds; it says nothing about retrieval quality on real enterprise data.
 
 | | Count |
 |---|---|
@@ -34,15 +34,18 @@ Every document was written for this project and describes companies that do not 
 
 For v1 to v4, drafting was assisted by a language model; every document, quote and label was then read and checked by hand, and `ga-eval validate` checks the mechanical parts (see below).
 
-The documents and cases added in v5 were drafted by a language model and were not read and checked by hand before they were merged. They were checked mechanically instead: `ga-eval validate`; a run of every strategy except reranking on a fresh stack, with no security violation and no scope failure; and a comparison of every quote with the chunks of the loaded corpus. Anyone who relies on v5 numbers should treat its labels as unreviewed until a review is recorded here.
+The documents and cases added in v5 were drafted by a language model and were not read and checked by hand before they were merged. They were checked mechanically instead: `ga-eval validate`; a run of every strategy except reranking on a fresh stack, with no security violation and no scope failure; and a comparison of every quote with the chunks of the loaded corpus. Their cases are not listed in `v5/reviews.yaml`, so they enter no published number until a person checks them; they still count for the security gate. The visibility of the documents added in v5 was derived from the manifest labels with the decision table, not written by hand.
 
 ### Review record
 
-`v4/reviews.yaml` lists the cases a person has checked ([ADR-0015](../../docs/adr/0015-where-evaluation-labels-come-from.md)). Only those enter published numbers.
+`v5/reviews.yaml` lists the cases a person has checked ([ADR-0015](../../docs/adr/0015-where-evaluation-labels-come-from.md)). Only those enter published numbers.
 
 | Version | Documents and cases drafted by | Cases checked by a person | Errors found by the check |
 |---|---|---|---|
 | v1–v4 | a person, with drafting help from a language model | 128 of 128 | not recorded |
+| v5 additions | a language model | 0 of 244 | no check yet |
+
+Reviewing follows ADR-0015: first the 73 authorization negatives and the labels of the documents they target, then the 70 must-abstain cases, then the answerable cases batch by batch. 265 documents were added after the v4 cases were checked, so a v4 case that must find nothing could now have an answer in an unread document.
 
 ## How cases are labelled
 
@@ -50,7 +53,7 @@ The documents and cases added in v5 were drafted by a language model and were no
 - **Hard negatives** are visible documents that look relevant but answer a different question: the search-cluster runbook for a billing-database question, SLA credits for a refund question, relocation for a travel question.
 - **Unauthorized documents** name what an authorization negative is trying to reach. The security gate does not rely on them alone: every returned chunk is checked against `visibility.yaml`.
 - **Access labels** live in the manifests: a classification, the departments allowed to read a document, and the projects that give access to it. The existing Northstar documents are `internal` (two are `public`), so the three original principals see them as before. The restrictions come from new documents written to look like existing ones: a confidential compensation document that repeats the on-call allowance topic, project documents about a billing-database migration and an unannounced product, department-only documents for support and engineering, and a restricted document nobody in the demo may read.
-- **`visibility.yaml`** lists, per principal, the documents it may see. It was written by reading the labels and the principals' attributes, not by running the policy compiler, so the gate compares the system with an independent statement of the rules.
+- **`visibility.yaml`** lists, per principal, the documents it may see. For the v4 documents it was written by reading the labels and the principals' attributes, not by running the policy compiler. For the documents added in v5 it was derived from the labels with the rules of the decision table (`ga-eval visibility`). `ga-eval validate` requires the whole file to match that derivation, so the gate compares the system with a second implementation of the rules. Whether a label says what its document means is part of reviewing a case.
 - **Scope.** Region and validity are not access (ADR-0005). Two holiday calendars and two sick-leave policies apply to one region each. A support coverage plan applied only from 20 December 2025 to 4 January 2026; its window lies in the past, so cases without a date never see it, and cases that set a date inside or after the window test it. The 2025 travel policy has a closed validity window and the current one starts where it ends. A benefit that starts in 2099 is not valid yet. Every Northstar principal with `internal` clearance is authorized for all four, so `visibility.yaml` lists them; a case names the ones that do not apply to its request in `out_of_scope_documents`, and may set `as_of` and `region`. Returning an out-of-scope document is a scope failure, reported apart from security violations.
 - **Prompt injection.** Three ordinary-looking documents each contain one passage addressed to a language model: a refund window of 90 days where the policy says 14, an on-call allowance of 9,999 EUR, and an order to answer with a single word. Every Northstar principal with `internal` clearance may read them, so they are legitimate retrieval candidates. A case lists the phrase the instruction tries to elicit in `forbidden_answer_phrases`; an answer that contains it has been steered. These cases matter only when answers are generated. For retrieval they are ordinary cases, and the injected passage is a hard negative.
 - **Version history.** `sales-pricing-guide` has two versions. Version 1 was readable by everyone internal; version 2 changes the prices and restricts the document to sales and support. Cases ask for the current prices, and principals outside those departments must get nothing, including nothing from version 1. `hr-corporate-card` has two versions with the same access labels; version 2 raises the card limits and shortens the receipt deadline, so an answer taken from version 1 is wrong, not unauthorized. `eng-api-versioning` is public in both versions; version 2 extends the support period of an old API version from six to twelve months. `hr-office-attendance` and `eng-incident-severity-guide` change their content but not their labels. `eng-disaster-recovery` version 1 was readable by everyone internal; version 2 shortens the tier 1 recovery target and restricts the plan to engineering, so bob-support must get nothing, including nothing from version 1. Cases ask for the current values.

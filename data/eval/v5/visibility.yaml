@@ -1,6 +1,7 @@
-# Human-labelled expected visible documents per principal, written from the access labels in data/manifests and the attributes in
-# data/principals.yaml by reading them, not by running the policy compiler. The security gate compares what the system returns against this
-# file. Every listed document is visible in its current version only. Visibility is about access only: a document that applies to another
+# Expected visible documents per principal. For the v4 documents it was written by hand from the access labels in data/manifests and the
+# attributes in data/principals.yaml; for the documents added in v5 it was derived from them with the rules of the decision table
+# (`ga-eval visibility`). It is never produced by the policy compiler, and `ga-eval validate` requires it to match the derivation. The security
+# gate compares what the system returns against this file. Every listed document is visible in its current version only. Visibility is about access only: a document that applies to another
 # region or another year is still listed here, because the principal is authorized to read it. Cases say what is out of scope.
 principals:
   # engineering, project atlas, clearance internal: the unrestricted documents, the Atlas plan and the engineering-only documents
