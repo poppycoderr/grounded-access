@@ -58,6 +58,8 @@ Upgrading from v0.1.0 needs a new database and the corpus loaded again; see [upg
 
 ### Evaluation
 
+- **Baseline on dataset v5** ([`v0.2-baseline`](./benchmarks/reports/v0.2-baseline/README.md)), the CI run that ends step 1 of the v0.2 plan. The READMEs and their results chart now show it. On the 70 reviewed answerable `test` cases, ranked against 300 documents, BM25 is ahead of FTS again (MRR@10 +0.19 [+0.11, +0.27]), plain hybrid stays below dense, and reranking no longer beats dense (+0.02 [−0.04, +0.08]).
+
 - **A change is decided by one declared comparison** ([ADR-0016](./docs/adr/0016-how-a-tuning-result-is-decided.md)). `ga-eval compare --primary STRATEGY METRIC` marks the comparison a change declared before it was evaluated; every other comparison, and the strategy-pair table of `ga-eval run`, is exploratory and judged by bootstrap p-values Holm-adjusted across the table. Dataset v5 gains a `holdout` split of 39 cases, a seeded and stratified fifth of the `test` cases v5 added, which `ga-eval run` reads only with `--split holdout`.
 
 - **Published numbers come only from cases a person checked** ([ADR-0015](./docs/adr/0015-where-evaluation-labels-come-from.md)). `data/eval/<version>/reviews.yaml` lists the reviewed cases; report summaries, paired comparisons, `ga-eval compare` and the answer summary count only those, and unreviewed cases appear in a table marked as not a result while still counting for the security gate. The review record is not part of the dataset digest. `ga-eval validate` now also requires `visibility.yaml` to match the visible sets derived from the manifest labels with the decision table, and `ga-eval visibility` prints them. All 128 v4 cases are recorded as reviewed. Non-negotiable rule 9 in `AGENTS.md`.

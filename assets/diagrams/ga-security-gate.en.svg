@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 520" width="1120" height="520"
      role="img" aria-labelledby="ttl dsc" style="max-width:100%;height:auto">
-  <title id="ttl">The security gate compares the system with hand-written labels</title>
-  <desc id="dsc">The expected visibility is written by a person from the access labels, never produced by the policy compiler it checks.</desc>
+  <title id="ttl">The security gate compares the system with labels written apart from it</title>
+  <desc id="dsc">The expected visibility comes from the access labels, by hand for v4 and derived for v5, never from the policy compiler it checks.</desc>
   <defs>
     <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk" d="M0 0 L10 5 L0 10 z"/></marker>
     <marker id="ar-v" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-v" d="M0 0 L10 5 L0 10 z"/></marker>
@@ -45,11 +45,11 @@
   </style>
   <rect class="bg" width="1120" height="520" rx="18"/>
   <text class="kicker" x="40" y="44">GROUNDED ACCESS · SECURITY GATE</text>
-  <text class="title" x="40" y="76">The security gate compares the system with hand-written labels</text>
-  <text class="sub" x="40" y="101">The expected visibility is written by a person from the access labels, never produced by the policy compiler it checks.</text>
+  <text class="title" x="40" y="76">The security gate compares the system with labels written apart from it</text>
+  <text class="sub" x="40" y="101">The expected visibility comes from the access labels, by hand for v4 and derived for v5, never from the policy compiler it checks.</text>
   <rect class="amber" x="40" y="150" width="300" height="104" rx="12"/>
   <text class="lbl-sm" x="56" y="175">visibility.yaml</text>
-  <text class="txt" x="56" y="195">hand-labelled visible documents</text>
+  <text class="txt" x="56" y="195">labelled visible documents</text>
   <text class="txt" x="56" y="213">per principal, current version only</text>
   <text class="mono" x="56" y="231">data/eval/v5</text>
   <rect class="blue" x="40" y="284" width="300" height="104" rx="12"/>
@@ -66,7 +66,7 @@
   <text class="txt" x="434" y="253">covers documents no query retrieves</text>
   <rect class="violet" x="418" y="290" width="304" height="104" rx="12"/>
   <text class="lbl-sm" x="434" y="315">2 · Per-result check</text>
-  <text class="txt" x="434" y="335">128 cases × every strategy</text>
+  <text class="txt" x="434" y="335">333 cases × every strategy</text>
   <text class="txt" x="434" y="353">each chunk: visible document</text>
   <text class="txt" x="434" y="371">and current version</text>
   <path class="ln" d="M340 202 L398 222" marker-end="url(#ar)"/>
@@ -86,6 +86,6 @@
   <text class="txt" x="816" y="375">the report is written</text>
   <text class="txt" x="816" y="393">and can be published</text>
   <path class="ln" d="M740 275 L798 372" marker-end="url(#ar)"/>
-  <text class="foot" x="40" y="462">31 cases try to reach a document the principal may not see: another tenant, a higher classification, another project or department.</text>
+  <text class="foot" x="40" y="462">67 cases try to reach a document the principal may not see: another tenant, a higher classification, another project or department.</text>
   <text class="foot" x="40" y="484">Relabelling a restricted document as public on a running stack makes the gate fail, which is how the gate itself was checked.</text>
 </svg>

@@ -5,7 +5,7 @@ Grounded Access v0.1 is a reference system: it shows one way to put authorizatio
 ## Do not use it as it is for
 
 - **Real identities.** Tokens are signed with a demo key that is published in this repository so that anyone can mint a token for the local stack. There is no identity provider integration, no token revocation and no key rotation.
-- **Real data.** The corpus is fictional. Quality has been measured only on its 35 labelled documents; cost has been measured up to 33,283 chunks of generated distractors on one laptop ([scale run](../../benchmarks/reports/v0.2-scale/README.md)).
+- **Real data.** The corpus is fictional. Quality has been measured only on its 300 documents, and published numbers come from the 128 cases a person checked; cost has been measured up to 33,283 chunks of generated distractors on one laptop ([scale run](../../benchmarks/reports/v0.2-scale/README.md)).
 - **Unreviewed answers.** Generated answers are wrong often enough to matter. See below.
 
 ## Authorization
@@ -21,7 +21,7 @@ Grounded Access v0.1 is a reference system: it shows one way to put authorizatio
 - **Small-scale only.** Vector search is exact and linear in the number of passages the caller may read. There is no approximate index. Measured at 33,283 chunks, PostgreSQL does not choose one, and forcing it loses most of exact search's results for a principal who may read 1.2% of the chunks ([HNSW report](../../benchmarks/reports/v0.2-hnsw/README.md), ADR-0002). At 33,283 chunks a sequential dense search takes about 69 ms and the keyword channel about 115 ms; with 16 clients on a 6-CPU container both wait several hundred milliseconds ([scale run](../../benchmarks/reports/v0.2-scale/README.md)).
 - **A passage is indexed with its heading path and nothing else from its document.** This is new after v0.1. On the test split it shows no detectable gain, and the case that motivated it is still missed by every strategy, because the phrase the question uses is in the document's introduction and not in a heading. Adding a document title to every chunk also lifts unrelated passages of a document whose title matches the question ([analysis](../evaluation/heading-context-analysis.md)).
 - **Plain hybrid search does not beat dense search on this dataset.** On paraphrased questions the keyword channel returns confident wrong passages and fusion demotes correct results (cases 1 and 6).
-- **Reranking helps ranking, not recall,** and costs about ten times the request latency of dense search on the CI runner of the [published run](../../benchmarks/reports/metrics-v2/README.md) (eleven in the run before it; the ratio depends on the machine). It still ranks a labelled look-alike above the evidence in 8 of 29 cases.
+- **Reranking repairs fusion but does not beat dense search** on dataset v5 (MRR@10 +0.02 [−0.04, +0.08] against dense, [baseline](../../benchmarks/reports/v0.2-baseline/README.md)), and costs about sixteen times the median request latency of dense search on that CI runner; the ratio depends on the machine. It ranks a labelled look-alike above the evidence in 9 of 29 cases, as dense does.
 - English only: the full-text configuration, the embedding model and the reranker are English.
 - Only Markdown and plain text are ingested. There is no PDF, HTML or office-document parsing, no tables, no images.
 - With 70 answerable test cases the confidence intervals are wide. No difference in Recall@10 between strategies is detectable.
